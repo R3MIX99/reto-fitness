@@ -95,9 +95,21 @@ export default function DashboardPage() {
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
 
+  const activeGroup = groups[0] ?? null;
   const { data: todayPts = 0 } = useTodayScore(groupId);
   const { data: streak = 0 } = useStreak(groupId);
   const { data: leaderboard = [] } = useLeaderboard(groupId);
+
+  const effectiveLeaderboard = leaderboard.length > 0
+    ? leaderboard
+    : activeGroup?.members.map((m, i) => ({
+        user_id: m.user_id,
+        full_name: m.full_name,
+        avatar_url: m.avatar_url,
+        total_points: 0,
+        position: i + 1,
+        is_leader: i === 0,
+      })) ?? [];
   const { data: goals = [] } = useGoals();
   const { data: todayChecks = [] } = useTodayChecks(groupId);
 
@@ -118,9 +130,9 @@ export default function DashboardPage() {
   });
 
   // Find rival: the person just above current user in leaderboard
-  const myEntry = leaderboard.find((e) => e.user_id === user?.id);
+  const myEntry = effectiveLeaderboard.find((e) => e.user_id === user?.id);
   const myPos = myEntry?.position ?? 0;
-  const rival = myPos > 1 ? leaderboard.find((e) => e.position === myPos - 1) : leaderboard.find((e) => e.user_id !== user?.id);
+  const rival = myPos > 1 ? effectiveLeaderboard.find((e) => e.position === myPos - 1) : effectiveLeaderboard.find((e) => e.user_id !== user?.id);
 
   // Streak message
   function streakMsg() {
@@ -205,11 +217,11 @@ export default function DashboardPage() {
       )}
 
       {/* Leaderboard */}
-      {leaderboard.length > 0 && (
+      {effectiveLeaderboard.length > 0 && (
         <div>
           <p className="text-[12px] text-[var(--color-muted)] mb-1.5">Tabla de jugadores</p>
           <div className="bg-[var(--color-bg-card)] rounded-[18px] px-4">
-            {leaderboard.map((entry, i) => (
+            {effectiveLeaderboard.map((entry, i) => (
               <PlayerRow
                 key={entry.user_id}
                 position={entry.position}
@@ -217,7 +229,7 @@ export default function DashboardPage() {
                 avatar_url={entry.avatar_url}
                 total_points={entry.total_points}
                 isCurrent={entry.user_id === user?.id}
-                isLast={i === leaderboard.length - 1}
+                isLast={i === effectiveLeaderboard.length - 1}
               />
             ))}
           </div>
