@@ -27,7 +27,7 @@ interface WelcomeSplashProps {
   maxPoints?: number;
 }
 
-export function WelcomeSplash({ pointsToday = 0, maxPoints = 11 }: WelcomeSplashProps) {
+export function WelcomeSplash({ pointsToday = 0, maxPoints = 13 }: WelcomeSplashProps) {
   const { displayName } = useProfile();
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);

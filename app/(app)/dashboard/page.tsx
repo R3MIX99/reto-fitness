@@ -5,7 +5,7 @@ import { Flame } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useMyGroups, useLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
 
-const TOTAL_PTS = 11;
+const TOTAL_PTS = 13;
 const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to"];
 
 function getNextSunday(): string {

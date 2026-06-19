@@ -14,6 +14,7 @@ interface DaySummary {
   dietTotal: number;
   goalsDone: number;
   goalsTotal: number;
+  pts: number;
   pct: number;
 }
 
@@ -49,7 +50,7 @@ function Donut({ pct, color, size = 44 }: { pct: number; color: string; size?: n
 
 // ── Bar Chart ──────────────────────────────────────────────────────────────
 
-function BarChart({ checks, view, month }: { checks: DailyCheck[]; view: CategoryView; month: string }) {
+function BarChart({ checks, view, month, dietTotal, goalsTotal }: { checks: DailyCheck[]; view: CategoryView; month: string; dietTotal: number; goalsTotal: number }) {
   const cfg = CATEGORY_CONFIG[view];
   const weeks = [1, 2, 3, 4];
   const weekPcts = weeks.map((w) => {
@@ -57,10 +58,25 @@ function BarChart({ checks, view, month }: { checks: DailyCheck[]; view: Categor
     const end = w * 7;
     const days: number[] = [];
     for (let d = start; d <= end; d++) days.push(d);
-
     const dayStrs = days.map((d) => `${month}-${String(d).padStart(2, "0")}`);
+
+    if (view === "general") {
+      const maxPts = days.length * 13;
+      let pts = 0;
+      for (const ds of dayStrs) {
+        const dc = checks.filter((c) => c.check_date === ds);
+        const gymPts = dc.some((c) => c.kind === "gym") ? 3 : 0;
+        const dietDone = dc.filter((c) => c.kind === "diet").length;
+        const goalDone = dc.filter((c) => c.kind === "goal").length;
+        pts += gymPts + (dietTotal > 0 ? Math.floor((dietDone / dietTotal) * 5) : 0) + (goalsTotal > 0 ? Math.floor((goalDone / goalsTotal) * 5) : 0);
+      }
+      return Math.min(100, Math.round((pts / maxPts) * 100));
+    }
     const relevant = checks.filter((c) => dayStrs.includes(c.check_date) && viewMatchesKind(view, c.kind));
-    return Math.min(100, relevant.length * 14);
+    if (view === "ejercicio") return Math.min(100, Math.round((new Set(relevant.map((c) => c.check_date)).size / days.length) * 100));
+    if (view === "dieta") return Math.min(100, dietTotal > 0 ? Math.round((relevant.length / (days.length * dietTotal)) * 100) : 0);
+    if (view === "metas") return Math.min(100, goalsTotal > 0 ? Math.round((relevant.length / (days.length * goalsTotal)) * 100) : 0);
+    return 0;
   });
 
   const maxH = 70;
@@ -85,41 +101,42 @@ function BarChart({ checks, view, month }: { checks: DailyCheck[]; view: Categor
 // ── Calendar ───────────────────────────────────────────────────────────────
 
 function CalendarGrid({
-  checks, view, expanded, onToggleExpand,
+  checks, view, expanded, onToggleExpand, dietTotal, goalsTotal,
 }: {
   checks: DailyCheck[];
   view: CategoryView;
   expanded: boolean;
   onToggleExpand: () => void;
+  dietTotal: number;
+  goalsTotal: number;
 }) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const cfg = CATEGORY_CONFIG[view];
   const now = new Date();
   const today = now.getDate();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const firstDow = new Date(now.getFullYear(), now.getMonth(), 1).getDay(); // 0=Sun
-  const offset = firstDow === 0 ? 6 : firstDow - 1; // Mon-first grid
+  const firstDow = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+  const offset = firstDow === 0 ? 6 : firstDow - 1;
 
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  function isDone(day: number) {
-    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    if (view === "general") {
-      const dayChecks = checks.filter((c) => c.check_date === dateStr);
-      return dayChecks.length >= 3;
-    }
-    return checks.some((c) => c.check_date === dateStr && viewMatchesKind(view, c.kind));
-  }
-
   function getDaySummary(day: number): DaySummary {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    const dayChecks = checks.filter((c) => c.check_date === dateStr);
-    const gym = dayChecks.some((c) => c.kind === "gym");
-    const diet = dayChecks.filter((c) => c.kind === "diet");
-    const goals = dayChecks.filter((c) => c.kind === "goal");
-    const done = (gym ? 1 : 0) + diet.length + goals.length;
-    const total = 1 + 4 + 6;
-    return { day, gym, dietDone: diet.length, dietTotal: 4, goalsDone: goals.length, goalsTotal: 6, pct: Math.round((done / total) * 100) };
+    const dc = checks.filter((c) => c.check_date === dateStr);
+    const gym = dc.some((c) => c.kind === "gym");
+    const dietDone = dc.filter((c) => c.kind === "diet").length;
+    const goalsDone = dc.filter((c) => c.kind === "goal").length;
+    const gymPts = gym ? 3 : 0;
+    const dietPts = dietTotal > 0 ? Math.floor((dietDone / dietTotal) * 5) : 0;
+    const goalPts = goalsTotal > 0 ? Math.floor((goalsDone / goalsTotal) * 5) : 0;
+    const pts = gymPts + dietPts + goalPts;
+    return { day, gym, dietDone, dietTotal, goalsDone, goalsTotal, pts, pct: Math.round((pts / 13) * 100) };
+  }
+
+  function isDone(day: number) {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    if (view === "general") return getDaySummary(day).pts === 13;
+    return checks.some((c) => c.check_date === dateStr && viewMatchesKind(view, c.kind));
   }
 
   const cellSize = expanded ? 42 : 36;
@@ -178,20 +195,20 @@ function CalendarGrid({
             <div className="mt-3 pt-3 border-t border-[#1c1c1c]">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[13px] font-medium">Día {selectedDay}</span>
-                <span className="text-[12px] text-warm font-medium">{s.pct}% completado</span>
+                <span className="text-[12px] text-warm font-medium">{s.pts}/13 pts</span>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-[12px]">
                   <span className="text-[var(--color-muted)]">Ejercicio</span>
-                  <span>{s.gym ? "✓" : "—"}</span>
+                  <span>{s.gym ? "3 pts" : "0/3 pts"}</span>
                 </div>
                 <div className="flex justify-between text-[12px]">
-                  <span className="text-[var(--color-muted)]">Dieta</span>
-                  <span>{s.dietDone}/{s.dietTotal}</span>
+                  <span className="text-[var(--color-muted)]">Dieta ({s.dietDone}/{s.dietTotal})</span>
+                  <span>{s.dietTotal > 0 ? Math.floor((s.dietDone / s.dietTotal) * 5) : 0}/5 pts</span>
                 </div>
                 <div className="flex justify-between text-[12px]">
-                  <span className="text-[var(--color-muted)]">Metas</span>
-                  <span>{s.goalsDone}/{s.goalsTotal}</span>
+                  <span className="text-[var(--color-muted)]">Metas ({s.goalsDone}/{s.goalsTotal})</span>
+                  <span>{s.goalsTotal > 0 ? Math.floor((s.goalsDone / s.goalsTotal) * 5) : 0}/5 pts</span>
                 </div>
               </div>
             </div>
@@ -220,35 +237,45 @@ function viewMatchesKind(view: CategoryView, kind: string): boolean {
   return false;
 }
 
-function calcPct(checks: DailyCheck[], view: CategoryView): number {
+function calcPct(checks: DailyCheck[], view: CategoryView, dietTotal: number, goalsTotal: number): number {
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const today = now.getDate();
   if (today === 0) return 0;
 
   if (view === "general") {
-    const total = today * 11;
-    const done = checks.length;
-    return Math.min(100, Math.round((done / total) * 100));
+    const maxPts = today * 13;
+    let pts = 0;
+    for (let d = 1; d <= today; d++) {
+      const ds = `${month}-${String(d).padStart(2, "0")}`;
+      const dc = checks.filter((c) => c.check_date === ds);
+      const gymPts = dc.some((c) => c.kind === "gym") ? 3 : 0;
+      const dietDone = dc.filter((c) => c.kind === "diet").length;
+      const goalDone = dc.filter((c) => c.kind === "goal").length;
+      pts += gymPts + (dietTotal > 0 ? Math.floor((dietDone / dietTotal) * 5) : 0) + (goalsTotal > 0 ? Math.floor((goalDone / goalsTotal) * 5) : 0);
+    }
+    return Math.min(100, Math.round((pts / maxPts) * 100));
   }
   if (view === "ejercicio") {
     const done = new Set(checks.filter((c) => c.kind === "gym").map((c) => c.check_date)).size;
     return Math.round((done / today) * 100);
   }
   if (view === "dieta") {
+    if (dietTotal === 0) return 0;
     const done = checks.filter((c) => c.kind === "diet").length;
-    return Math.min(100, Math.round((done / (today * 4)) * 100));
+    return Math.min(100, Math.round((done / (today * dietTotal)) * 100));
   }
   if (view === "metas") {
+    if (goalsTotal === 0) return 0;
     const done = checks.filter((c) => c.kind === "goal").length;
-    return Math.min(100, Math.round((done / (today * 6)) * 100));
+    return Math.min(100, Math.round((done / (today * goalsTotal)) * 100));
   }
   return 0;
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────
 
-export function StatsSection({ checks, view, onViewChange }: StatsSectionProps) {
+export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange }: StatsSectionProps) {
   const cardsRef = useRef<HTMLDivElement>(null);
   const [thumbLeft, setThumbLeft] = useState(0);
   const [thumbWidth, setThumbWidth] = useState(24);
@@ -295,7 +322,7 @@ export function StatsSection({ checks, view, onViewChange }: StatsSectionProps) 
   }, [updateThumb]);
 
   const cfg = CATEGORY_CONFIG[view];
-  const pct = calcPct(checks, view);
+  const pct = calcPct(checks, view, dietTotal, goalsTotal);
 
   return (
     <div>
@@ -307,7 +334,7 @@ export function StatsSection({ checks, view, onViewChange }: StatsSectionProps) 
       >
         {ORDER.map((cat) => {
           const c = CATEGORY_CONFIG[cat];
-          const p = calcPct(checks, cat);
+          const p = calcPct(checks, cat, dietTotal, goalsTotal);
           const active = cat === view;
           return (
             <button
@@ -355,7 +382,7 @@ export function StatsSection({ checks, view, onViewChange }: StatsSectionProps) 
               {pct}%
             </span>
           </div>
-          <BarChart checks={checks} view={view} month={month} />
+          <BarChart checks={checks} view={view} month={month} dietTotal={dietTotal} goalsTotal={goalsTotal} />
         </div>
 
         {/* Calendar */}
@@ -364,6 +391,8 @@ export function StatsSection({ checks, view, onViewChange }: StatsSectionProps) 
           view={view}
           expanded={calExpanded}
           onToggleExpand={() => setCalExpanded((e) => !e)}
+          dietTotal={dietTotal}
+          goalsTotal={goalsTotal}
         />
 
         {/* Dots indicator */}

@@ -205,6 +205,20 @@ export function useLast7Days(groupId: string | null) {
   });
 }
 
+export function calcDayPoints(
+  checks: { kind: string }[],
+  goals: { kind: string }[],
+): number {
+  const gymPts = checks.some((c) => c.kind === "gym") ? 3 : 0;
+  const dietTotal = goals.filter((g) => g.kind === "diet").length;
+  const dietDone = checks.filter((c) => c.kind === "diet").length;
+  const goalTotal = goals.filter((g) => g.kind === "goal").length;
+  const goalDone = checks.filter((c) => c.kind === "goal").length;
+  const dietPts = dietTotal > 0 ? Math.floor((dietDone / dietTotal) * 5) : 0;
+  const goalPts = goalTotal > 0 ? Math.floor((goalDone / goalTotal) * 5) : 0;
+  return gymPts + dietPts + goalPts;
+}
+
 export function useTodayScore(groupId: string | null) {
   const { user } = useUser();
   return useQuery({
@@ -214,14 +228,13 @@ export function useTodayScore(groupId: string | null) {
       if (!groupId) return 0;
       const supabase = createClient();
       const today = new Date().toISOString().split("T")[0];
-      type CheckRow = { kind: string; goal_id: string | null };
-      const { data } = await supabase
-        .from("daily_checks")
-        .select("kind, goal_id")
-        .eq("user_id", user!.id)
-        .eq("group_id", groupId)
-        .eq("check_date", today) as unknown as { data: CheckRow[] | null };
-      return (data ?? []).length;
+      type CheckRow = { kind: string };
+      type GoalRow = { kind: string };
+      const [{ data: checks }, { data: goals }] = await Promise.all([
+        supabase.from("daily_checks").select("kind").eq("user_id", user!.id).eq("group_id", groupId).eq("check_date", today) as unknown as { data: CheckRow[] | null },
+        supabase.from("goals").select("kind").eq("user_id", user!.id).eq("active", true) as unknown as { data: GoalRow[] | null },
+      ]);
+      return calcDayPoints(checks ?? [], goals ?? []);
     },
   });
 }
