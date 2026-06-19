@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useMyGroups } from "@/lib/hooks/useGroups";
@@ -18,6 +18,20 @@ export default function PerfilPage() {
   const groupId = groups[0]?.id ?? null;
   const { state: pushState, loading: pushLoading, error: pushError, subscribe } = usePushNotifications(groupId);
   const [showNotifHelp, setShowNotifHelp] = useState(false);
+  const [notifHelpVisible, setNotifHelpVisible] = useState(false);
+
+  useEffect(() => {
+    if (showNotifHelp) {
+      requestAnimationFrame(() => setNotifHelpVisible(true));
+    } else {
+      setNotifHelpVisible(false);
+    }
+  }, [showNotifHelp]);
+
+  function closeNotifHelp() {
+    setNotifHelpVisible(false);
+    setTimeout(() => setShowNotifHelp(false), 250);
+  }
   const router = useRouter();
 
   async function handleSignOut() {
@@ -127,19 +141,26 @@ export default function PerfilPage() {
       {/* Modal: instrucciones para activar notificaciones bloqueadas */}
       {showNotifHelp && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center px-6"
-          style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
-          onClick={() => setShowNotifHelp(false)}
+          className="fixed inset-0 z-[200] flex items-center justify-center px-6 transition-all duration-250"
+          style={{
+            background: notifHelpVisible ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0)",
+            backdropFilter: notifHelpVisible ? "blur(6px)" : "blur(0px)",
+          }}
+          onClick={closeNotifHelp}
         >
           <div
-            className="w-full max-w-sm bg-[#0e0e0e] border border-[#1f1f1f] rounded-[24px] p-6"
+            className="w-full max-w-sm bg-[#0e0e0e] border border-[#1f1f1f] rounded-[24px] p-6 transition-all duration-250"
+            style={{
+              opacity: notifHelpVisible ? 1 : 0,
+              transform: notifHelpVisible ? "scale(1) translateY(0)" : "scale(0.95) translateY(12px)",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-2">
               <span className="font-display font-medium text-[18px]">Activar notificaciones</span>
               <button
-                onClick={() => setShowNotifHelp(false)}
+                onClick={closeNotifHelp}
                 className="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center text-[var(--color-muted)]"
               >
                 <X size={15} strokeWidth={1.5} />
@@ -167,7 +188,7 @@ export default function PerfilPage() {
             </ol>
 
             <button
-              onClick={() => setShowNotifHelp(false)}
+              onClick={closeNotifHelp}
               className="mt-7 w-full py-3 rounded-full bg-[#1a1a1a] text-[13px] text-[var(--color-muted)]"
             >
               Entendido
