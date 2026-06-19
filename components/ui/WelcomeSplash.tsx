@@ -29,7 +29,10 @@ interface WelcomeSplashProps {
 
 export function WelcomeSplash({ pointsToday = 0, maxPoints = 11 }: WelcomeSplashProps) {
   const { displayName } = useProfile();
+  const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
+
+  useEffect(() => { setMounted(true); }, []);
   const [fading, setFading] = useState(false);
   const [quote] = useState(randomQuote);
   const greeting = getGreeting();
@@ -41,7 +44,7 @@ export function WelcomeSplash({ pointsToday = 0, maxPoints = 11 }: WelcomeSplash
     return () => { clearTimeout(fadeTimer); clearTimeout(hideTimer); };
   }, []);
 
-  if (!visible) return null;
+  if (!mounted || !visible) return null;
 
   return (
     <div

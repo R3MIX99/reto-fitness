@@ -229,23 +229,22 @@ export function useCreateGroup() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (name: string): Promise<string> => {
+    mutationFn: async (name: string): Promise<void> => {
       if (!user) throw new Error("No autenticado");
       const supabase = createClient();
 
       const invite_code = Math.random().toString(36).slice(2, 8).toUpperCase();
 
       // invite_code has a DB default; trigger handle_new_group auto-inserts
-      // the owner into group_members and creates group_settings on insert.
-      const { data: group, error } = await supabase
+      // the owner into group_members and creates group_settings.
+      // Avoid .select() after insert to prevent RLS race with the trigger.
+      const { error } = await supabase
         .from("groups")
-        .insert({ name, owner_id: user.id } as never)
-        .select("id")
-        .single() as unknown as { data: { id: string } | null; error: unknown };
+        .insert({ name, owner_id: user.id } as never) as unknown as { error: unknown };
 
-      if (error || !group) throw error ?? new Error("Error al crear grupo");
+      if (error) throw error;
 
-      return group.id;
+      return;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
   });
