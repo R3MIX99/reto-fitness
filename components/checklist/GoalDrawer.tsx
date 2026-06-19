@@ -49,7 +49,7 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
 
           <div className="px-6 pb-10 pt-3">
             <p className="text-[13px] text-[var(--color-muted)] mb-4">
-              {goal ? "Editar" : "Nueva"} {goal?.kind === "diet" ? "comida" : "meta"}
+              {goal ? "Editar" : "Nueva"} {defaultKind === "diet" ? "comida" : "meta"}
             </p>
 
             <input
@@ -57,7 +57,7 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
-              placeholder={goal?.kind === "diet" ? "Ej. Desayuno" : "Ej. Leer 20 min"}
+              placeholder={goal?.kind === "diet" ? "Ej. Almuerzo, cena, snack…" : "Ej. Leer 20 min"}
               className="w-full bg-[#1a1a1a] rounded-[12px] px-4 py-3 text-[15px] outline-none placeholder:text-[var(--color-muted)] mb-4"
             />
 
