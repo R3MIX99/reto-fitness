@@ -205,3 +205,18 @@ export function useDeleteGoal() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["goals"] }),
   });
 }
+
+export function useReorderGoals() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      const supabase = createClient();
+      await Promise.all(
+        orderedIds.map((id, i) =>
+          supabase.from("goals").update({ position: i + 1 } as never).eq("id", id)
+        )
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["goals"] }),
+  });
+}

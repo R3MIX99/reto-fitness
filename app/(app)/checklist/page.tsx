@@ -8,6 +8,7 @@ import {
   useMarkCheck,
   useUpsertGoal,
   useDeleteGoal,
+  useReorderGoals,
 } from "@/lib/hooks/useChecklist";
 import type { Goal, GoalKind, CategoryView } from "@/lib/hooks/useChecklist";
 import { useMyGroups } from "@/lib/hooks/useGroups";
@@ -26,6 +27,7 @@ export default function ChecklistPage() {
   const markCheck = useMarkCheck(groupId);
   const upsertGoal = useUpsertGoal();
   const deleteGoal = useDeleteGoal();
+  const reorderGoals = useReorderGoals();
 
   const [view, setView] = useState<CategoryView>("general");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -92,6 +94,7 @@ export default function ChecklistPage() {
           onMark={handleMark}
           onAdd={() => openAdd("diet")}
           onEdit={openEdit}
+          onReorder={(ids) => reorderGoals.mutate(ids)}
           loading={markCheck.isPending}
         />
 
@@ -102,6 +105,7 @@ export default function ChecklistPage() {
           onMark={handleMark}
           onAdd={() => openAdd("goal")}
           onEdit={openEdit}
+          onReorder={(ids) => reorderGoals.mutate(ids)}
           loading={markCheck.isPending}
         />
       </div>
