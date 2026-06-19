@@ -2,8 +2,10 @@
 
 import { useUser } from "@/lib/hooks/useUser";
 import { useProfile } from "@/lib/hooks/useProfile";
+import { useMyGroups } from "@/lib/hooks/useGroups";
+import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
 import { useRouter } from "next/navigation";
-import { LogOut, ChevronLeft, Edit } from "lucide-react";
+import { LogOut, ChevronLeft, Edit, Bell, BellOff } from "lucide-react";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { ThemeSwitch } from "@/components/ui/ThemeSwitch";
 import Link from "next/link";
@@ -11,6 +13,9 @@ import Link from "next/link";
 export default function PerfilPage() {
   const { signOut } = useUser();
   const { avatarUrl, displayName, uploadAvatar } = useProfile();
+  const { data: groups = [] } = useMyGroups();
+  const groupId = groups[0]?.id ?? null;
+  const { state: pushState, loading: pushLoading, subscribe } = usePushNotifications(groupId);
   const router = useRouter();
 
   async function handleSignOut() {
@@ -69,6 +74,28 @@ export default function PerfilPage() {
               <span className="text-[13px]">Idioma</span>
               <span className="text-[13px] text-[var(--color-muted)]">Español</span>
             </div>
+            {pushState !== "unsupported" && (
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-[13px]">Notificaciones</span>
+                {pushState === "granted" ? (
+                  <span className="flex items-center gap-1.5 text-[12px] text-warm">
+                    <Bell size={13} strokeWidth={1.5} /> Activas
+                  </span>
+                ) : pushState === "denied" ? (
+                  <span className="flex items-center gap-1.5 text-[12px] text-[var(--color-muted)]">
+                    <BellOff size={13} strokeWidth={1.5} /> Bloqueadas
+                  </span>
+                ) : (
+                  <button
+                    onClick={subscribe}
+                    disabled={pushLoading}
+                    className="text-[12px] text-accent font-medium disabled:opacity-50"
+                  >
+                    {pushLoading ? "Activando…" : "Activar"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
