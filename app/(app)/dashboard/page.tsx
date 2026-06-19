@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Flame } from "lucide-react";
+import { Flame, Dumbbell, UtensilsCrossed, Target } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useMyGroups, useLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
+import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
 
 const TOTAL_PTS = 13;
 const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to"];
@@ -97,8 +98,25 @@ export default function DashboardPage() {
   const { data: todayPts = 0 } = useTodayScore(groupId);
   const { data: streak = 0 } = useStreak(groupId);
   const { data: leaderboard = [] } = useLeaderboard(groupId);
+  const { data: goals = [] } = useGoals();
+  const { data: todayChecks = [] } = useTodayChecks(groupId);
 
   const pct = Math.min(100, Math.round((todayPts / TOTAL_PTS) * 100));
+  // Pending tasks
+  const gymDone = todayChecks.some((c) => c.kind === "gym");
+  const pendingItems: { icon: React.ReactNode; label: string }[] = [];
+  if (!gymDone) {
+    pendingItems.push({ icon: <Dumbbell size={13} strokeWidth={1.5} className="text-accent" />, label: "Ejercicio de hoy" });
+  }
+  goals.filter((g) => g.kind === "diet").forEach((g) => {
+    const done = todayChecks.some((c) => c.goal_id === g.id);
+    if (!done) pendingItems.push({ icon: <UtensilsCrossed size={13} strokeWidth={1.5} className="text-warm" />, label: g.title });
+  });
+  goals.filter((g) => g.kind === "goal").forEach((g) => {
+    const done = todayChecks.some((c) => c.goal_id === g.id);
+    if (!done) pendingItems.push({ icon: <Target size={13} strokeWidth={1.5} className="text-warm" />, label: g.title });
+  });
+
   // Find rival: the person just above current user in leaderboard
   const myEntry = leaderboard.find((e) => e.user_id === user?.id);
   const myPos = myEntry?.position ?? 0;
@@ -161,6 +179,30 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Tareas pendientes */}
+      {pendingItems.length > 0 && groupId && (
+        <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4">
+          <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-3">
+            Pendientes hoy · {pendingItems.length} {pendingItems.length === 1 ? "tarea" : "tareas"}
+          </p>
+          <div className="flex flex-col gap-0">
+            {pendingItems.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 py-2.5"
+                style={{ borderBottom: i < pendingItems.length - 1 ? "0.5px solid #1c1c1c" : "none" }}
+              >
+                <div className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center flex-shrink-0">
+                  {item.icon}
+                </div>
+                <span className="text-[13px] flex-1">{item.label}</span>
+                <div className="w-2 h-2 rounded-full bg-[#2a2a2a] flex-shrink-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Leaderboard */}
       {leaderboard.length > 0 && (
