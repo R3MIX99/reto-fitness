@@ -124,27 +124,33 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      {/* Sheet: instrucciones para activar notificaciones bloqueadas */}
+      {/* Modal: instrucciones para activar notificaciones bloqueadas */}
       {showNotifHelp && (
         <div
-          className="fixed inset-0 z-[70] bg-black/60 flex items-end"
+          className="fixed inset-0 z-[200] flex items-center justify-center px-6"
+          style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
           onClick={() => setShowNotifHelp(false)}
         >
           <div
-            className="w-full bg-[#0e0e0e] rounded-t-[26px] px-5 pb-10 pt-4"
+            className="w-full max-w-sm bg-[#0e0e0e] border border-[#1f1f1f] rounded-[24px] p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1 rounded-full bg-[#2a2a2a] mx-auto mb-4" />
-            <div className="flex items-center justify-between mb-4">
-              <span className="font-display font-medium text-[17px]">Activar notificaciones</span>
-              <button onClick={() => setShowNotifHelp(false)}>
-                <X size={18} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+            {/* Header */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-display font-medium text-[18px]">Activar notificaciones</span>
+              <button
+                onClick={() => setShowNotifHelp(false)}
+                className="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center text-[var(--color-muted)]"
+              >
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
-            <p className="text-[13px] text-[var(--color-muted)] mb-5">
-              Las notificaciones están bloqueadas en tu navegador. Sigue estos pasos:
+
+            <p className="text-[13px] text-[var(--color-muted)] mb-6">
+              Las notificaciones están bloqueadas. Sigue estos pasos para activarlas:
             </p>
-            <ol className="space-y-3">
+
+            <ol className="space-y-4">
               {[
                 'Toca el ícono 🔒 en la barra de dirección del navegador.',
                 'Selecciona "Permisos" o "Configuración del sitio".',
@@ -152,13 +158,20 @@ export default function PerfilPage() {
                 "Recarga la página y toca Activar de nuevo.",
               ].map((step, i) => (
                 <li key={i} className="flex gap-3 items-start">
-                  <span className="w-5 h-5 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-[10px] text-[var(--color-muted)] flex-shrink-0 mt-0.5">
+                  <span className="w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-[11px] text-warm flex-shrink-0 mt-0.5 font-medium">
                     {i + 1}
                   </span>
-                  <span className="text-[13px]">{step}</span>
+                  <span className="text-[13px] leading-snug">{step}</span>
                 </li>
               ))}
             </ol>
+
+            <button
+              onClick={() => setShowNotifHelp(false)}
+              className="mt-7 w-full py-3 rounded-full bg-[#1a1a1a] text-[13px] text-[var(--color-muted)]"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}
