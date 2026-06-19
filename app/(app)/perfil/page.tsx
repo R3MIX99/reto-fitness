@@ -1,21 +1,16 @@
 "use client";
 
 import { useUser } from "@/lib/hooks/useUser";
+import { useProfile } from "@/lib/hooks/useProfile";
 import { useRouter } from "next/navigation";
 import { LogOut, ChevronLeft, Edit } from "lucide-react";
-import Image from "next/image";
+import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import Link from "next/link";
 
-function getInitials(name: string | null | undefined): string {
-  if (!name) return "?";
-  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-}
-
 export default function PerfilPage() {
-  const { user, signOut } = useUser();
+  const { signOut } = useUser();
+  const { avatarUrl, displayName, uploadAvatar } = useProfile();
   const router = useRouter();
-  const fullName = user?.user_metadata?.full_name ?? user?.email ?? "Usuario";
-  const avatarUrl = user?.user_metadata?.avatar_url;
 
   async function handleSignOut() {
     await signOut();
@@ -35,28 +30,16 @@ export default function PerfilPage() {
       </div>
 
       <div className="px-4 space-y-5">
-        {/* Hero */}
+        {/* Hero con avatar editable */}
         <div className="flex flex-col items-center pt-2 pb-4">
-          <div className="relative w-[74px] h-[74px] mb-3">
-            {avatarUrl ? (
-              <Image
-                src={avatarUrl}
-                alt={fullName}
-                width={74}
-                height={74}
-                className="rounded-full border-2 border-[#2a2a2a] object-cover"
-              />
-            ) : (
-              <div className="w-[74px] h-[74px] rounded-full bg-accent border-2 border-[#2a2a2a] flex items-center justify-center text-accent-dark font-medium text-2xl">
-                {getInitials(user?.user_metadata?.full_name)}
-              </div>
-            )}
-            <div className="absolute right-[-2px] bottom-[-2px] w-[26px] h-[26px] rounded-full bg-warm border-2 border-[var(--color-bg)] flex items-center justify-center">
-              <Edit size={12} strokeWidth={2} className="text-accent-dark" />
-            </div>
-          </div>
-          <div className="font-display font-medium text-[20px]">{fullName}</div>
-          <div className="text-xs text-[var(--color-muted)] mt-1">{user?.email}</div>
+          <AvatarUpload
+            avatarUrl={avatarUrl}
+            displayName={displayName}
+            size={74}
+            onUpload={uploadAvatar}
+          />
+          <div className="font-display font-medium text-[20px] mt-3">{displayName}</div>
+          <div className="text-xs text-[var(--color-muted)] mt-1">Los Más Fuertes <span className="text-warm">· 1ero</span></div>
         </div>
 
         {/* Estadísticas rápidas */}

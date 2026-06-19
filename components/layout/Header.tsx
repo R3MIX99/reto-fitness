@@ -2,7 +2,7 @@
 
 import { Bell } from "lucide-react";
 import Link from "next/link";
-import { useUser } from "@/lib/hooks/useUser";
+import { useProfile } from "@/lib/hooks/useProfile";
 import Image from "next/image";
 
 function getGreeting(): string {
@@ -12,8 +12,7 @@ function getGreeting(): string {
   return "Buenas noches,";
 }
 
-function getInitials(name: string | null | undefined): string {
-  if (!name) return "?";
+function getInitials(name: string): string {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
@@ -22,10 +21,9 @@ interface HeaderProps {
 }
 
 export function Header({ hasNotifications = false }: HeaderProps) {
-  const { user } = useUser();
+  const { avatarUrl, displayName } = useProfile();
   const greeting = getGreeting();
-  const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "Tú";
-  const avatarUrl = user?.user_metadata?.avatar_url;
+  const firstName = displayName.split(" ")[0];
 
   return (
     <header className="relative z-10 flex items-center gap-3 px-[18px] py-3">
@@ -38,10 +36,11 @@ export function Header({ hasNotifications = false }: HeaderProps) {
             width={44}
             height={44}
             className="w-11 h-11 rounded-full border-2 border-[#2a2a2a] object-cover flex-shrink-0"
+            unoptimized={avatarUrl.includes("?t=")}
           />
         ) : (
           <div className="w-11 h-11 rounded-full bg-accent border-2 border-[#2a2a2a] flex items-center justify-center text-accent-dark font-medium text-[15px] flex-shrink-0">
-            {getInitials(user?.user_metadata?.full_name)}
+            {getInitials(displayName)}
           </div>
         )}
       </Link>
