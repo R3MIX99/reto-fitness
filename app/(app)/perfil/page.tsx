@@ -5,6 +5,7 @@ import { useProfile } from "@/lib/hooks/useProfile";
 import { useRouter } from "next/navigation";
 import { LogOut, ChevronLeft, Edit } from "lucide-react";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
+import { ThemeSwitch } from "@/components/ui/ThemeSwitch";
 import Link from "next/link";
 
 export default function PerfilPage() {
@@ -62,7 +63,7 @@ export default function PerfilPage() {
           <div className="bg-[var(--color-bg-card)] rounded-[16px] overflow-hidden divide-y divide-[#1c1c1c]">
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-[13px]">Tema</span>
-              <span className="text-[13px] text-[var(--color-muted)]">Oscuro</span>
+              <ThemeSwitch />
             </div>
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-[13px]">Idioma</span>

@@ -1,5 +1,6 @@
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Header } from "@/components/layout/Header";
+import { WelcomeSplash } from "@/components/ui/WelcomeSplash";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }}
         aria-hidden
       />
+
+      <WelcomeSplash />
 
       <Header />
 

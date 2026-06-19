@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import "./globals.css";
 
 const clash = localFont({
@@ -41,9 +42,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" data-theme="dark" className={`${clash.variable} ${satoshi.variable}`}>
+    <html lang="es" suppressHydrationWarning className={`${clash.variable} ${satoshi.variable}`}>
       <body className="font-body bg-[var(--color-bg)] text-[var(--color-fg)]">
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
