@@ -3,18 +3,10 @@
 import Image from "next/image";
 import { Flame } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
-import { useProfile } from "@/lib/hooks/useProfile";
 import { useMyGroups, useLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
 
 const TOTAL_PTS = 11;
 const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to"];
-
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Buenos días,";
-  if (h < 19) return "Buenas tardes,";
-  return "Buenas noches,";
-}
 
 function getNextSunday(): string {
   const d = new Date();
@@ -99,7 +91,6 @@ function PlayerRow({
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const { displayName } = useProfile();
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
 
@@ -108,8 +99,6 @@ export default function DashboardPage() {
   const { data: leaderboard = [] } = useLeaderboard(groupId);
 
   const pct = Math.min(100, Math.round((todayPts / TOTAL_PTS) * 100));
-  const firstName = displayName.split(" ")[0];
-
   // Find rival: the person just above current user in leaderboard
   const myEntry = leaderboard.find((e) => e.user_id === user?.id);
   const myPos = myEntry?.position ?? 0;
@@ -126,14 +115,6 @@ export default function DashboardPage() {
 
   return (
     <div className="px-4 pt-2 pb-28 space-y-3">
-
-      {/* Greeting */}
-      <div className="pt-1 pb-2">
-        <p className="text-[13px] text-[var(--color-muted)]">{getGreeting()}</p>
-        <p className="font-display font-medium text-[24px] leading-tight">
-          {firstName}<span className="text-warm">.</span>
-        </p>
-      </div>
 
       {/* Puntos del día */}
       <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4">
