@@ -5,64 +5,86 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", icon: Home, label: "Inicio" },
-  { href: "/checklist", icon: CheckSquare, label: "Checklist" },
-  { href: null, icon: Plus, label: "Subir evidencia", isAction: true },
-  { href: "/grupo", icon: Users, label: "Grupo" },
+const NAV_LINKS = [
+  { href: "/dashboard", Icon: Home, label: "Inicio" },
+  { href: "/checklist", Icon: CheckSquare, label: "Checklist" },
+  { href: "/grupo", Icon: Users, label: "Grupo" },
 ] as const;
 
 export function BottomNav() {
   const pathname = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  function NavIcon({
+    href,
+    label,
+    children,
+  }: {
+    href: string;
+    label: string;
+    children: React.ReactNode;
+  }) {
+    const isActive = pathname.startsWith(href);
+    return (
+      <Link
+        href={href}
+        aria-label={label}
+        className="flex flex-col items-center gap-[3px] relative p-2 transition-transform"
+        style={{ transform: isActive ? "translateY(-5px)" : "none" }}
+      >
+        {children}
+        {isActive && (
+          <span className="absolute bottom-[-2px] w-1 h-1 rounded-full bg-warm" />
+        )}
+      </Link>
+    );
+  }
+
+  // Insertar el "+" en el medio
+  const leftLinks = NAV_LINKS.slice(0, 2);
+  const rightLinks = NAV_LINKS.slice(2);
+
   return (
     <>
-      {/* Nav flotante */}
+      {/* Nav flotante — pill delgada y alargada */}
       <nav className="fixed bottom-3 left-3 right-3 z-30 h-[46px] bg-[#0c0c0c] border border-[#1c1c1c] rounded-pill flex items-center justify-around px-2">
-        {NAV_ITEMS.map((item) => {
-          const isActive = item.href ? pathname.startsWith(item.href) : false;
-          const Icon = item.icon;
-
-          if (item.isAction) {
-            return (
-              <button
-                key={item.label}
-                onClick={() => setSheetOpen(true)}
-                aria-label={item.label}
-                className="flex flex-col items-center gap-[3px] relative p-2"
-              >
-                <Icon
-                  size={21}
-                  strokeWidth={1.5}
-                  className="text-[var(--color-muted)]"
-                />
-              </button>
-            );
-          }
-
+        {leftLinks.map(({ href, Icon, label }) => {
+          const isActive = pathname.startsWith(href);
           return (
-            <Link
-              key={item.href}
-              href={item.href!}
-              aria-label={item.label}
-              className="flex flex-col items-center gap-[3px] relative p-2"
-              style={{ transform: isActive ? "translateY(-5px)" : "none" }}
-            >
+            <NavIcon key={href} href={href} label={label}>
               <Icon
                 size={20}
                 strokeWidth={1.5}
                 className={isActive ? "text-warm" : "text-[var(--color-muted)]"}
               />
-              {isActive && (
-                <span className="absolute bottom-[-2px] w-1 h-1 rounded-full bg-warm" />
-              )}
-            </Link>
+            </NavIcon>
+          );
+        })}
+
+        {/* Botón "+" central */}
+        <button
+          onClick={() => setSheetOpen(true)}
+          aria-label="Subir evidencia"
+          className="flex items-center justify-center p-2"
+        >
+          <Plus size={21} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+        </button>
+
+        {rightLinks.map(({ href, Icon, label }) => {
+          const isActive = pathname.startsWith(href);
+          return (
+            <NavIcon key={href} href={href} label={label}>
+              <Icon
+                size={20}
+                strokeWidth={1.5}
+                className={isActive ? "text-warm" : "text-[var(--color-muted)]"}
+              />
+            </NavIcon>
           );
         })}
       </nav>
 
-      {/* Bottom sheet placeholder (PROMPT 6) */}
+      {/* Bottom sheet de subida rápida (PROMPT 6) */}
       {sheetOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60"
@@ -75,7 +97,7 @@ export function BottomNav() {
             <div className="w-10 h-1 rounded-full bg-[#2a2a2a] mx-auto mb-5" />
             <h2 className="font-display font-medium text-lg mb-4">Subir evidencia</h2>
             <p className="text-sm text-[var(--color-muted)]">
-              (PROMPT 6 — Elegir categoría: Ejercicio, Dieta o Meta diaria)
+              Próximamente: elegir entre Ejercicio, Dieta o Meta diaria.
             </p>
             <button
               onClick={() => setSheetOpen(false)}
