@@ -1,15 +1,17 @@
 "use client";
 
-import { Copy, X, Check } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 import { useState } from "react";
+import { Drawer } from "@/components/ui/Drawer";
 
 interface InviteSheetProps {
+  open: boolean;
   inviteCode: string;
   groupName: string;
   onClose: () => void;
 }
 
-export function InviteSheet({ inviteCode, groupName, onClose }: InviteSheetProps) {
+export function InviteSheet({ open, inviteCode, groupName, onClose }: InviteSheetProps) {
   const [copied, setCopied] = useState(false);
 
   const inviteLink = `${typeof window !== "undefined" ? window.location.origin : ""}/unirse?code=${inviteCode}`;
@@ -21,21 +23,8 @@ export function InviteSheet({ inviteCode, groupName, onClose }: InviteSheetProps
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        aria-hidden
-      />
-      <div
-        className="relative w-full bg-[var(--color-bg-card)] rounded-t-[24px] p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="w-10 h-1 rounded-full bg-[#2a2a2a] mx-auto mb-5" />
-
-        <button onClick={onClose} className="absolute top-5 right-5 text-[var(--color-muted)]">
-          <X size={18} strokeWidth={1.5} />
-        </button>
-
+    <Drawer open={open} onClose={onClose}>
+      <div className="px-6 pb-8 pt-2">
         <h2 className="font-display font-medium text-[18px] mb-1">Invitar al grupo</h2>
         <p className="text-[13px] text-[var(--color-muted)] mb-5">{groupName}</p>
 
@@ -54,6 +43,6 @@ export function InviteSheet({ inviteCode, groupName, onClose }: InviteSheetProps
           {copied ? "Enlace copiado" : "Copiar enlace de invitación"}
         </button>
       </div>
-    </div>
+    </Drawer>
   );
 }

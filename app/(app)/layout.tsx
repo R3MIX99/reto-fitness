@@ -4,7 +4,7 @@ import { WelcomeSplash } from "@/components/ui/WelcomeSplash";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen bg-[var(--color-bg)] flex flex-col">
+    <div className="relative min-h-screen bg-[var(--color-bg)] flex flex-col" data-vaul-drawer-wrapper>
       {/* Top glow decorativo */}
       <div
         className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[360px] h-[230px] -translate-y-[110px]"

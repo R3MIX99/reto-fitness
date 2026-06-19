@@ -120,13 +120,12 @@ export default function GrupoPage() {
       </div>
 
       {/* Invite sheet */}
-      {showInvite && (
-        <InviteSheet
-          inviteCode={activeGroup.invite_code}
-          groupName={activeGroup.name}
-          onClose={() => setShowInvite(false)}
-        />
-      )}
+      <InviteSheet
+        open={showInvite}
+        inviteCode={activeGroup.invite_code}
+        groupName={activeGroup.name}
+        onClose={() => setShowInvite(false)}
+      />
     </>
   );
 }
