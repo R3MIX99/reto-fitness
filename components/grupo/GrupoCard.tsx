@@ -1,19 +1,23 @@
 "use client";
 
-import { ChevronDown, UserPlus } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, UserPlus, Plus, Hash, Check } from "lucide-react";
+import Link from "next/link";
 import type { GroupWithMembers } from "@/lib/hooks/useGroups";
 import { getInitials } from "@/lib/hooks/useGroups";
 import Image from "next/image";
 
 interface GrupoCardProps {
   group: GroupWithMembers;
+  allGroups: GroupWithMembers[];
   weekNumber: number;
   closeDate: string;
   onInvite: () => void;
-  onSwitchGroup?: () => void;
+  onSwitchGroup: (id: string) => void;
 }
 
-export function GrupoCard({ group, weekNumber, closeDate, onInvite, onSwitchGroup }: GrupoCardProps) {
+export function GrupoCard({ group, allGroups, weekNumber, closeDate, onInvite, onSwitchGroup }: GrupoCardProps) {
+  const [open, setOpen] = useState(false);
   const shownMembers = group.members.slice(0, 2);
   const extra = group.members.length - 2;
 
@@ -22,11 +26,15 @@ export function GrupoCard({ group, weekNumber, closeDate, onInvite, onSwitchGrou
       {/* Nombre + avatares */}
       <div className="flex items-center gap-2 mb-3">
         <button
-          onClick={onSwitchGroup}
+          onClick={() => setOpen((v) => !v)}
           className="flex items-center gap-1.5 flex-1 min-w-0"
         >
           <span className="font-display font-medium text-[18px] truncate">{group.name}</span>
-          <ChevronDown size={16} strokeWidth={1.5} className="text-[var(--color-muted)] flex-shrink-0" />
+          <ChevronDown
+            size={16} strokeWidth={1.5}
+            className="text-[var(--color-muted)] flex-shrink-0 transition-transform duration-200"
+            style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+          />
         </button>
 
         {/* Avatar stack */}
@@ -56,6 +64,56 @@ export function GrupoCard({ group, weekNumber, closeDate, onInvite, onSwitchGrou
           )}
         </div>
       </div>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="mb-3 rounded-[14px] bg-[#161616] border border-[#232323] overflow-hidden">
+          {/* Grupos existentes */}
+          {allGroups.map((g) => (
+            <button
+              key={g.id}
+              onClick={() => { onSwitchGroup(g.id); setOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-[#1f1f1f] last:border-b-0"
+            >
+              <span className="flex-1 text-[14px] truncate">{g.name}</span>
+              {g.id === group.id && <Check size={14} strokeWidth={2} className="text-warm flex-shrink-0" />}
+            </button>
+          ))}
+
+          {/* Separador */}
+          <div className="border-t border-[#232323]" />
+
+          {/* Crear grupo */}
+          <Link
+            href="/grupo/crear"
+            onClick={() => setOpen(false)}
+            className="w-full flex items-center gap-3 px-4 py-3 border-b border-[#1f1f1f]"
+          >
+            <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+              <Plus size={14} strokeWidth={1.5} className="text-accent" />
+            </div>
+            <div>
+              <p className="text-[13px] font-medium">Crear grupo</p>
+              <p className="text-[11px] text-[var(--color-muted)]">Genera un código de invitación</p>
+            </div>
+          </Link>
+
+          {/* Unirse */}
+          <Link
+            href="/grupo/unirse"
+            onClick={() => setOpen(false)}
+            className="w-full flex items-center gap-3 px-4 py-3"
+          >
+            <div className="w-7 h-7 rounded-full bg-warm/20 flex items-center justify-center flex-shrink-0">
+              <Hash size={14} strokeWidth={1.5} className="text-warm" />
+            </div>
+            <div>
+              <p className="text-[13px] font-medium">Unirse con código</p>
+              <p className="text-[11px] text-[var(--color-muted)]">Ingresa el código de un amigo</p>
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* Chips */}
       <div className="flex items-center gap-2 mb-3">
