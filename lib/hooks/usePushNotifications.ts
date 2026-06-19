@@ -7,6 +7,7 @@ export type PushState = "unsupported" | "denied" | "granted" | "default";
 export function usePushNotifications(groupId: string | null) {
   const [state, setState] = useState<PushState>("default");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
@@ -17,7 +18,22 @@ export function usePushNotifications(groupId: string | null) {
   }, []);
 
   async function subscribe(): Promise<boolean> {
-    if (!("serviceWorker" in navigator) || !groupId) return false;
+    setError(null);
+
+    if (!("serviceWorker" in navigator)) {
+      setError("Tu navegador no soporta notificaciones push.");
+      return false;
+    }
+    if (!groupId) {
+      setError("Únete a un grupo primero.");
+      return false;
+    }
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) {
+      setError("VAPID no configurado. Contacta al administrador.");
+      return false;
+    }
+
     setLoading(true);
     try {
       const permission = await Notification.requestPermission();
@@ -28,9 +44,7 @@ export function usePushNotifications(groupId: string | null) {
       const existing = await reg.pushManager.getSubscription();
       const sub = existing ?? await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-        ).buffer as ArrayBuffer,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey).buffer as ArrayBuffer,
       });
 
       const res = await fetch("/api/push/subscribe", {
@@ -39,16 +53,23 @@ export function usePushNotifications(groupId: string | null) {
         body: JSON.stringify({ subscription: sub.toJSON(), group_id: groupId }),
       });
 
-      return res.ok;
+      if (!res.ok) {
+        setError("Error al guardar la suscripción.");
+        return false;
+      }
+
+      setState("granted");
+      return true;
     } catch (err) {
       console.error("Push subscribe error:", err);
+      setError("No se pudo activar. Revisa los permisos del navegador.");
       return false;
     } finally {
       setLoading(false);
     }
   }
 
-  return { state, loading, subscribe };
+  return { state, loading, error, subscribe };
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
