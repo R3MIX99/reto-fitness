@@ -40,7 +40,19 @@ export default function GrupoPage() {
   const { data: last7 = [] } = useLast7Days(activeGroup?.id ?? null);
   const { data: pending = 0 } = usePendingAudits(activeGroup?.id ?? null);
 
-  const leaderEntry = leaderboard[0];
+  // Si no hay puntos en daily_scores, construir el ranking desde los miembros del grupo con 0 pts
+  const effectiveLeaderboard = leaderboard.length > 0
+    ? leaderboard
+    : activeGroup?.members.map((m, i) => ({
+        user_id: m.user_id,
+        full_name: m.full_name,
+        avatar_url: m.avatar_url,
+        total_points: 0,
+        position: i + 1,
+        is_leader: i === 0,
+      })) ?? [];
+
+  const leaderEntry = effectiveLeaderboard[0];
 
   // No groups state
   if (!isLoading && groups.length === 0) {
@@ -105,13 +117,7 @@ export default function GrupoPage() {
         />
 
         {/* 3) Tabla de jugadores */}
-        {leaderboard.length > 0 ? (
-          <Leaderboard entries={leaderboard} currentUserId={user?.id ?? ""} />
-        ) : (
-          <p className="text-[13px] text-[var(--color-muted)]">
-            Conecta Supabase para ver el ranking en vivo.
-          </p>
-        )}
+        <Leaderboard entries={effectiveLeaderboard} currentUserId={user?.id ?? ""} />
 
         {/* 4) Comparativa */}
         {last7.length > 0 && (
