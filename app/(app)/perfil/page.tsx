@@ -1,11 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
 import { useRouter } from "next/navigation";
-import { LogOut, ChevronLeft, Edit, Bell, BellOff } from "lucide-react";
+import { LogOut, ChevronLeft, Edit, Bell, BellOff, X } from "lucide-react";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { ThemeSwitch } from "@/components/ui/ThemeSwitch";
 import Link from "next/link";
@@ -16,6 +17,7 @@ export default function PerfilPage() {
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
   const { state: pushState, loading: pushLoading, error: pushError, subscribe } = usePushNotifications(groupId);
+  const [showNotifHelp, setShowNotifHelp] = useState(false);
   const router = useRouter();
 
   async function handleSignOut() {
@@ -83,9 +85,12 @@ export default function PerfilPage() {
                       <Bell size={13} strokeWidth={1.5} /> Activas
                     </span>
                   ) : pushState === "denied" ? (
-                    <span className="flex items-center gap-1.5 text-[12px] text-[var(--color-muted)]">
-                      <BellOff size={13} strokeWidth={1.5} /> Bloqueadas
-                    </span>
+                    <button
+                      onClick={() => setShowNotifHelp(true)}
+                      className="flex items-center gap-1.5 text-[12px] text-accent font-medium"
+                    >
+                      <BellOff size={13} strokeWidth={1.5} /> Activar
+                    </button>
                   ) : (
                     <button
                       onClick={subscribe}
@@ -118,6 +123,45 @@ export default function PerfilPage() {
           </button>
         </div>
       </div>
+
+      {/* Sheet: instrucciones para activar notificaciones bloqueadas */}
+      {showNotifHelp && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/60 flex items-end"
+          onClick={() => setShowNotifHelp(false)}
+        >
+          <div
+            className="w-full bg-[#0e0e0e] rounded-t-[26px] px-5 pb-10 pt-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-[#2a2a2a] mx-auto mb-4" />
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-display font-medium text-[17px]">Activar notificaciones</span>
+              <button onClick={() => setShowNotifHelp(false)}>
+                <X size={18} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+              </button>
+            </div>
+            <p className="text-[13px] text-[var(--color-muted)] mb-5">
+              Las notificaciones están bloqueadas en tu navegador. Sigue estos pasos:
+            </p>
+            <ol className="space-y-3">
+              {[
+                'Toca el ícono 🔒 en la barra de dirección del navegador.',
+                'Selecciona "Permisos" o "Configuración del sitio".',
+                'Busca "Notificaciones" y cámbialo a "Permitir".',
+                "Recarga la página y toca Activar de nuevo.",
+              ].map((step, i) => (
+                <li key={i} className="flex gap-3 items-start">
+                  <span className="w-5 h-5 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-[10px] text-[var(--color-muted)] flex-shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
+                  <span className="text-[13px]">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
