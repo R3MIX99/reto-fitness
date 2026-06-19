@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Tokens de color ── */
+:root {
+  /* Modo oscuro (default) */
+  --color-bg: #000000;
+  --color-bg-card: #101010;
+  --color-bg-card2: #141414;
+  --color-fg: #EEE5E9;
+  --color-muted: #7C7C7C;
+
+  /* Invariantes */
+  --color-accent: #CF5C36;
+  --color-accent-dark: #4A1B0C;
+  --color-warm: #EFC88B;
+  --color-bone: #EEE5E9;
+}
+
+[data-theme="light"] {
+  --color-bg: #EEE5E9;
+  --color-bg-card: #ffffff;
+  --color-bg-card2: #f5f0f2;
+  --color-fg: #000000;
+  --color-muted: #7C7C7C;
+}
+
+/* ── Base ── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* Evitar scroll horizontal en móvil */
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar oculta (para carruseles horizontales) ── */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Top glow (efecto premium en el encabezado) ── */
+.top-glow::before {
+  content: "";
+  position: absolute;
+  top: -110px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 360px;
+  height: 230px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(238, 229, 233, 0.28) 0%,
+    rgba(238, 229, 233, 0.10) 42%,
+    rgba(0, 0, 0, 0) 72%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Bottom nav fade ── */
+.bottom-fade {
+  background: linear-gradient(to top, var(--color-bg) 30%, transparent);
+}

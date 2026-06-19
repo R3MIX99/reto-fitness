@@ -1,0 +1,114 @@
+{
+  "app": {
+    "name": "Reto Fitness",
+    "tagline": "Compite con tus amigos"
+  },
+  "greeting": {
+    "morning": "Buenos días,",
+    "afternoon": "Buenas tardes,",
+    "evening": "Buenas noches,"
+  },
+  "nav": {
+    "dashboard": "Inicio",
+    "checklist": "Checklist",
+    "group": "Grupo",
+    "upload": "Subir evidencia"
+  },
+  "dashboard": {
+    "pointsToday": "Puntos de hoy",
+    "weekCloses": "domingo cierra semana",
+    "streak": "Racha",
+    "days": "días",
+    "rival": "Tu rival",
+    "leaderboard": "Tabla de jugadores",
+    "streakMessage": "Llevas {days} días de racha. ¡Uno más y ganas +{bonus} pts!"
+  },
+  "positions": {
+    "first": "1ero",
+    "second": "2do",
+    "third": "3ero",
+    "fourth": "4to",
+    "fifth": "5to"
+  },
+  "checklist": {
+    "title": "Checklist",
+    "exercise": "Ejercicio",
+    "diet": "Dieta",
+    "goals": "Metas diarias",
+    "markAsDone": "Marcar",
+    "uploadEvidence": "Subir foto de evidencia",
+    "pendingAudit": "Pendiente de auditoría",
+    "daily": "Diario",
+    "weekly": "Semanal",
+    "monthly": "Mensual"
+  },
+  "group": {
+    "title": "Grupo",
+    "subtitle": "Tu grupo",
+    "invite": "Invitar amigos",
+    "evidencePending": "Evidencias por revisar",
+    "auditWeek": "Auditoría de la semana",
+    "pending": "pendientes",
+    "review": "Revisar evidencias",
+    "leaderboard": "Tabla de jugadores",
+    "seeAll": "Ver todos",
+    "comparison": "Comparativa (últimos 7 días)"
+  },
+  "profile": {
+    "title": "Perfil",
+    "edit": "Editar perfil",
+    "myGroups": "Mis grupos",
+    "titlesWon": "Títulos ganados",
+    "stats": {
+      "titles": "Títulos",
+      "bestStreak": "Mejor racha",
+      "points": "Puntos"
+    },
+    "settings": {
+      "theme": "Tema",
+      "notifications": "Notificaciones",
+      "language": "Idioma",
+      "signOut": "Cerrar sesión"
+    },
+    "inviteCode": "Código de invitación"
+  },
+  "upload": {
+    "title": "Subir evidencia",
+    "subtitle": "La foto se valida en la auditoría semanal",
+    "exercise": {
+      "name": "Ejercicio",
+      "description": "Entrenamiento de hoy"
+    },
+    "diet": {
+      "name": "Dieta",
+      "description": "Elegir bloque de comida"
+    },
+    "goal": {
+      "name": "Meta diaria",
+      "description": "Elegir meta"
+    }
+  },
+  "audit": {
+    "title": "Auditoría",
+    "question": "¿Cumplió con esta meta?",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "reason": "Motivo (opcional)"
+  },
+  "auth": {
+    "continueWithGoogle": "Continuar con Google",
+    "welcomeBack": "Bienvenido de regreso"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Intenta de nuevo.",
+    "noPhoto": "Se requiere foto de evidencia para marcar esta meta.",
+    "uploadFailed": "Error al subir la foto. Intenta de nuevo."
+  },
+  "quotes": [
+    "Tú puedes. Un día más de constancia te acerca a la cima.",
+    "La disciplina pesa kilos; el arrepentimiento pesa toneladas.",
+    "Hoy es un buen día para ser el más fuerte.",
+    "Tu único rival de ayer eres tú mismo.",
+    "Pequeños hábitos, grandes campeones."
+  ]
+}
