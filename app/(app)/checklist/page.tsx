@@ -1,10 +1,119 @@
-// PROMPT 5 — Checklist (placeholder)
+"use client";
+
+import { useState } from "react";
+import {
+  useGoals,
+  useTodayChecks,
+  useMonthChecks,
+  useMarkCheck,
+  useUpsertGoal,
+  useDeleteGoal,
+} from "@/lib/hooks/useChecklist";
+import type { Goal, GoalKind, CategoryView } from "@/lib/hooks/useChecklist";
+import { useMyGroups } from "@/lib/hooks/useGroups";
+import { StatsSection } from "@/components/checklist/StatsSection";
+import { GymSection, DietSection, GoalsSection } from "@/components/checklist/CheckSection";
+import { GoalDrawer } from "@/components/checklist/GoalDrawer";
+
 export default function ChecklistPage() {
+  const { data: groups = [] } = useMyGroups();
+  const groupId = groups[0]?.id ?? null;
+
+  const { data: goals = [] } = useGoals();
+  const { data: todayChecks = [] } = useTodayChecks(groupId);
+  const { data: monthChecks = [] } = useMonthChecks(groupId);
+
+  const markCheck = useMarkCheck(groupId);
+  const upsertGoal = useUpsertGoal();
+  const deleteGoal = useDeleteGoal();
+
+  const [view, setView] = useState<CategoryView>("general");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [defaultKind, setDefaultKind] = useState<GoalKind>("goal");
+
+  function openAdd(kind: GoalKind) {
+    setEditingGoal(null);
+    setDefaultKind(kind);
+    setDrawerOpen(true);
+  }
+
+  function openEdit(goal: Goal) {
+    setEditingGoal(goal);
+    setDefaultKind(goal.kind);
+    setDrawerOpen(true);
+  }
+
+  async function handleMark(file: File, kind: GoalKind, goalId?: string) {
+    if (!groupId) return;
+    await markCheck.mutateAsync({ file, kind, goalId });
+  }
+
+  const gymCheck = todayChecks.find((c) => c.kind === "gym");
+
+  if (!groupId) {
+    return (
+      <div className="px-4 pt-6 pb-28 flex flex-col items-center justify-center min-h-[50vh] text-center gap-3">
+        <p className="text-[15px] font-medium">Únete a un grupo primero</p>
+        <p className="text-[13px] text-[var(--color-muted)]">Necesitas pertenecer a un grupo para registrar tus checklist.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="px-4 pb-28 pt-2 space-y-4">
-      <p className="text-xs text-[var(--color-muted)]">
-        Aquí irá el checklist del día con estadísticas y el calendario de progreso.
-      </p>
-    </div>
+    <>
+      <div className="px-4 pt-2 pb-28">
+        {/* Stats */}
+        <StatsSection
+          checks={monthChecks}
+          dietTotal={goals.filter((g) => g.kind === "diet").length}
+          goalsTotal={goals.filter((g) => g.kind === "goal").length}
+          view={view}
+          onViewChange={setView}
+        />
+
+        {/* Divider */}
+        <div className="h-px bg-[#1a1a1a] my-4" />
+
+        {/* Today label */}
+        <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-3">Hoy</p>
+
+        {/* Gym */}
+        <GymSection
+          check={gymCheck}
+          onMark={(file) => handleMark(file, "gym")}
+          loading={markCheck.isPending}
+        />
+
+        {/* Diet */}
+        <DietSection
+          goals={goals}
+          checks={todayChecks}
+          onMark={handleMark}
+          onAdd={() => openAdd("diet")}
+          onEdit={openEdit}
+          loading={markCheck.isPending}
+        />
+
+        {/* Goals */}
+        <GoalsSection
+          goals={goals}
+          checks={todayChecks}
+          onMark={handleMark}
+          onAdd={() => openAdd("goal")}
+          onEdit={openEdit}
+          loading={markCheck.isPending}
+        />
+      </div>
+
+      <GoalDrawer
+        open={drawerOpen}
+        goal={editingGoal}
+        defaultKind={defaultKind}
+        onClose={() => setDrawerOpen(false)}
+        onSave={(data) => upsertGoal.mutateAsync({ ...data, kind: data.kind as GoalKind })}
+        onDelete={(id) => deleteGoal.mutateAsync(id)}
+      />
+    </>
   );
 }

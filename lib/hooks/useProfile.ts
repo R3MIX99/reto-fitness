@@ -72,7 +72,7 @@ export function useProfile() {
 }
 
 // Comprime la imagen a máximo `maxSize` px en el lado más largo
-async function compressImage(file: File, maxSize: number): Promise<File> {
+export async function compressImage(file: File, maxSize: number): Promise<File> {
   return new Promise((resolve) => {
     const img = new window.Image();
     const url = URL.createObjectURL(file);

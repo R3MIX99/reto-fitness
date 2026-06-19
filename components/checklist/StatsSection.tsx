@@ -1,0 +1,386 @@
+"use client";
+
+import { useRef, useState, useEffect, useCallback } from "react";
+import { Calendar, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import type { DailyCheck, CategoryView } from "@/lib/hooks/useChecklist";
+import { CATEGORY_CONFIG } from "@/lib/hooks/useChecklist";
+
+// ── Tipos ──────────────────────────────────────────────────────────────────
+
+interface DaySummary {
+  day: number;
+  gym: boolean;
+  dietDone: number;
+  dietTotal: number;
+  goalsDone: number;
+  goalsTotal: number;
+  pct: number;
+}
+
+interface StatsSectionProps {
+  checks: DailyCheck[];
+  dietTotal: number;
+  goalsTotal: number;
+  view: CategoryView;
+  onViewChange: (v: CategoryView) => void;
+}
+
+const ORDER: CategoryView[] = ["general", "ejercicio", "dieta", "metas"];
+
+// ── Donut SVG ──────────────────────────────────────────────────────────────
+
+function Donut({ pct, color, size = 44 }: { pct: number; color: string; size?: number }) {
+  const r = size * 0.41;
+  const sw = size * 0.114;
+  const C = 2 * Math.PI * r;
+  const off = C * (1 - pct / 100);
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f1f1f" strokeWidth={sw} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color}
+        strokeWidth={sw} strokeLinecap="round"
+        strokeDasharray={C.toFixed(1)} strokeDashoffset={off.toFixed(1)}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+      <text x={size / 2} y={size / 2 + 4} textAnchor="middle" fontSize={size * 0.25}
+        fontWeight="500" fill="#EEE5E9">{pct}%</text>
+    </svg>
+  );
+}
+
+// ── Bar Chart ──────────────────────────────────────────────────────────────
+
+function BarChart({ checks, view, month }: { checks: DailyCheck[]; view: CategoryView; month: string }) {
+  const cfg = CATEGORY_CONFIG[view];
+  const weeks = [1, 2, 3, 4];
+  const weekPcts = weeks.map((w) => {
+    const start = (w - 1) * 7 + 1;
+    const end = w * 7;
+    const days: number[] = [];
+    for (let d = start; d <= end; d++) days.push(d);
+
+    const dayStrs = days.map((d) => `${month}-${String(d).padStart(2, "0")}`);
+    const relevant = checks.filter((c) => dayStrs.includes(c.check_date) && viewMatchesKind(view, c.kind));
+    return Math.min(100, relevant.length * 14);
+  });
+
+  const maxH = 70;
+  return (
+    <div className="flex items-end justify-between gap-2 px-1" style={{ height: maxH + 20 }}>
+      {weeks.map((w, i) => (
+        <div key={w} className="flex-1 flex flex-col items-center gap-1.5 justify-end">
+          <div
+            className="w-full rounded-t-[6px] transition-all duration-300"
+            style={{
+              height: Math.max(4, (weekPcts[i] / 100) * maxH),
+              background: `linear-gradient(to top, ${cfg.color}, #EEE5E9)`,
+            }}
+          />
+          <span className="text-[9px] text-[var(--color-muted)]">S{w}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Calendar ───────────────────────────────────────────────────────────────
+
+function CalendarGrid({
+  checks, view, expanded, onToggleExpand,
+}: {
+  checks: DailyCheck[];
+  view: CategoryView;
+  expanded: boolean;
+  onToggleExpand: () => void;
+}) {
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const cfg = CATEGORY_CONFIG[view];
+  const now = new Date();
+  const today = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const firstDow = new Date(now.getFullYear(), now.getMonth(), 1).getDay(); // 0=Sun
+  const offset = firstDow === 0 ? 6 : firstDow - 1; // Mon-first grid
+
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  function isDone(day: number) {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    if (view === "general") {
+      const dayChecks = checks.filter((c) => c.check_date === dateStr);
+      return dayChecks.length >= 3;
+    }
+    return checks.some((c) => c.check_date === dateStr && viewMatchesKind(view, c.kind));
+  }
+
+  function getDaySummary(day: number): DaySummary {
+    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+    const dayChecks = checks.filter((c) => c.check_date === dateStr);
+    const gym = dayChecks.some((c) => c.kind === "gym");
+    const diet = dayChecks.filter((c) => c.kind === "diet");
+    const goals = dayChecks.filter((c) => c.kind === "goal");
+    const done = (gym ? 1 : 0) + diet.length + goals.length;
+    const total = 1 + 4 + 6;
+    return { day, gym, dietDone: diet.length, dietTotal: 4, goalsDone: goals.length, goalsTotal: 6, pct: Math.round((done / total) * 100) };
+  }
+
+  const cellSize = expanded ? 42 : 36;
+
+  const cells = [];
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2.5">
+        <Calendar size={15} strokeWidth={1.5} className="text-warm" />
+        <span className="text-[14px] font-medium">Calendario</span>
+        <span className="text-[11px] text-[var(--color-muted)]">· {cfg.label}</span>
+        <button onClick={onToggleExpand} className="ml-auto text-[var(--color-muted)]">
+          {expanded ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
+        </button>
+      </div>
+
+      <div className="bg-[var(--color-bg-card)] rounded-[16px] p-3">
+        {/* Day headers */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {DAY_LABELS.map((l, i) => (
+            <span key={i} className="text-[9px] text-[var(--color-muted)] text-center">{l}</span>
+          ))}
+        </div>
+
+        {/* Day cells */}
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((d, i) =>
+            d === null ? <div key={`e-${i}`} /> : (
+              <button
+                key={d}
+                onClick={() => setSelectedDay(selectedDay === d ? null : d)}
+                className="flex items-center justify-center rounded-full transition-colors mx-auto"
+                style={{
+                  width: cellSize, height: cellSize,
+                  background: isDone(d) ? cfg.color : "transparent",
+                  border: d === today ? "1.5px solid #EFC88B" : "none",
+                  color: isDone(d) ? cfg.textDark : d === today ? "#EFC88B" : "#7C7C7C",
+                  fontSize: expanded ? 13 : 11,
+                }}
+              >
+                {d}
+              </button>
+            )
+          )}
+        </div>
+
+        {/* Day summary */}
+        {selectedDay && (() => {
+          const s = getDaySummary(selectedDay);
+          return (
+            <div className="mt-3 pt-3 border-t border-[#1c1c1c]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[13px] font-medium">Día {selectedDay}</span>
+                <span className="text-[12px] text-warm font-medium">{s.pct}% completado</span>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[12px]">
+                  <span className="text-[var(--color-muted)]">Ejercicio</span>
+                  <span>{s.gym ? "✓" : "—"}</span>
+                </div>
+                <div className="flex justify-between text-[12px]">
+                  <span className="text-[var(--color-muted)]">Dieta</span>
+                  <span>{s.dietDone}/{s.dietTotal}</span>
+                </div>
+                <div className="flex justify-between text-[12px]">
+                  <span className="text-[var(--color-muted)]">Metas</span>
+                  <span>{s.goalsDone}/{s.goalsTotal}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Expand/Collapse button */}
+      <button
+        onClick={onToggleExpand}
+        className="w-full text-center text-[12px] text-[var(--color-muted)] py-1.5"
+      >
+        {expanded ? "Contraer calendario" : "Expandir calendario"}
+      </button>
+    </div>
+  );
+}
+
+// ── Helper ─────────────────────────────────────────────────────────────────
+
+function viewMatchesKind(view: CategoryView, kind: string): boolean {
+  if (view === "general") return true;
+  if (view === "ejercicio") return kind === "gym";
+  if (view === "dieta") return kind === "diet";
+  if (view === "metas") return kind === "goal";
+  return false;
+}
+
+function calcPct(checks: DailyCheck[], view: CategoryView): number {
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const today = now.getDate();
+  if (today === 0) return 0;
+
+  if (view === "general") {
+    const total = today * 11;
+    const done = checks.length;
+    return Math.min(100, Math.round((done / total) * 100));
+  }
+  if (view === "ejercicio") {
+    const done = new Set(checks.filter((c) => c.kind === "gym").map((c) => c.check_date)).size;
+    return Math.round((done / today) * 100);
+  }
+  if (view === "dieta") {
+    const done = checks.filter((c) => c.kind === "diet").length;
+    return Math.min(100, Math.round((done / (today * 4)) * 100));
+  }
+  if (view === "metas") {
+    const done = checks.filter((c) => c.kind === "goal").length;
+    return Math.min(100, Math.round((done / (today * 6)) * 100));
+  }
+  return 0;
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────
+
+export function StatsSection({ checks, view, onViewChange }: StatsSectionProps) {
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const [thumbLeft, setThumbLeft] = useState(0);
+  const [thumbWidth, setThumbWidth] = useState(24);
+  const [calExpanded, setCalExpanded] = useState(false);
+
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthName = now.toLocaleString("es-MX", { month: "long" });
+
+  // Swipe on the stats stage
+  const swipeX = useRef<number | null>(null);
+
+  function handlePointerDown(e: React.PointerEvent) {
+    swipeX.current = e.clientX;
+  }
+  function handlePointerUp(e: React.PointerEvent) {
+    if (swipeX.current === null) return;
+    const dx = e.clientX - swipeX.current;
+    swipeX.current = null;
+    if (Math.abs(dx) < 30) return;
+    const i = ORDER.indexOf(view);
+    onViewChange(dx < 0 ? ORDER[(i + 1) % 4] : ORDER[(i + 3) % 4]);
+  }
+
+  // Scroll thumb
+  const updateThumb = useCallback(() => {
+    const el = cardsRef.current;
+    if (!el) return;
+    const trackW = 56;
+    const ratio = el.clientWidth / el.scrollWidth;
+    const tw = Math.max(18, Math.round(trackW * ratio));
+    const max = el.scrollWidth - el.clientWidth;
+    const p = max > 0 ? el.scrollLeft / max : 0;
+    setThumbWidth(tw);
+    setThumbLeft(Math.round(p * (trackW - tw)));
+  }, []);
+
+  useEffect(() => {
+    const el = cardsRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateThumb);
+    updateThumb();
+    return () => el.removeEventListener("scroll", updateThumb);
+  }, [updateThumb]);
+
+  const cfg = CATEGORY_CONFIG[view];
+  const pct = calcPct(checks, view);
+
+  return (
+    <div>
+      {/* Category cards */}
+      <div
+        ref={cardsRef}
+        className="flex gap-2.5 overflow-x-auto no-scrollbar pb-0.5 scroll-smooth"
+        style={{ scrollSnapType: "x mandatory" }}
+      >
+        {ORDER.map((cat) => {
+          const c = CATEGORY_CONFIG[cat];
+          const p = calcPct(checks, cat);
+          const active = cat === view;
+          return (
+            <button
+              key={cat}
+              onClick={() => onViewChange(cat)}
+              className="flex-shrink-0 w-[88px] rounded-[16px] p-3 flex flex-col items-center gap-1.5 border transition-colors"
+              style={{
+                scrollSnapAlign: "start",
+                background: active ? c.tint : "var(--color-bg-card)",
+                borderColor: active ? c.color : "#1c1c1c",
+              }}
+            >
+              <Donut pct={p} color={c.color} size={44} />
+              <span className="text-[11px]" style={{ color: active ? c.color : "#7C7C7C", fontWeight: active ? 500 : 400 }}>
+                {c.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Scroll indicator */}
+      <div className="flex justify-center my-2.5">
+        <div className="relative w-14 h-1 bg-[#1f1f1f] rounded-full">
+          <div
+            className="absolute top-0 h-1 bg-[#7C7C7C] rounded-full transition-all duration-150"
+            style={{ width: thumbWidth, left: thumbLeft }}
+          />
+        </div>
+      </div>
+
+      {/* Swipeable stage */}
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        style={{ touchAction: "pan-y" }}
+      >
+        {/* Bar chart */}
+        <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4 mb-3.5">
+          <div className="flex justify-between items-baseline mb-3">
+            <span className="text-[12px] text-[var(--color-muted)]">
+              Progreso de {monthName} · {cfg.label}
+            </span>
+            <span className="font-display font-medium text-[18px]" style={{ color: cfg.color }}>
+              {pct}%
+            </span>
+          </div>
+          <BarChart checks={checks} view={view} month={month} />
+        </div>
+
+        {/* Calendar */}
+        <CalendarGrid
+          checks={checks}
+          view={view}
+          expanded={calExpanded}
+          onToggleExpand={() => setCalExpanded((e) => !e)}
+        />
+
+        {/* Dots indicator */}
+        <div className="flex justify-center gap-1.5 mt-2 mb-1">
+          {ORDER.map((cat) => (
+            <div
+              key={cat}
+              className="rounded-full transition-all"
+              style={{
+                width: cat === view ? 14 : 5,
+                height: 5,
+                background: cat === view ? cfg.color : "#2a2a2a",
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
