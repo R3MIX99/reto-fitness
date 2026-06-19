@@ -235,19 +235,15 @@ export function useCreateGroup() {
 
       const invite_code = Math.random().toString(36).slice(2, 8).toUpperCase();
 
+      // invite_code has a DB default; trigger handle_new_group auto-inserts
+      // the owner into group_members and creates group_settings on insert.
       const { data: group, error } = await supabase
         .from("groups")
-        .insert({ name, owner_id: user.id, invite_code } as never)
+        .insert({ name, owner_id: user.id } as never)
         .select("id")
         .single() as unknown as { data: { id: string } | null; error: unknown };
 
       if (error || !group) throw error ?? new Error("Error al crear grupo");
-
-      await supabase.from("group_members").insert({
-        group_id: group.id,
-        user_id: user.id,
-        role: "owner",
-      } as never);
 
       return group.id;
     },
