@@ -47,7 +47,7 @@ export function BottomNav() {
   return (
     <>
       {/* Nav flotante — pill delgada y alargada */}
-      <nav className="fixed bottom-3 left-3 right-3 z-30 h-[46px] bg-[#0c0c0c] border border-[#1c1c1c] rounded-pill flex items-center justify-around px-2">
+      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 h-[52px] w-fit min-w-[240px] bg-[#0c0c0c] border border-[#1c1c1c] rounded-pill flex items-center justify-center gap-1 px-4">
         {leftLinks.map(({ href, Icon, label }) => {
           const isActive = pathname.startsWith(href);
           return (
