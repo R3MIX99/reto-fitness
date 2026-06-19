@@ -75,3 +75,11 @@ body {
 .bottom-fade {
   background: linear-gradient(to top, var(--color-bg) 30%, transparent);
 }
+
+/* ── Vaul drawer: blur fondo al abrir ── */
+[data-vaul-drawer-wrapper] {
+  transition: filter 0.3s ease;
+}
+[data-vaul-drawer-wrapper][style*="scale"] {
+  filter: blur(4px);
+}
