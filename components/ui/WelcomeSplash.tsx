@@ -45,10 +45,9 @@ export function WelcomeSplash({ pointsToday = 0, maxPoints = 11 }: WelcomeSplash
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8 text-center"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8 text-center backdrop-blur-md"
       style={{
-        background:
-          "radial-gradient(ellipse at 50% 30%, rgba(239,200,139,0.18) 0%, rgba(238,229,233,0.06) 50%, #000 100%)",
+        background: "rgba(0,0,0,0.75)",
         opacity: fading ? 0 : 1,
         transition: "opacity 0.5s ease",
         pointerEvents: fading ? "none" : "auto",
