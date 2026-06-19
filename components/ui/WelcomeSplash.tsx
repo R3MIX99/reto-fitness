@@ -32,23 +32,26 @@ export function WelcomeSplash({ pointsToday = 0, maxPoints = 11 }: WelcomeSplash
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
 
+  const splashKey = `splash_shown_${new Date().toISOString().split("T")[0]}`;
+
   useEffect(() => {
-    if (sessionStorage.getItem("splash_shown")) {
+    if (localStorage.getItem(splashKey)) {
       setVisible(false);
     }
     setMounted(true);
-  }, []);
+  }, [splashKey]);
   const [fading, setFading] = useState(false);
   const [quote] = useState(randomQuote);
   const greeting = getGreeting();
   const firstName = displayName.split(" ")[0];
 
   useEffect(() => {
-    sessionStorage.setItem("splash_shown", "1");
+    if (!visible) return;
+    localStorage.setItem(splashKey, "1");
     const fadeTimer = setTimeout(() => setFading(true), 2800);
     const hideTimer = setTimeout(() => setVisible(false), 3300);
     return () => { clearTimeout(fadeTimer); clearTimeout(hideTimer); };
-  }, []);
+  }, [visible, splashKey]);
 
   if (!mounted || !visible) return null;
 
