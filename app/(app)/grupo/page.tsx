@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, Hash } from "lucide-react";
+import { Drawer } from "@/components/ui/Drawer";
 import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits } from "@/lib/hooks/useGroups";
 import { useUser } from "@/lib/hooks/useUser";
 import { GrupoCard } from "@/components/grupo/GrupoCard";
@@ -33,6 +34,7 @@ export default function GrupoPage() {
   const { data: groups = [], isLoading } = useMyGroups();
   const [activeGroupIdx, setActiveGroupIdx] = useState(0);
   const [showInvite, setShowInvite] = useState(false);
+  const [showGroupMenu, setShowGroupMenu] = useState(false);
 
   const activeGroup = groups[activeGroupIdx] ?? null;
 
@@ -85,6 +87,16 @@ export default function GrupoPage() {
   return (
     <>
       <div className="px-4 pb-28 pt-2">
+        {/* Acciones de grupo */}
+        <div className="flex justify-end mb-1">
+          <button
+            onClick={() => setShowGroupMenu(true)}
+            className="w-8 h-8 rounded-full bg-[var(--color-bg-card)] flex items-center justify-center"
+            aria-label="Opciones de grupo"
+          >
+            <Plus size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+          </button>
+        </div>
         {/* 1) Tarjeta del grupo */}
         <GrupoCard
           group={activeGroup}
@@ -126,6 +138,41 @@ export default function GrupoPage() {
         groupName={activeGroup.name}
         onClose={() => setShowInvite(false)}
       />
+
+      {/* Drawer: crear / unirse a otro grupo */}
+      <Drawer open={showGroupMenu} onClose={() => setShowGroupMenu(false)}>
+        <div className="px-6 pb-8 pt-2">
+          <p className="text-[13px] text-[var(--color-muted)] mb-4">Gestionar grupos</p>
+          <div className="space-y-2">
+            <Link
+              href="/grupo/crear"
+              onClick={() => setShowGroupMenu(false)}
+              className="flex items-center gap-3 bg-[#1a1a1a] rounded-[14px] px-4 py-3.5"
+            >
+              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                <Plus size={16} strokeWidth={1.5} className="text-accent" />
+              </div>
+              <div>
+                <p className="text-[14px] font-medium">Crear nuevo grupo</p>
+                <p className="text-[12px] text-[var(--color-muted)]">Genera un código de invitación</p>
+              </div>
+            </Link>
+            <Link
+              href="/grupo/unirse"
+              onClick={() => setShowGroupMenu(false)}
+              className="flex items-center gap-3 bg-[#1a1a1a] rounded-[14px] px-4 py-3.5"
+            >
+              <div className="w-8 h-8 rounded-full bg-warm/20 flex items-center justify-center flex-shrink-0">
+                <Hash size={16} strokeWidth={1.5} className="text-warm" />
+              </div>
+              <div>
+                <p className="text-[14px] font-medium">Unirse con código</p>
+                <p className="text-[12px] text-[var(--color-muted)]">Ingresa el código de un amigo</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </Drawer>
     </>
   );
 }
