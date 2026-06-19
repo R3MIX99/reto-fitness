@@ -1,11 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
-// PROMPT 1 & 2 — Este middleware protegerá rutas con Supabase Auth.
-// Por ahora permite todo el tráfico hasta configurar Supabase.
 export async function middleware(request: NextRequest) {
-  // TODO (PROMPT 1): Instanciar cliente Supabase SSR y verificar sesión.
-  // Si no hay sesión y la ruta es privada, redirigir a /login.
-  return NextResponse.next();
+  return await updateSession(request);
 }
 
 export const config = {
