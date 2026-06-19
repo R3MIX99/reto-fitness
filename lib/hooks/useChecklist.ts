@@ -171,10 +171,11 @@ export function useUpsertGoal() {
       const supabase = createClient();
 
       if (goal.id) {
-        await supabase
+        const { error } = await supabase
           .from("goals")
           .update({ title: goal.title, icon: goal.icon ?? null, reminder_at: goal.reminder_at ?? null } as never)
-          .eq("id", goal.id) as unknown as { error: unknown };
+          .eq("id", goal.id) as unknown as { error: { message: string } | null };
+        if (error) throw new Error(error.message);
       } else {
         const { data: existing } = await supabase
           .from("goals")
@@ -183,9 +184,10 @@ export function useUpsertGoal() {
           .eq("kind", goal.kind) as unknown as { data: { id: string }[] | null };
 
         const position = (existing?.length ?? 0) + 1;
-        await supabase
+        const { error } = await supabase
           .from("goals")
-          .insert({ user_id: user.id, kind: goal.kind, title: goal.title, position, icon: goal.icon ?? null, group_id: goal.group_id ?? null } as never) as unknown as { error: unknown };
+          .insert({ user_id: user.id, kind: goal.kind, title: goal.title, position, icon: goal.icon ?? null, group_id: goal.group_id ?? null } as never) as unknown as { error: { message: string } | null };
+        if (error) throw new Error(error.message);
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["goals"] }),

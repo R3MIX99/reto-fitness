@@ -10,24 +10,32 @@ interface GoalDrawerProps {
   goal?: Goal | null;
   defaultKind?: GoalKind;
   onClose: () => void;
-  onSave: (data: { id?: string; title: string; kind: GoalKind; icon?: string }) => void;
+  onSave: (data: { id?: string; title: string; kind: GoalKind; icon?: string }) => Promise<void>;
   onDelete?: (id: string) => void;
 }
 
 export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, onDelete }: GoalDrawerProps) {
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setTitle(goal?.title ?? "");
+    setError(null);
   }, [goal, open]);
 
   async function handleSave() {
     if (!title.trim()) return;
     setSaving(true);
-    await onSave({ id: goal?.id, title: title.trim(), kind: goal?.kind ?? defaultKind });
-    setSaving(false);
-    onClose();
+    setError(null);
+    try {
+      await onSave({ id: goal?.id, title: title.trim(), kind: goal?.kind ?? defaultKind });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleDelete() {
@@ -60,6 +68,8 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
               placeholder={defaultKind === "diet" ? "Ej. Almuerzo, cena, snack…" : "Ej. Leer 20 min"}
               className="w-full bg-[#1a1a1a] rounded-[12px] px-4 py-3 text-[15px] outline-none placeholder:text-[var(--color-muted)] mb-4"
             />
+
+            {error && <p className="text-[11px] text-red-400 mb-3">{error}</p>}
 
             <div className="flex gap-2">
               {goal && onDelete && (
