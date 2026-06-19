@@ -205,6 +205,60 @@ export function useLast7Days(groupId: string | null) {
   });
 }
 
+export function useTodayScore(groupId: string | null) {
+  const { user } = useUser();
+  return useQuery({
+    queryKey: ["todayScore", user?.id, groupId],
+    enabled: !!user && !!groupId,
+    queryFn: async (): Promise<number> => {
+      if (!groupId) return 0;
+      const supabase = createClient();
+      const today = new Date().toISOString().split("T")[0];
+      type CheckRow = { kind: string; goal_id: string | null };
+      const { data } = await supabase
+        .from("daily_checks")
+        .select("kind, goal_id")
+        .eq("user_id", user!.id)
+        .eq("group_id", groupId)
+        .eq("check_date", today) as unknown as { data: CheckRow[] | null };
+      return (data ?? []).length;
+    },
+  });
+}
+
+export function useStreak(groupId: string | null) {
+  const { user } = useUser();
+  return useQuery({
+    queryKey: ["streak", user?.id, groupId],
+    enabled: !!user && !!groupId,
+    queryFn: async (): Promise<number> => {
+      if (!groupId) return 0;
+      const supabase = createClient();
+      type CheckRow = { check_date: string };
+      const { data } = await supabase
+        .from("daily_checks")
+        .select("check_date")
+        .eq("user_id", user!.id)
+        .eq("group_id", groupId)
+        .order("check_date", { ascending: false }) as unknown as { data: CheckRow[] | null };
+
+      if (!data?.length) return 0;
+
+      const days = Array.from(new Set(data.map((r) => r.check_date))).sort().reverse();
+      let streak = 0;
+      const today = new Date();
+      for (let i = 0; i < days.length; i++) {
+        const expected = new Date(today);
+        expected.setDate(today.getDate() - i);
+        const expectedStr = expected.toISOString().split("T")[0];
+        if (days[i] === expectedStr) streak++;
+        else break;
+      }
+      return streak;
+    },
+  });
+}
+
 export function usePendingAudits(groupId: string | null) {
   return useQuery({
     queryKey: ["pendingAudits", groupId],
