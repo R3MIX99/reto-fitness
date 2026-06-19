@@ -82,11 +82,13 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
 
   const [pickerKind, setPickerKind] = useState<GoalKind | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingGoal = useRef<Goal | null>(null);
   const pendingKind = useRef<OptionKind | null>(null);
 
   function handleOption(kind: OptionKind) {
+    setUploadError(null);
     if (kind === "gym") {
       pendingKind.current = "gym";
       pendingGoal.current = null;
@@ -106,14 +108,20 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !groupId || !pendingKind.current) return;
+    if (!file) return;
+    if (!groupId) { setUploadError("Sin grupo activo"); return; }
+    if (!pendingKind.current) { setUploadError("Selecciona el tipo primero"); return; }
     e.target.value = "";
-    await markCheck.mutateAsync({
-      file,
-      kind: pendingKind.current as GoalKind,
-      goalId: pendingGoal.current?.id,
-    });
-    onClose();
+    try {
+      await markCheck.mutateAsync({
+        file,
+        kind: pendingKind.current as GoalKind,
+        goalId: pendingGoal.current?.id,
+      });
+      onClose();
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Error al subir la foto");
+    }
   }
 
   return (
@@ -169,6 +177,10 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
                 ))}
               </div>
 
+              {uploadError && (
+                <p className="mt-4 text-[12px] text-red-400 text-center">{uploadError}</p>
+              )}
+
               {/* Footer note */}
               <div className="flex items-center justify-center gap-1.5 mt-5 text-[11px] text-[#555]">
                 <Lock size={11} strokeWidth={1.5} />
@@ -193,6 +205,7 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
         ref={fileRef}
         type="file"
         accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={handleFile}
       />

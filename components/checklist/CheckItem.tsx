@@ -84,6 +84,7 @@ export function CheckItem({ goal, check, onMark, onEdit, loading }: CheckItemPro
         ref={inputRef}
         type="file"
         accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />
