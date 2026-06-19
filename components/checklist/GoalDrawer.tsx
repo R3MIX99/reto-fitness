@@ -57,7 +57,7 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
-              placeholder={goal?.kind === "diet" ? "Ej. Almuerzo, cena, snack…" : "Ej. Leer 20 min"}
+              placeholder={defaultKind === "diet" ? "Ej. Almuerzo, cena, snack…" : "Ej. Leer 20 min"}
               className="w-full bg-[#1a1a1a] rounded-[12px] px-4 py-3 text-[15px] outline-none placeholder:text-[var(--color-muted)] mb-4"
             />
 
