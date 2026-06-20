@@ -103,6 +103,8 @@ export function useMonthChecks(groupId: string | null) {
   return useQuery({
     queryKey: ["monthChecks", user?.id, groupId],
     enabled: !!user && !!groupId,
+    refetchOnMount: "always",
+    staleTime: 0,
     queryFn: async (): Promise<DailyCheck[]> => {
       const supabase = createClient();
       type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string };

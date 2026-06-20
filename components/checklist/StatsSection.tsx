@@ -176,9 +176,9 @@ function CalendarGrid({
                 className="flex items-center justify-center rounded-full transition-colors mx-auto"
                 style={{
                   width: cellSize, height: cellSize,
-                  background: isDone(d) ? cfg.color : "transparent",
-                  border: d === today ? "1.5px solid #EFC88B" : "none",
-                  color: isDone(d) ? cfg.textDark : d === today ? "#EFC88B" : "#7C7C7C",
+                  background: selectedDay === d ? "#EFC88B" : isDone(d) ? cfg.color : "transparent",
+                  border: d === today && selectedDay !== d ? "1.5px solid #EFC88B" : "none",
+                  color: selectedDay === d ? "#0a0a0a" : isDone(d) ? cfg.textDark : d === today ? "#EFC88B" : "#7C7C7C",
                   fontSize: expanded ? 13 : 11,
                 }}
               >
@@ -191,10 +191,12 @@ function CalendarGrid({
         {/* Day summary */}
         {selectedDay && (() => {
           const s = getDaySummary(selectedDay);
+          const isToday = selectedDay === today;
+          const dayLabel = isToday ? "Hoy" : `${selectedDay} de ${now.toLocaleString("es-MX", { month: "long" })}`;
           return (
             <div className="mt-3 pt-3 border-t border-[#1c1c1c]">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[13px] font-medium">Día {selectedDay}</span>
+                <span className="text-[13px] font-medium">{dayLabel}</span>
                 <span className="text-[12px] text-warm font-medium">{s.pts}/13 pts</span>
               </div>
               <div className="space-y-1">
