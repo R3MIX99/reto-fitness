@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useMyGroups, useLeaderboard, useProfileStats } from "@/lib/hooks/useGroups";
@@ -14,6 +14,7 @@ import {
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { ThemeSwitch } from "@/components/ui/ThemeSwitch";
 import { createClient } from "@/lib/supabase/client";
+import { Drawer } from "@/components/ui/Drawer";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -29,12 +30,11 @@ function formatWeekRange(start: string, end: string) {
   return `${s.getDate()} ${MESES[s.getMonth()]} – ${e.getDate()} ${MESES[e.getMonth()]}`;
 }
 
-// ── EditNameSheet ──────────────────────────────────────────────────────────
+// ── EditNameDrawer ─────────────────────────────────────────────────────────
 
-function EditNameSheet({ current, onSave, onClose }: { current: string; onSave: (n: string) => Promise<void>; onClose: () => void }) {
+function EditNameDrawer({ open, current, onSave, onClose }: { open: boolean; current: string; onSave: (n: string) => Promise<void>; onClose: () => void }) {
   const [value, setValue] = useState(current);
   const [saving, setSaving] = useState(false);
-  const [visible, setVisible] = useState(true);
 
   async function handleSave() {
     if (!value.trim() || value === current) { onClose(); return; }
@@ -45,19 +45,9 @@ function EditNameSheet({ current, onSave, onClose }: { current: string; onSave: 
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end justify-center px-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70" />
-      <div
-        className="relative w-full max-w-[420px] bg-[#0e0e0e] rounded-t-[24px] pb-10 pt-5 px-5 animate-slide-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="w-10 h-1 rounded-full bg-[#2a2a2a] mx-auto mb-5" />
-        <div className="flex items-center justify-between mb-5">
-          <span className="font-display font-medium text-[17px]">Editar nombre</span>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center text-[var(--color-muted)]">
-            <X size={15} strokeWidth={1.5} />
-          </button>
-        </div>
+    <Drawer open={open} onClose={onClose}>
+      <div className="px-5 pb-10 pt-2">
+        <h2 className="font-display font-medium text-[17px] mb-5">Editar nombre</h2>
         <input
           autoFocus
           value={value}
@@ -74,7 +64,7 @@ function EditNameSheet({ current, onSave, onClose }: { current: string; onSave: 
           {saving ? "Guardando…" : "Guardar"}
         </button>
       </div>
-    </div>
+    </Drawer>
   );
 }
 
@@ -290,10 +280,13 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      {/* Edit name sheet */}
-      {showEditName && (
-        <EditNameSheet current={displayName} onSave={saveName} onClose={() => setShowEditName(false)} />
-      )}
+      {/* Edit name drawer */}
+      <EditNameDrawer
+        open={showEditName}
+        current={displayName}
+        onSave={saveName}
+        onClose={() => setShowEditName(false)}
+      />
 
       {/* Notif help modal */}
       {showNotifHelp && (
