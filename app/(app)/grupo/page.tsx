@@ -34,6 +34,7 @@ function GrupoPageInner() {
   const { data: groups = [], isLoading } = useMyGroups();
   const [activeGroupIdx, setActiveGroupIdx] = useState(0);
   const [showInvite, setShowInvite] = useState(false);
+  const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
   const initializedRef = useRef(false);
   const swipeRef = useRef<{ startY: number; startX: number } | null>(null);
 
@@ -134,20 +135,35 @@ function GrupoPageInner() {
     swipeRef.current = null;
     // Only horizontal swipes (more horizontal than vertical, min 40px)
     if (Math.abs(deltaX) < 40 || deltaY > Math.abs(deltaX)) return;
-    if (deltaX < 0) {
-      // swipe right → previous group
-      setActiveGroupIdx((i) => (i - 1 + groups.length) % groups.length);
-    } else {
-      // swipe left → next group
-      setActiveGroupIdx((i) => (i + 1) % groups.length);
-    }
+    const dir = deltaX < 0 ? "right" : "left";
+    setSlideDir(dir);
+    setTimeout(() => {
+      setActiveGroupIdx((i) =>
+        dir === "left" ? (i + 1) % groups.length : (i - 1 + groups.length) % groups.length
+      );
+      setSlideDir(null);
+    }, 220);
   }
 
   return (
     <>
       <div className="px-4 pb-28 pt-2">
         {/* 1) Tarjeta del grupo */}
-        <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            transform: slideDir === "left"
+              ? "translateX(-60px)"
+              : slideDir === "right"
+              ? "translateX(60px)"
+              : "translateX(0)",
+            opacity: slideDir ? 0 : 1,
+            transition: slideDir
+              ? "transform 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.18s ease"
+              : "transform 0.28s cubic-bezier(0.34,1.2,0.64,1), opacity 0.2s ease",
+          }}
+        >
           <GrupoCard
             group={activeGroup}
             allGroups={groups}
@@ -169,7 +185,11 @@ function GrupoPageInner() {
             {groups.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setActiveGroupIdx(i)}
+                onClick={() => {
+                  const dir = i > activeGroupIdx ? "left" : "right";
+                  setSlideDir(dir);
+                  setTimeout(() => { setActiveGroupIdx(i); setSlideDir(null); }, 220);
+                }}
                 className="rounded-full transition-all"
                 style={{
                   width: i === activeGroupIdx ? 16 : 6,
