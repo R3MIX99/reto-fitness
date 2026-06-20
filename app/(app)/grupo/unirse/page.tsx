@@ -184,7 +184,7 @@ function UnirseForm() {
         <SuccessModal
           groupName={joined.name}
           ownerName={joined.owner_name}
-          onContinue={() => router.push("/grupo")}
+          onContinue={() => router.push(`/grupo?joined=${joined.id}`)}
         />
       )}
     </>

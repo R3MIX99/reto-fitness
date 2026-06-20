@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Users, Plus } from "lucide-react";
 import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits } from "@/lib/hooks/useGroups";
@@ -27,22 +27,28 @@ function getNextSunday(): string {
   return `${days[d.getDay()]} ${d.getDate()}`;
 }
 
-export default function GrupoPage() {
+function GrupoPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useUser();
   const { data: groups = [], isLoading } = useMyGroups();
   const [activeGroupIdx, setActiveGroupIdx] = useState(0);
   const [showInvite, setShowInvite] = useState(false);
   const initializedRef = useRef(false);
 
-  // On first load, default to the group the user owns; otherwise index 0
+  // On first load: if ?joined=ID, go to that group; else default to the owned group
   useEffect(() => {
     if (!initializedRef.current && groups.length > 0 && user) {
       initializedRef.current = true;
+      const joinedId = searchParams.get("joined");
+      if (joinedId) {
+        const idx = groups.findIndex((g) => g.id === joinedId);
+        if (idx !== -1) { setActiveGroupIdx(idx); return; }
+      }
       const ownedIdx = groups.findIndex((g) => g.owner_id === user.id);
       if (ownedIdx !== -1) setActiveGroupIdx(ownedIdx);
     }
-  }, [groups, user]);
+  }, [groups, user, searchParams]);
 
   // Clamp index when groups array shrinks (e.g. after leaving a group)
   useEffect(() => {
@@ -57,17 +63,21 @@ export default function GrupoPage() {
   const { data: last7 = [] } = useLast7Days(activeGroup?.id ?? null);
   const { data: pending = 0 } = usePendingAudits(activeGroup?.id ?? null);
 
-  // Si no hay puntos en daily_scores, construir el ranking desde los miembros del grupo con 0 pts
-  const effectiveLeaderboard = leaderboard.length > 0
-    ? leaderboard
-    : activeGroup?.members.map((m, i) => ({
+  // Merge real scores with all group members so everyone always appears
+  const effectiveLeaderboard = (() => {
+    const members = activeGroup?.members ?? [];
+    const scoreMap = Object.fromEntries(leaderboard.map((e) => [e.user_id, e.total_points]));
+    const avatarMap = Object.fromEntries(leaderboard.map((e) => [e.user_id, { full_name: e.full_name, avatar_url: e.avatar_url }]));
+    return members
+      .map((m) => ({
         user_id: m.user_id,
-        full_name: m.full_name,
-        avatar_url: m.avatar_url,
-        total_points: 0,
-        position: i + 1,
-        is_leader: i === 0,
-      })) ?? [];
+        full_name: avatarMap[m.user_id]?.full_name ?? m.full_name,
+        avatar_url: avatarMap[m.user_id]?.avatar_url ?? m.avatar_url,
+        total_points: scoreMap[m.user_id] ?? 0,
+      }))
+      .sort((a, b) => b.total_points - a.total_points)
+      .map((e, i) => ({ ...e, position: i + 1, is_leader: i === 0 }));
+  })();
 
   const leaderEntry = effectiveLeaderboard[0];
 
@@ -151,7 +161,14 @@ export default function GrupoPage() {
         groupName={activeGroup.name}
         onClose={() => setShowInvite(false)}
       />
-
     </>
+  );
+}
+
+export default function GrupoPage() {
+  return (
+    <Suspense>
+      <GrupoPageInner />
+    </Suspense>
   );
 }
