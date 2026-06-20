@@ -19,7 +19,7 @@ export function BottomNav() {
   const pathname   = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  if (pathname === "/perfil") return null;
+  if (pathname === "/perfil" || pathname === "/notificaciones") return null;
 
   return (
     <>

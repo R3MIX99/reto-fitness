@@ -4,6 +4,7 @@ import { Bell } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useProfile } from "@/lib/hooks/useProfile";
+import { useNotifications } from "@/lib/hooks/useNotifications";
 import Image from "next/image";
 
 function getGreeting(): string {
@@ -24,10 +25,12 @@ interface HeaderProps {
 export function Header({ hasNotifications = false }: HeaderProps) {
   const pathname = usePathname();
   const { avatarUrl, displayName } = useProfile();
+  const { data: notifications = [] } = useNotifications();
+  const hasUnread = notifications.some((n) => !n.read);
   const greeting = getGreeting();
   const firstName = displayName.split(" ")[0];
 
-  if (pathname === "/perfil") return null;
+  if (pathname === "/perfil" || pathname === "/notificaciones") return null;
 
   return (
     <header className="relative z-10 flex items-center gap-3 px-[18px] py-3">
@@ -58,12 +61,12 @@ export function Header({ hasNotifications = false }: HeaderProps) {
       </div>
 
       {/* Campana */}
-      <div className="relative w-[38px] h-[38px] rounded-full bg-[var(--color-bg-card)] flex items-center justify-center flex-shrink-0">
+      <Link href="/notificaciones" aria-label="Notificaciones" className="relative w-[38px] h-[38px] rounded-full bg-[var(--color-bg-card)] flex items-center justify-center flex-shrink-0">
         <Bell size={18} strokeWidth={1.5} className="text-[var(--color-fg)]" />
-        {hasNotifications && (
+        {hasUnread && (
           <span className="absolute top-[9px] right-[9px] w-[7px] h-[7px] rounded-full bg-accent border-[1.5px] border-[var(--color-bg-card)]" />
         )}
-      </div>
+      </Link>
     </header>
   );
 }
