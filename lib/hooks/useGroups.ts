@@ -471,7 +471,6 @@ export function useLookupGroup(code: string) {
 }
 
 export function useJoinGroup() {
-  const { user } = useUser();
   const qc = useQueryClient();
 
   return useMutation({
@@ -485,30 +484,12 @@ export function useJoinGroup() {
     },
     onSuccess: async (data) => {
       qc.invalidateQueries({ queryKey: ["groups"] });
-
-      // Fetch the real owner_id from the groups table
-      const supabase = createClient();
-      type GroupRow = { owner_id: string };
-      const { data: group } = await supabase
-        .from("groups")
-        .select("owner_id")
-        .eq("id", data.id)
-        .single() as unknown as { data: GroupRow | null };
-
-      const ownerId = group?.owner_id;
-      if (ownerId && ownerId !== user?.id) {
-        const { notifyUser } = await import("@/lib/notify");
-        const joinerName = (user as { user_metadata?: { full_name?: string } } | null)
-          ?.user_metadata?.full_name ?? "Alguien";
-        notifyUser({
-          user_id: ownerId,
-          type: "new_member",
-          title: "Nuevo miembro en tu grupo",
-          body: `${joinerName} se unió a "${data.name}".`,
-          url: `/grupo?joined=${data.id}`,
-          metadata: { group_id: data.id, joiner_id: user?.id },
-        });
-      }
+      // Notify group owner server-side (uses service_role to bypass RLS)
+      fetch("/api/groups/member-joined", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group_id: data.id }),
+      }).catch(() => {});
     },
   });
 }
