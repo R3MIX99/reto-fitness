@@ -129,17 +129,17 @@ function GrupoPageInner() {
 
   function handleTouchEnd(e: React.TouchEvent) {
     if (!swipeRef.current || groups.length < 2) return;
-    const deltaY = swipeRef.current.startY - e.changedTouches[0].clientY;
-    const deltaX = Math.abs(swipeRef.current.startX - e.changedTouches[0].clientX);
+    const deltaX = swipeRef.current.startX - e.changedTouches[0].clientX;
+    const deltaY = Math.abs(swipeRef.current.startY - e.changedTouches[0].clientY);
     swipeRef.current = null;
-    // Only vertical swipes (more vertical movement than horizontal, min 40px)
-    if (Math.abs(deltaY) < 40 || deltaX > Math.abs(deltaY)) return;
-    if (deltaY > 0) {
-      // swipe up → next group
-      setActiveGroupIdx((i) => (i + 1) % groups.length);
-    } else {
-      // swipe down → previous group
+    // Only horizontal swipes (more horizontal than vertical, min 40px)
+    if (Math.abs(deltaX) < 40 || deltaY > Math.abs(deltaX)) return;
+    if (deltaX < 0) {
+      // swipe right → previous group
       setActiveGroupIdx((i) => (i - 1 + groups.length) % groups.length);
+    } else {
+      // swipe left → next group
+      setActiveGroupIdx((i) => (i + 1) % groups.length);
     }
   }
 
