@@ -146,12 +146,14 @@ export function useAuditCheck() {
     mutationFn: async ({
       checkId,
       approved,
+      reason,
       checkUserId,
       checkDate,
       checkGroupId,
     }: {
       checkId: string;
       approved: boolean;
+      reason?: string | null;
       checkUserId: string;
       checkDate: string;
       checkGroupId: string;
@@ -165,6 +167,14 @@ export function useAuditCheck() {
         .eq("id", checkId) as unknown as { error: unknown };
 
       if (error) throw error;
+
+      // Record the audit vote (with optional reason)
+      await supabase.from("audits").insert({
+        check_id: checkId,
+        reviewer_id: user.id,
+        vote: approved ? "approved" : "rejected",
+        reason: reason ?? null,
+      } as never);
 
       // Recalculate score for the audited user — recalc_day_score already updates ALL groups
       await (supabase.rpc as Function)("recalc_day_score", {

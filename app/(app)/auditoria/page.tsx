@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, X, Check, Dumbbell, UtensilsCrossed, Target, ImageIcon } from "lucide-react";
+import { Drawer as VaulDrawer } from "vaul";
 import { createClient } from "@/lib/supabase/client";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { usePendingChecks, useAuditCheck, useAutoApproveOldChecks, kindLabel, getWeekNumber } from "@/lib/hooks/useAuditoria";
@@ -88,6 +89,8 @@ export default function AuditoriaPage() {
 
   const [idx, setIdx] = useState(0);
   const [toast, setToast] = useState<"approved" | "rejected" | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   // Auto-approve pending checks from previous weeks on page open
   useEffect(() => {
@@ -97,19 +100,23 @@ export default function AuditoriaPage() {
   const current = checks[idx] ?? null;
   const week = getWeekNumber();
 
-  async function handleAudit(approved: boolean) {
+  async function handleAudit(approved: boolean, reason?: string) {
     if (!current) return;
     await audit.mutateAsync({
       checkId: current.id,
       approved,
+      reason: reason ?? null,
       checkUserId: current.user_id,
       checkDate: current.check_date,
       checkGroupId: current.group_id,
     });
+    setRejectOpen(false);
+    setRejectReason("");
     setToast(approved ? "approved" : "rejected");
     setTimeout(() => setToast(null), 2500);
-    if (idx < checks.length - 1) setIdx((i) => i + 1);
-    else setTimeout(() => router.back(), 600);
+    const isLast = idx >= checks.length - 1;
+    if (!isLast) setIdx((i) => i + 1);
+    else setTimeout(() => router.push("/grupo"), 600);
   }
 
   // ── States ────────────────────────────────────────────────────────────────
@@ -209,7 +216,7 @@ export default function AuditoriaPage() {
           {/* Action buttons */}
           <div className="flex gap-2.5">
             <button
-              onClick={() => handleAudit(false)}
+              onClick={() => setRejectOpen(true)}
               disabled={audit.isPending}
               className="flex-1 flex items-center justify-center gap-1.5 text-[13px] border border-[#3a3a3a] rounded-[13px] py-3 transition-opacity disabled:opacity-40"
             >
@@ -251,6 +258,37 @@ export default function AuditoriaPage() {
         </>
       )}
     </div>
+
+    {/* Drawer: razón de rechazo */}
+    <VaulDrawer.Root open={rejectOpen} onOpenChange={(o) => !o && setRejectOpen(false)}>
+      <VaulDrawer.Portal>
+        <VaulDrawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
+        <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[#0e0e0e] rounded-t-[26px] outline-none flex flex-col">
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 rounded-full bg-[#2a2a2a]" />
+          </div>
+          <div className="px-5 pb-8">
+            <p className="font-display font-medium text-[17px] mb-1">Rechazar evidencia</p>
+            <p className="text-[12px] text-[var(--color-muted)] mb-4">Escribe el motivo del rechazo (opcional)</p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Ej: La foto no muestra claramente el ejercicio…"
+              rows={3}
+              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-[14px] px-4 py-3 text-[14px] text-[var(--color-fg)] placeholder:text-[var(--color-muted)] outline-none resize-none mb-4"
+            />
+            <button
+              onClick={() => handleAudit(false, rejectReason || undefined)}
+              disabled={audit.isPending}
+              className="w-full flex items-center justify-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-full py-3.5 text-[14px] font-medium disabled:opacity-50"
+            >
+              <X size={15} strokeWidth={1.5} />
+              {audit.isPending ? "Rechazando…" : "Confirmar rechazo"}
+            </button>
+          </div>
+        </VaulDrawer.Content>
+      </VaulDrawer.Portal>
+    </VaulDrawer.Root>
 
     {/* Toast */}
     {toast && (
