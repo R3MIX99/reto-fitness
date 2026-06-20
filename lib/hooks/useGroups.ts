@@ -319,29 +319,16 @@ export function useCreateGroup() {
 }
 
 export function useJoinGroup() {
-  const { user } = useUser();
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async (inviteCode: string): Promise<string> => {
-      if (!user) throw new Error("No autenticado");
       const supabase = createClient();
-
-      const { data: group, error } = await supabase
-        .from("groups")
-        .select("id, name")
-        .ilike("invite_code", inviteCode.trim())
-        .single() as unknown as { data: { id: string; name: string } | null; error: unknown };
-
-      if (error || !group) throw new Error("Código inválido o grupo no encontrado");
-
-      const { error: joinError } = await supabase
-        .from("group_members")
-        .insert({ group_id: group.id, user_id: user.id, role: "member" } as never) as unknown as { error: { code?: string } | null };
-
-      if (joinError && joinError.code !== "23505") throw joinError;
-
-      return group.id;
+      const { data, error } = await (supabase.rpc as Function)("join_group_by_code", {
+        p_invite_code: inviteCode.trim(),
+      });
+      if (error) throw new Error(error.message ?? "Código inválido o grupo no encontrado");
+      return (data as { id: string }).id;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
   });
