@@ -1,13 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
-import { Flame, Dumbbell, UtensilsCrossed, Target } from "lucide-react";
+import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
-import { useMyGroups, useLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
+import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
 import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
 
 const TOTAL_PTS = 13;
-const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to"];
+const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
 
 const DIAS_CORTOS = ["dom","lun","mar","mié","jue","vie","sáb"];
 function getNextSunday(): string {
@@ -93,26 +94,36 @@ function PlayerRow({
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
+const PREVIEW_COUNT = 3;
+
 export default function DashboardPage() {
   const { user } = useUser();
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
+  const groupIds = groups.map((g) => g.id);
+  const [showAll, setShowAll] = useState(false);
 
-  const activeGroup = groups[0] ?? null;
   const { data: todayPts = 0 } = useTodayScore(groupId);
   const { data: streak = 0 } = useStreak(groupId);
-  const { data: leaderboard = [] } = useLeaderboard(groupId);
+  const { data: leaderboard = [] } = useGlobalLeaderboard(groupIds);
 
+  // If no one has scored yet, show all unique members from all groups at 0 pts
+  const allMembers = groups.flatMap((g) => g.members);
+  const uniqueMembers = Array.from(new Map(allMembers.map((m) => [m.user_id, m])).values());
   const effectiveLeaderboard = leaderboard.length > 0
     ? leaderboard
-    : activeGroup?.members.map((m, i) => ({
+    : uniqueMembers.map((m, i) => ({
         user_id: m.user_id,
         full_name: m.full_name,
         avatar_url: m.avatar_url,
         total_points: 0,
         position: i + 1,
         is_leader: i === 0,
-      })) ?? [];
+      }));
+
+  const visibleLeaderboard = showAll ? effectiveLeaderboard : effectiveLeaderboard.slice(0, PREVIEW_COUNT);
+  const hasMore = effectiveLeaderboard.length > PREVIEW_COUNT;
+
   const { data: goals = [] } = useGoals();
   const { data: todayChecks = [] } = useTodayChecks(groupId);
 
@@ -224,7 +235,7 @@ export default function DashboardPage() {
         <div>
           <p className="text-[12px] text-[var(--color-muted)] mb-1.5">Tabla de jugadores</p>
           <div className="bg-[var(--color-bg-card)] rounded-[18px] px-4">
-            {effectiveLeaderboard.map((entry, i) => (
+            {visibleLeaderboard.map((entry, i) => (
               <PlayerRow
                 key={entry.user_id}
                 position={entry.position}
@@ -232,10 +243,23 @@ export default function DashboardPage() {
                 avatar_url={entry.avatar_url}
                 total_points={entry.total_points}
                 isCurrent={entry.user_id === user?.id}
-                isLast={i === effectiveLeaderboard.length - 1}
+                isLast={i === visibleLeaderboard.length - 1 && !hasMore}
               />
             ))}
           </div>
+
+          {hasMore && (
+            <button
+              onClick={() => setShowAll((v) => !v)}
+              className="w-full flex items-center justify-center gap-1.5 mt-2 py-2.5 text-[13px] text-[var(--color-muted)] bg-[var(--color-bg-card)] rounded-[14px]"
+            >
+              {showAll ? (
+                <><ChevronUp size={14} strokeWidth={1.5} /> Ver menos</>
+              ) : (
+                <><ChevronDown size={14} strokeWidth={1.5} /> Ver {effectiveLeaderboard.length - PREVIEW_COUNT} más</>
+              )}
+            </button>
+          )}
         </div>
       )}
 

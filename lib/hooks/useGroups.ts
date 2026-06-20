@@ -470,6 +470,77 @@ export function useLookupGroup(code: string) {
   });
 }
 
+// ── Global leaderboard (all groups the user belongs to) ────────────────────
+// Points are deduplicated by date: a user's best score on a given day across
+// all groups counts once, so multi-group membership doesn't inflate scores.
+
+export function useGlobalLeaderboard(groupIds: string[]) {
+  return useQuery({
+    queryKey: ["globalLeaderboard", groupIds],
+    enabled: groupIds.length > 0,
+    queryFn: async (): Promise<LeaderboardEntry[]> => {
+      if (!groupIds.length) return [];
+      const supabase = createClient();
+
+      type ScoreRow = { user_id: string; score_date: string; total_points: number | null };
+      type ProfileRow = { full_name: string | null; avatar_url: string | null };
+
+      // Fetch all scores for all groups this user belongs to
+      const { data } = await supabase
+        .from("daily_scores")
+        .select("user_id, score_date, total_points")
+        .in("group_id", groupIds) as unknown as { data: ScoreRow[] | null };
+
+      if (!data?.length) return [];
+
+      // For each user, deduplicate by date (take max across groups for that date)
+      const perUserPerDate: Record<string, Record<string, number>> = {};
+      for (const row of data) {
+        const uid = row.user_id;
+        const date = row.score_date;
+        const pts = row.total_points ?? 0;
+        if (!perUserPerDate[uid]) perUserPerDate[uid] = {};
+        perUserPerDate[uid][date] = Math.max(perUserPerDate[uid][date] ?? 0, pts);
+      }
+
+      // Sum deduplicated points per user
+      const totals: Record<string, number> = {};
+      for (const [uid, dates] of Object.entries(perUserPerDate)) {
+        totals[uid] = Object.values(dates).reduce((a, b) => a + b, 0);
+      }
+
+      const userIds = Object.keys(totals);
+
+      // Collect all unique member profiles from all groups (members table)
+      // then fall back to profiles table for any missing
+      const { data: members } = await supabase
+        .from("group_members")
+        .select("user_id")
+        .in("group_id", groupIds) as unknown as { data: { user_id: string }[] | null };
+
+      const allUserIds = Array.from(new Set([...userIds, ...(members ?? []).map((m) => m.user_id)]));
+
+      const profiles = await Promise.all(
+        allUserIds.map(async (uid) => {
+          const { data: p } = await supabase
+            .from("profiles")
+            .select("full_name, avatar_url")
+            .eq("id", uid)
+            .single() as unknown as { data: ProfileRow | null };
+          return { user_id: uid, full_name: p?.full_name ?? null, avatar_url: p?.avatar_url ?? null };
+        })
+      );
+
+      const entries = profiles
+        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0 }))
+        .sort((a, b) => b.total_points - a.total_points)
+        .map((p, i) => ({ ...p, position: i + 1, is_leader: i === 0 }));
+
+      return entries;
+    },
+  });
+}
+
 export function useJoinGroup() {
   const qc = useQueryClient();
 
