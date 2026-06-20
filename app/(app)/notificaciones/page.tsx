@@ -1,35 +1,42 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronLeft, CheckCircle2, Clock, Trophy, UserPlus, Users, TrendingUp, Bell } from "lucide-react";
+import { ChevronLeft, CheckCircle2, Clock, TrendingUp, UserPlus, Users, Bell, X } from "lucide-react";
 import { useNotifications, useMarkAllRead, useMarkRead } from "@/lib/hooks/useNotifications";
 
 // ── Config de tipos ────────────────────────────────────────────────────────
 
-const TYPE_CONFIG: Record<string, { Icon: React.ElementType; color: string; bg: string }> = {
-  check_completed: { Icon: CheckCircle2, color: "#EFC88B", bg: "rgba(239,200,139,0.15)" },
-  review_pending:  { Icon: Clock,        color: "#CF5C36", bg: "rgba(207,92,54,0.15)"  },
-  review_done:     { Icon: CheckCircle2, color: "#EFC88B", bg: "rgba(239,200,139,0.15)" },
-  ranking_passed:  { Icon: TrendingUp,   color: "#CF5C36", bg: "rgba(207,92,54,0.15)"  },
-  new_member:      { Icon: UserPlus,     color: "#EFC88B", bg: "rgba(239,200,139,0.15)" },
-  joined_group:    { Icon: Users,        color: "#EFC88B", bg: "rgba(239,200,139,0.15)" },
-};
+type NotifConfig = { Icon: React.ElementType; color: string; bg: string; defaultUrl: string };
 
-const FALLBACK = { Icon: Bell, color: "#7C7C7C", bg: "rgba(124,124,124,0.15)" };
+function getConfig(type: string, metadata?: Record<string, unknown>): NotifConfig {
+  // review_done can be approved or rejected
+  if (type === "review_done") {
+    const approved = metadata?.approved !== false;
+    return approved
+      ? { Icon: CheckCircle2, color: "#22c55e", bg: "rgba(34,197,94,0.15)",    defaultUrl: "/checklist" }
+      : { Icon: X,            color: "#ef4444", bg: "rgba(239,68,68,0.15)",    defaultUrl: "/checklist" };
+  }
+  const map: Record<string, NotifConfig> = {
+    check_completed: { Icon: CheckCircle2, color: "#EFC88B", bg: "rgba(239,200,139,0.15)", defaultUrl: "/checklist" },
+    review_pending:  { Icon: Clock,        color: "#CF5C36", bg: "rgba(207,92,54,0.15)",   defaultUrl: "/auditoria" },
+    ranking_passed:  { Icon: TrendingUp,   color: "#CF5C36", bg: "rgba(207,92,54,0.15)",   defaultUrl: "/grupo" },
+    new_member:      { Icon: UserPlus,     color: "#EFC88B", bg: "rgba(239,200,139,0.15)", defaultUrl: "/grupo" },
+    joined_group:    { Icon: Users,        color: "#EFC88B", bg: "rgba(239,200,139,0.15)", defaultUrl: "/grupo" },
+  };
+  return map[type] ?? { Icon: Bell, color: "#7C7C7C", bg: "rgba(124,124,124,0.15)", defaultUrl: "/" };
+}
 
 // ── Helpers de fecha ───────────────────────────────────────────────────────
 
-const DIAS   = ["dom","lun","mar","mié","jue","vie","sáb"];
-const MESES  = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const DIAS  = ["dom","lun","mar","mié","jue","vie","sáb"];
+const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 
 function relativeLabel(dateStr: string): string {
   const now  = new Date();
   const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffH   = Math.floor(diffMs / 3600000);
-  const diffD   = Math.floor(diffMs / 86400000);
-
+  const diffMin = Math.floor((now.getTime() - date.getTime()) / 60000);
+  const diffH   = Math.floor(diffMin / 60);
+  const diffD   = Math.floor(diffH / 24);
   if (diffMin < 1)  return "Ahora";
   if (diffMin < 60) return `Hace ${diffMin} min`;
   if (diffH   < 24) return `Hace ${diffH} h`;
@@ -39,9 +46,7 @@ function relativeLabel(dateStr: string): string {
 }
 
 function groupLabel(dateStr: string): string {
-  const now  = new Date();
-  const date = new Date(dateStr);
-  const diffD = Math.floor((now.getTime() - date.getTime()) / 86400000);
+  const diffD = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
   if (diffD === 0) return "Hoy";
   if (diffD === 1) return "Ayer";
   if (diffD  < 7) return "Esta semana";
@@ -65,6 +70,13 @@ export default function NotificacionesPage() {
     const existing = sections.find((s) => s.label === label);
     if (existing) existing.items.push(n);
     else sections.push({ label, items: [n] });
+  }
+
+  function handleTap(n: (typeof notifications)[0]) {
+    if (!n.read) markRead.mutate(n.id);
+    const cfg = getConfig(n.type, n.metadata);
+    const url = (n.metadata?.url as string | undefined) ?? cfg.defaultUrl;
+    router.push(url);
   }
 
   return (
@@ -112,13 +124,13 @@ export default function NotificacionesPage() {
             <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-2.5">{label}</p>
             <div className="space-y-2">
               {items.map((n) => {
-                const cfg = TYPE_CONFIG[n.type] ?? FALLBACK;
+                const cfg = getConfig(n.type, n.metadata);
                 const { Icon } = cfg;
                 return (
                   <button
                     key={n.id}
-                    onClick={() => !n.read && markRead.mutate(n.id)}
-                    className="w-full flex items-start gap-3 bg-[var(--color-bg-card)] rounded-[16px] px-4 py-3.5 text-left"
+                    onClick={() => handleTap(n)}
+                    className="w-full flex items-start gap-3 bg-[var(--color-bg-card)] rounded-[16px] px-4 py-3.5 text-left active:opacity-75 transition-opacity"
                     style={{ opacity: n.read ? 0.6 : 1 }}
                   >
                     {/* Icon */}

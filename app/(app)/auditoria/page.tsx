@@ -10,6 +10,7 @@ import { Drawer as VaulDrawer } from "vaul";
 import { createClient } from "@/lib/supabase/client";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { usePendingChecks, useAuditCheck, useAutoApproveOldChecks, kindLabel, getWeekNumber } from "@/lib/hooks/useAuditoria";
+import { useUser } from "@/lib/hooks/useUser";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -80,6 +81,7 @@ function EvidenceImage({ path }: { path: string }) {
 
 export default function AuditoriaPage() {
   const router = useRouter();
+  const { user } = useUser();
   const { data: groups = [] } = useMyGroups();
   const groupIds = groups.map((g) => g.id);
 
@@ -125,6 +127,8 @@ export default function AuditoriaPage() {
       checkUserId: current.user_id,
       checkDate: current.check_date,
       checkGroupId: current.group_id,
+      checkKind: current.kind,
+      reviewerName: (user as { user_metadata?: { full_name?: string } } | null)?.user_metadata?.full_name ?? null,
     });
   }
 

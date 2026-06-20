@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
+import { notifyUser } from "@/lib/notify";
 
 export interface PendingCheck {
   id: string;
@@ -150,6 +151,8 @@ export function useAuditCheck() {
       checkUserId,
       checkDate,
       checkGroupId,
+      checkKind,
+      reviewerName,
     }: {
       checkId: string;
       approved: boolean;
@@ -157,9 +160,23 @@ export function useAuditCheck() {
       checkUserId: string;
       checkDate: string;
       checkGroupId: string;
+      checkKind?: string;
+      reviewerName?: string | null;
     }) => {
       if (!user) throw new Error("Sin sesión");
       const supabase = createClient();
+
+      // Snapshot leaderboard BEFORE recalc to detect ranking changes
+      type ScoreRow = { user_id: string; total_points: number | null };
+      const { data: scoreBefore } = await supabase
+        .from("daily_scores")
+        .select("user_id, total_points")
+        .eq("group_id", checkGroupId) as unknown as { data: ScoreRow[] | null };
+
+      const totalsBefore: Record<string, number> = {};
+      for (const r of scoreBefore ?? []) {
+        totalsBefore[r.user_id] = (totalsBefore[r.user_id] ?? 0) + (r.total_points ?? 0);
+      }
 
       const { error } = await supabase
         .from("daily_checks")
@@ -176,12 +193,72 @@ export function useAuditCheck() {
         reason: reason ?? null,
       } as never);
 
-      // Recalculate score for the audited user — recalc_day_score already updates ALL groups
+      // Recalculate score for the audited user
       await (supabase.rpc as Function)("recalc_day_score", {
         p_user_id: checkUserId,
         p_group_id: checkGroupId,
         p_date: checkDate,
       });
+
+      // ── Fire notifications (best-effort, don't await sequentially) ──────
+
+      const auditorName = reviewerName ?? "Un compañero";
+      const kindLabel = checkKind === "gym" ? "de gimnasio" : checkKind === "diet" ? "de dieta" : "de meta";
+
+      // 1. Notify the check owner about the result
+      notifyUser({
+        user_id: checkUserId,
+        type: "review_done",
+        title: approved ? "Evidencia aprobada ✓" : "Evidencia rechazada",
+        body: approved
+          ? `${auditorName} aprobó tu evidencia ${kindLabel}.`
+          : `${auditorName} rechazó tu evidencia ${kindLabel}${reason ? `: "${reason}"` : "."}`,
+        url: "/checklist",
+        metadata: { check_id: checkId, approved },
+      });
+
+      // 2. Detect ranking change if approved (points increased)
+      if (approved) {
+        const { data: scoreAfter } = await supabase
+          .from("daily_scores")
+          .select("user_id, total_points")
+          .eq("group_id", checkGroupId) as unknown as { data: ScoreRow[] | null };
+
+        const totalsAfter: Record<string, number> = {};
+        for (const r of scoreAfter ?? []) {
+          totalsAfter[r.user_id] = (totalsAfter[r.user_id] ?? 0) + (r.total_points ?? 0);
+        }
+
+        const pointsBefore = totalsBefore[checkUserId] ?? 0;
+        const pointsAfter  = totalsAfter[checkUserId] ?? 0;
+
+        if (pointsAfter > pointsBefore) {
+          // Find users that checkUserId surpassed
+          for (const [uid, ptsBefore] of Object.entries(totalsBefore)) {
+            if (uid === checkUserId) continue;
+            const ptsAfter = totalsAfter[uid] ?? ptsBefore;
+            // uid was ahead before but is now behind or equal
+            if (ptsBefore >= pointsBefore && ptsAfter < pointsAfter) {
+              // Get surpassed user's name for message
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name")
+                .eq("id", checkUserId)
+                .single() as unknown as { data: { full_name: string | null } | null };
+              const surpasserName = profile?.full_name ?? "Un jugador";
+
+              notifyUser({
+                user_id: uid,
+                type: "ranking_passed",
+                title: "Te superaron en el ranking",
+                body: `${surpasserName} ahora tiene más puntos que tú esta semana.`,
+                url: "/grupo",
+                metadata: { group_id: checkGroupId, surpasser_id: checkUserId },
+              });
+            }
+          }
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pendingChecks"] });

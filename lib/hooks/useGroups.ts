@@ -471,17 +471,35 @@ export function useLookupGroup(code: string) {
 }
 
 export function useJoinGroup() {
+  const { user } = useUser();
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (inviteCode: string): Promise<{ id: string; name: string; owner_name: string }> => {
+    mutationFn: async (inviteCode: string): Promise<{ id: string; name: string; owner_id: string; owner_name: string }> => {
       const supabase = createClient();
       const { data, error } = await (supabase.rpc as Function)("join_group_by_code", {
         p_invite_code: inviteCode.trim(),
       });
       if (error) throw new Error(error.message ?? "Código inválido o grupo no encontrado");
-      return data as { id: string; name: string; owner_name: string };
+      return data as { id: string; name: string; owner_id: string; owner_name: string };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+    onSuccess: async (data) => {
+      qc.invalidateQueries({ queryKey: ["groups"] });
+
+      // Notify group owner that someone joined
+      if (data.owner_id && data.owner_id !== user?.id) {
+        const { notifyUser } = await import("@/lib/notify");
+        const joinerName = (user as { user_metadata?: { full_name?: string } } | null)
+          ?.user_metadata?.full_name ?? "Alguien";
+        notifyUser({
+          user_id: data.owner_id,
+          type: "new_member",
+          title: "Nuevo miembro en tu grupo",
+          body: `${joinerName} se unió a "${data.name}".`,
+          url: "/grupo",
+          metadata: { group_id: data.id, joiner_id: user?.id },
+        });
+      }
+    },
   });
 }
