@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { Drawer as VaulDrawer } from "vaul";
-import { Camera, Clock, CheckCircle2, RefreshCw, X } from "lucide-react";
+import { Camera, Clock, CheckCircle2, RefreshCw, X, Expand } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
@@ -52,6 +52,7 @@ interface CheckDetailDrawerProps {
 export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: CheckDetailDrawerProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [replacing, setReplacing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const signedUrl = useSignedUrl(check?.evidence_path ?? null);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -71,6 +72,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
   const isPending = check?.status === "pending";
 
   return (
+    <>
     <VaulDrawer.Root
       open={open}
       onOpenChange={(o) => !o && onClose()}
@@ -119,18 +121,31 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
 
           {/* Evidence photo */}
           <div className="flex-1 overflow-y-auto px-5 pb-6">
-            <div className="rounded-[18px] overflow-hidden bg-[#1a1a1a] mb-4" style={{ minHeight: 220 }}>
+            <div className="relative rounded-[18px] overflow-hidden bg-[#1a1a1a] mb-4 aspect-square w-full max-w-[260px] mx-auto">
               {signedUrl ? (
-                <Image
-                  src={signedUrl}
-                  alt="Evidencia"
-                  width={600}
-                  height={400}
-                  className="w-full object-cover"
-                  unoptimized
-                />
+                <>
+                  <button
+                    onClick={() => setExpanded(true)}
+                    className="w-full h-full block"
+                    aria-label="Ver foto completa"
+                  >
+                    <Image
+                      src={signedUrl}
+                      alt="Evidencia"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </button>
+                  <button
+                    onClick={() => setExpanded(true)}
+                    className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center"
+                  >
+                    <Expand size={13} strokeWidth={1.5} className="text-white" />
+                  </button>
+                </>
               ) : (
-                <div className="flex items-center justify-center h-[220px]">
+                <div className="flex items-center justify-center h-full">
                   <div className="w-8 h-8 border-2 border-[#2a2a2a] border-t-warm rounded-full animate-spin" />
                 </div>
               )}
@@ -162,5 +177,27 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
         </VaulDrawer.Content>
       </VaulDrawer.Portal>
     </VaulDrawer.Root>
+    {/* Fullscreen lightbox */}
+    {expanded && signedUrl && (
+      <div
+        className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
+        onClick={() => setExpanded(false)}
+      >
+        <button
+          onClick={() => setExpanded(false)}
+          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"
+        >
+          <X size={16} strokeWidth={1.5} className="text-white" />
+        </button>
+        <Image
+          src={signedUrl}
+          alt="Evidencia"
+          fill
+          className="object-contain"
+          unoptimized
+        />
+      </div>
+    )}
+    </>
   );
 }
