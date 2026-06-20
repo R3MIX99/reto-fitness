@@ -2,9 +2,9 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, Hash, Check, Users } from "lucide-react";
+import { ChevronLeft, Hash, Check, Users, Shield } from "lucide-react";
 import Link from "next/link";
-import { useJoinGroup } from "@/lib/hooks/useGroups";
+import { useJoinGroup, useLookupGroup } from "@/lib/hooks/useGroups";
 
 // ── Modal de éxito ─────────────────────────────────────────────────────────
 
@@ -113,6 +113,7 @@ function UnirseForm() {
   const [error, setError] = useState("");
   const [joined, setJoined] = useState<{ id: string; name: string; owner_name: string } | null>(null);
   const joinGroup = useJoinGroup();
+  const { data: preview, isFetching: lookingUp } = useLookupGroup(code);
 
   useEffect(() => {
     const c = searchParams.get("code");
@@ -168,11 +169,43 @@ function UnirseForm() {
             />
           </div>
 
+          {/* Preview del grupo */}
+          {code.trim().length >= 4 && (
+            <div className="rounded-[16px] bg-[var(--color-bg-card)] border border-[#2a2a2a] overflow-hidden transition-all">
+              {lookingUp ? (
+                <div className="flex items-center gap-3 px-4 py-4">
+                  <div className="w-4 h-4 border-2 border-[#2a2a2a] border-t-warm rounded-full animate-spin flex-shrink-0" />
+                  <p className="text-[13px] text-[var(--color-muted)]">Buscando grupo…</p>
+                </div>
+              ) : preview ? (
+                <div className="px-4 py-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-warm/15 flex items-center justify-center flex-shrink-0">
+                    <Users size={18} strokeWidth={1.5} className="text-warm" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[15px] font-medium truncate">{preview.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Shield size={10} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+                      <p className="text-[12px] text-[var(--color-muted)] truncate">
+                        {preview.owner_name} · {preview.member_count} {preview.member_count === 1 ? "miembro" : "miembros"}
+                      </p>
+                    </div>
+                  </div>
+                  <Check size={16} strokeWidth={2} className="text-warm flex-shrink-0" />
+                </div>
+              ) : (
+                <div className="px-4 py-4">
+                  <p className="text-[13px] text-accent">Código no encontrado</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {error && <p className="text-[13px] text-accent">{error}</p>}
 
           <button
             type="submit"
-            disabled={code.trim().length < 4 || joinGroup.isPending}
+            disabled={!preview || joinGroup.isPending}
             className="w-full bg-accent text-white rounded-pill py-3.5 text-[15px] font-medium disabled:opacity-50"
           >
             {joinGroup.isPending ? "Uniéndose..." : "Unirse al grupo"}
