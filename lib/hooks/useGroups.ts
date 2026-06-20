@@ -357,7 +357,7 @@ export function useProfileStats() {
         .order("end_date", { ascending: false }) as unknown as { data: WeekRow[] | null };
 
       // Fetch group names for won weeks
-      const groupIds = [...new Set((wonRaw ?? []).map((w) => w.group_id))];
+      const groupIds = Array.from(new Set((wonRaw ?? []).map((w) => w.group_id)));
       type GroupRow = { id: string; name: string };
       const groupNames: Record<string, string> = {};
       if (groupIds.length) {
