@@ -41,7 +41,6 @@ export async function POST(req: NextRequest) {
     .upsert(
       {
         user_id: user.id,
-        group_id: group_id ?? null,
         endpoint: subscription.endpoint,
         p256dh: subscription.keys?.p256dh ?? "",
         auth: subscription.keys?.auth ?? "",
