@@ -76,12 +76,12 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
     <VaulDrawer.Root
       open={open}
       onOpenChange={(o) => !o && onClose()}
-      snapPoints={[0.52, 0.92]}
+      snapPoints={[0.75, 0.95]}
       shouldScaleBackground
     >
       <VaulDrawer.Portal>
         <VaulDrawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
-        <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[#0e0e0e] rounded-t-[26px] outline-none flex flex-col" style={{ maxHeight: "92dvh" }}>
+        <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[#0e0e0e] rounded-t-[26px] outline-none flex flex-col overflow-y-auto" style={{ maxHeight: "95dvh" }}>
 
           {/* Handle */}
           <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
@@ -120,7 +120,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
           </div>
 
           {/* Evidence photo */}
-          <div className="flex-1 overflow-y-auto px-5 pb-6">
+          <div className="px-5 pb-8">
             <div className="relative rounded-[18px] overflow-hidden bg-[#1a1a1a] mb-4 aspect-square w-full max-w-[260px] mx-auto">
               {signedUrl ? (
                 <>
