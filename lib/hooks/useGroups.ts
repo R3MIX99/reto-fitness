@@ -290,6 +290,105 @@ export function usePendingAudits(groupId: string | null) {
   });
 }
 
+export interface WonWeek {
+  id: string;
+  start_date: string;
+  end_date: string;
+  group_id: string;
+  group_name: string;
+  total_points: number;
+}
+
+export interface ProfileStats {
+  lifetimePoints: number;
+  bestStreak: number;
+  titlesCount: number;
+  wonWeeks: WonWeek[];
+}
+
+export function useProfileStats() {
+  const { user } = useUser();
+  return useQuery({
+    queryKey: ["profileStats", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<ProfileStats> => {
+      const supabase = createClient();
+
+      // Lifetime points — deduplicate by date to avoid multi-group inflation
+      type ScoreRow = { score_date: string; total_points: number | null };
+      const { data: scores } = await supabase
+        .from("daily_scores")
+        .select("score_date, total_points")
+        .eq("user_id", user!.id) as unknown as { data: ScoreRow[] | null };
+
+      const perDate: Record<string, number> = {};
+      for (const row of scores ?? []) {
+        perDate[row.score_date] = Math.max(perDate[row.score_date] ?? 0, row.total_points ?? 0);
+      }
+      const lifetimePoints = Object.values(perDate).reduce((a, b) => a + b, 0);
+
+      // Best streak from daily_checks
+      type CheckRow = { check_date: string };
+      const { data: checks } = await supabase
+        .from("daily_checks")
+        .select("check_date")
+        .eq("user_id", user!.id) as unknown as { data: CheckRow[] | null };
+
+      const days = [...new Set((checks ?? []).map((r) => r.check_date))].sort();
+      let bestStreak = 0, cur = 0;
+      for (let i = 0; i < days.length; i++) {
+        if (i === 0) { cur = 1; }
+        else {
+          const prev = new Date(days[i - 1] + "T12:00:00");
+          const curr = new Date(days[i] + "T12:00:00");
+          const diff = Math.round((curr.getTime() - prev.getTime()) / 86400000);
+          cur = diff === 1 ? cur + 1 : 1;
+        }
+        bestStreak = Math.max(bestStreak, cur);
+      }
+
+      // Weeks won
+      type WeekRow = { id: string; start_date: string; end_date: string; group_id: string };
+      const { data: wonRaw } = await supabase
+        .from("weeks")
+        .select("id, start_date, end_date, group_id")
+        .eq("winner_id", user!.id)
+        .eq("status", "closed")
+        .order("end_date", { ascending: false }) as unknown as { data: WeekRow[] | null };
+
+      // Fetch group names for won weeks
+      const groupIds = [...new Set((wonRaw ?? []).map((w) => w.group_id))];
+      type GroupRow = { id: string; name: string };
+      const groupNames: Record<string, string> = {};
+      if (groupIds.length) {
+        const { data: gRows } = await supabase
+          .from("groups")
+          .select("id, name")
+          .in("id", groupIds) as unknown as { data: GroupRow[] | null };
+        for (const g of gRows ?? []) groupNames[g.id] = g.name;
+      }
+
+      // Fetch total points for each won week (sum of winner's scores that week)
+      const wonWeeks: WonWeek[] = await Promise.all(
+        (wonRaw ?? []).map(async (w) => {
+          type WkScore = { total_points: number | null };
+          const { data: pts } = await supabase
+            .from("daily_scores")
+            .select("total_points")
+            .eq("user_id", user!.id)
+            .eq("group_id", w.group_id)
+            .gte("score_date", w.start_date)
+            .lte("score_date", w.end_date) as unknown as { data: WkScore[] | null };
+          const total = (pts ?? []).reduce((s, r) => s + (r.total_points ?? 0), 0);
+          return { ...w, group_name: groupNames[w.group_id] ?? "Grupo", total_points: total };
+        })
+      );
+
+      return { lifetimePoints, bestStreak, titlesCount: wonWeeks.length, wonWeeks };
+    },
+  });
+}
+
 // ── Mutations ──────────────────────────────────────────────────────────────
 
 export function useCreateGroup() {
