@@ -58,7 +58,7 @@ function buildChartData(data: DailyScoreEntry[], leaderUserId?: string) {
 }
 
 function formatDate(str: string) {
-  const [, m, d] = str.split("-");
+  const [m, d] = str.split("-");
   const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
   const date = new Date();
   date.setMonth(parseInt(m) - 1);
