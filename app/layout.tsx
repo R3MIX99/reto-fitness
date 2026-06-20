@@ -19,13 +19,13 @@ const satoshi = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Reto Fitness",
+  title: "Olympo",
   description: "Compite con tus amigos para cumplir metas de gimnasio y dieta",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Reto Fitness",
+    title: "Olympo",
   },
 };
 

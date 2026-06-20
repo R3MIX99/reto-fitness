@@ -1,6 +1,6 @@
 {
-  "name": "Reto Fitness",
-  "short_name": "RetoFit",
+  "name": "Olympo",
+  "short_name": "Olympo",
   "description": "Compite con tus amigos para cumplir metas de gimnasio y dieta",
   "start_url": "/",
   "display": "standalone",
