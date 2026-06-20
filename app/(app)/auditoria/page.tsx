@@ -144,6 +144,7 @@ export default function AuditoriaPage() {
   const remaining = checks.slice(idx + 1);
 
   return (
+    <>
     <div className="px-4 pt-2 pb-28">
 
       {/* Header nav */}
@@ -257,13 +258,13 @@ export default function AuditoriaPage() {
         <div
           className="flex items-center gap-2.5 rounded-full px-4 py-3 shadow-lg"
           style={{
-            background: toast === "approved" ? "rgba(207,92,54,0.15)" : "#1a1a1a",
-            border: toast === "approved" ? "1px solid rgba(207,92,54,0.4)" : "1px solid #2a2a2a",
+            background: toast === "approved" ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
+            border: toast === "approved" ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(239,68,68,0.4)",
           }}
         >
           {toast === "approved"
-            ? <Check size={14} strokeWidth={2} className="text-accent flex-shrink-0" />
-            : <X size={14} strokeWidth={2} className="text-[var(--color-muted)] flex-shrink-0" />
+            ? <Check size={14} strokeWidth={2} style={{ color: "#22c55e" }} className="flex-shrink-0" />
+            : <X size={14} strokeWidth={2} style={{ color: "#ef4444" }} className="flex-shrink-0" />
           }
           <p className="text-[13px] text-[var(--color-fg)]">
             {toast === "approved" ? "Evidencia aprobada" : "Evidencia rechazada"}
@@ -271,5 +272,6 @@ export default function AuditoriaPage() {
         </div>
       </div>
     )}
+    </>
   );
 }
