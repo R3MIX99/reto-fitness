@@ -126,7 +126,7 @@ function UnirseForm() {
     setError("");
     try {
       const result = await joinGroup.mutateAsync(code.trim());
-      setJoined({ id: result.id, name: result.name, owner_name: result.owner_name });
+      setJoined({ id: result.id, name: result.name, owner_name: (result as { owner_name?: string }).owner_name ?? "" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Código inválido");
     }

@@ -252,7 +252,7 @@ export function useAuditCheck() {
                 type: "ranking_passed",
                 title: "Te superaron en el ranking",
                 body: `${surpasserName} ahora tiene más puntos que tú esta semana.`,
-                url: "/grupo",
+                url: `/grupo?joined=${checkGroupId}`,
                 metadata: { group_id: checkGroupId, surpasser_id: checkUserId },
               });
             }

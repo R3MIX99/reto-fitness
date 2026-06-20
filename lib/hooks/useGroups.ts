@@ -475,28 +475,37 @@ export function useJoinGroup() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (inviteCode: string): Promise<{ id: string; name: string; owner_id: string; owner_name: string }> => {
+    mutationFn: async (inviteCode: string): Promise<{ id: string; name: string }> => {
       const supabase = createClient();
       const { data, error } = await (supabase.rpc as Function)("join_group_by_code", {
         p_invite_code: inviteCode.trim(),
       });
       if (error) throw new Error(error.message ?? "Código inválido o grupo no encontrado");
-      return data as { id: string; name: string; owner_id: string; owner_name: string };
+      return data as { id: string; name: string };
     },
     onSuccess: async (data) => {
       qc.invalidateQueries({ queryKey: ["groups"] });
 
-      // Notify group owner that someone joined
-      if (data.owner_id && data.owner_id !== user?.id) {
+      // Fetch the real owner_id from the groups table
+      const supabase = createClient();
+      type GroupRow = { owner_id: string };
+      const { data: group } = await supabase
+        .from("groups")
+        .select("owner_id")
+        .eq("id", data.id)
+        .single() as unknown as { data: GroupRow | null };
+
+      const ownerId = group?.owner_id;
+      if (ownerId && ownerId !== user?.id) {
         const { notifyUser } = await import("@/lib/notify");
         const joinerName = (user as { user_metadata?: { full_name?: string } } | null)
           ?.user_metadata?.full_name ?? "Alguien";
         notifyUser({
-          user_id: data.owner_id,
+          user_id: ownerId,
           type: "new_member",
           title: "Nuevo miembro en tu grupo",
           body: `${joinerName} se unió a "${data.name}".`,
-          url: "/grupo",
+          url: `/grupo?joined=${data.id}`,
           metadata: { group_id: data.id, joiner_id: user?.id },
         });
       }
