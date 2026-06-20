@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, CheckCircle2, Clock, TrendingUp, UserPlus, Users, Bell, X } from "lucide-react";
-import { useNotifications, useMarkAllRead, useMarkRead } from "@/lib/hooks/useNotifications";
+import { ChevronLeft, CheckCircle2, Clock, TrendingUp, UserPlus, Users, Bell, X, Trash2 } from "lucide-react";
+import { useNotifications, useMarkAllRead, useMarkRead, useDeleteAllNotifications } from "@/lib/hooks/useNotifications";
 
 // ── Config de tipos ────────────────────────────────────────────────────────
 
@@ -79,6 +80,8 @@ export default function NotificacionesPage() {
   const { data: notifications = [], isLoading } = useNotifications();
   const markAllRead = useMarkAllRead();
   const markRead = useMarkRead();
+  const deleteAll = useDeleteAllNotifications();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -98,23 +101,48 @@ export default function NotificacionesPage() {
     router.push(url);
   }
 
+  function handleDeleteAll() {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    deleteAll.mutate(undefined, { onSuccess: () => setConfirmDelete(false) });
+  }
+
   return (
     <div className="min-h-screen pb-10">
-      {/* Header */}
-      <div className="flex items-center justify-between px-[18px] py-3">
-        <button onClick={() => router.back()} aria-label="Volver">
+      {/* Header — sticky */}
+      <div
+        className="sticky top-0 z-10 flex items-center gap-2 px-[18px] py-3"
+        style={{ background: "var(--color-bg)", backdropFilter: "blur(8px)" }}
+      >
+        <button onClick={() => router.back()} aria-label="Volver" className="flex-shrink-0">
           <ChevronLeft size={22} strokeWidth={1.5} className="text-[var(--color-fg)]" />
         </button>
-        <span className="text-[15px] font-medium">Notificaciones</span>
-        {unreadCount > 0 ? (
+        <span className="text-[15px] font-medium flex-1">Notificaciones</span>
+
+        {/* Mark all read (only when unread) */}
+        {unreadCount > 0 && (
           <button
             onClick={() => markAllRead.mutate()}
-            className="text-[12px] text-warm font-medium"
+            className="text-[12px] text-warm font-medium mr-2"
           >
             Leer todas
           </button>
-        ) : (
-          <div className="w-[70px]" />
+        )}
+
+        {/* Delete all button */}
+        {notifications.length > 0 && (
+          <button
+            onClick={handleDeleteAll}
+            disabled={deleteAll.isPending}
+            className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors"
+            style={{
+              background: confirmDelete ? "rgba(239,68,68,0.18)" : "rgba(124,124,124,0.12)",
+              color: confirmDelete ? "#ef4444" : "var(--color-muted)",
+            }}
+            onBlur={() => setConfirmDelete(false)}
+          >
+            <Trash2 size={13} strokeWidth={1.6} />
+            {confirmDelete ? "Confirmar" : "Limpiar"}
+          </button>
         )}
       </div>
 

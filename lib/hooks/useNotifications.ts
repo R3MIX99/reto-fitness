@@ -61,3 +61,18 @@ export function useMarkRead() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 }
+
+export function useDeleteAllNotifications() {
+  const { user } = useUser();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const supabase = createClient();
+      await supabase
+        .from("notifications")
+        .delete()
+        .eq("user_id", user!.id);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}
