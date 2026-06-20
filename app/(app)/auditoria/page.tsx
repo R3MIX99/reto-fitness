@@ -87,7 +87,7 @@ export default function AuditoriaPage() {
   const audit = useAuditCheck();
   const autoApprove = useAutoApproveOldChecks(groupIds);
 
-  const [idx, setIdx] = useState(0);
+  const [auditedIds, setAuditedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<"approved" | "rejected" | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -98,21 +98,26 @@ export default function AuditoriaPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupIds.join(",")]);
 
-  // Redirect to /grupo when all checks have been reviewed
-  const [started, setStarted] = useState(false);
+  // Filter out already-audited checks immediately (don't wait for refetch)
+  const remaining = checks.filter((c) => !auditedIds.has(c.id));
+  const current = remaining[0] ?? null;
+  const week = getWeekNumber();
+
+  // Redirect when all done
   useEffect(() => {
-    if (!isLoading && checks.length > 0) setStarted(true);
-  }, [isLoading, checks.length]);
-  useEffect(() => {
-    if (started && !isLoading && checks.length === 0) {
+    if (!isLoading && checks.length > 0 && remaining.length === 0) {
       router.push("/grupo");
     }
-  }, [started, isLoading, checks.length, router]);
-  const current = checks[idx] ?? null;
-  const week = getWeekNumber();
+  }, [isLoading, checks.length, remaining.length, router]);
 
   async function handleAudit(approved: boolean, reason?: string) {
     if (!current) return;
+    // Optimistically remove from list immediately
+    setAuditedIds((prev) => { const s = new Set(prev); s.add(current.id); return s; });
+    setRejectOpen(false);
+    setRejectReason("");
+    setToast(approved ? "approved" : "rejected");
+    setTimeout(() => setToast(null), 2500);
     await audit.mutateAsync({
       checkId: current.id,
       approved,
@@ -121,13 +126,6 @@ export default function AuditoriaPage() {
       checkDate: current.check_date,
       checkGroupId: current.group_id,
     });
-    setRejectOpen(false);
-    setRejectReason("");
-    setToast(approved ? "approved" : "rejected");
-    setTimeout(() => setToast(null), 2500);
-    const isLast = idx >= checks.length - 1;
-    if (!isLast) setIdx((i) => i + 1);
-    else setTimeout(() => router.push("/grupo"), 600);
   }
 
   // ── States ────────────────────────────────────────────────────────────────
@@ -159,7 +157,8 @@ export default function AuditoriaPage() {
     );
   }
 
-  const remaining = checks.slice(idx + 1);
+  const total = checks.length;
+  const done = auditedIds.size;
 
   return (
     <>
@@ -171,7 +170,7 @@ export default function AuditoriaPage() {
           <ChevronLeft size={22} strokeWidth={1.5} />
         </button>
         <span className="font-medium text-[15px]">Auditoría</span>
-        <span className="text-[12px] text-[var(--color-muted)]">{idx + 1} / {checks.length}</span>
+        <span className="text-[12px] text-[var(--color-muted)]">{done + 1} / {total}</span>
       </div>
 
       {/* Subtitle + progress */}
@@ -180,11 +179,11 @@ export default function AuditoriaPage() {
       </p>
 
       <div className="flex gap-1.5 mb-4">
-        {checks.map((_, i) => (
+        {checks.map((c, i) => (
           <div
-            key={i}
+            key={c.id}
             className="flex-1 h-1 rounded-full transition-colors"
-            style={{ background: i <= idx ? "#EFC88B" : "#2a2a2a" }}
+            style={{ background: auditedIds.has(c.id) ? "#EFC88B" : "#2a2a2a" }}
           />
         ))}
       </div>
@@ -247,11 +246,11 @@ export default function AuditoriaPage() {
       )}
 
       {/* Queue preview */}
-      {remaining.length > 0 && (
+      {remaining.slice(1).length > 0 && (
         <>
           <p className="text-[12px] text-[var(--color-muted)] mb-2.5">Siguientes</p>
           <div className="flex flex-col gap-2 opacity-70">
-            {remaining.slice(0, 3).map((c) => (
+            {remaining.slice(1, 4).map((c) => (
               <div key={c.id} className="flex items-center gap-2.5 bg-[var(--color-bg-card)] rounded-[13px] px-3.5 py-2.5">
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0"
