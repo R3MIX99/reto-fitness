@@ -134,18 +134,27 @@ export default function NotificacionesPage() {
         )}
 
         {/* Delete all button */}
-        {notifications.length > 0 && (
+        {(notifications.length > 0 || deleteAll.isPending) && (
           <button
             onClick={handleDeleteAll}
             disabled={deleteAll.isPending}
-            className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors"
+            className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors disabled:opacity-60"
             style={{
               background: confirmDelete ? "rgba(239,68,68,0.18)" : "rgba(124,124,124,0.12)",
               color: confirmDelete ? "#ef4444" : "var(--color-muted)",
             }}
           >
-            <Trash2 size={13} strokeWidth={1.6} />
-            {confirmDelete ? "Confirmar" : "Limpiar"}
+            {deleteAll.isPending ? (
+              <>
+                <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                Borrando…
+              </>
+            ) : (
+              <>
+                <Trash2 size={13} strokeWidth={1.6} />
+                {confirmDelete ? "Confirmar" : "Limpiar"}
+              </>
+            )}
           </button>
         )}
       </div>

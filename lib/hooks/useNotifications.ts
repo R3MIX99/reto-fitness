@@ -67,12 +67,18 @@ export function useDeleteAllNotifications() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const supabase = createClient();
-      await supabase
-        .from("notifications")
-        .delete()
-        .eq("user_id", user!.id);
+      const res = await fetch("/api/notifications/clear", { method: "DELETE" });
+      if (!res.ok) throw new Error("Error al limpiar notificaciones");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ["notifications", user?.id] });
+      const previous = qc.getQueryData(["notifications", user?.id]);
+      qc.setQueryData(["notifications", user?.id], []);
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(["notifications", user?.id], ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 }
