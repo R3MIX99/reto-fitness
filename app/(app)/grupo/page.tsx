@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Users, Plus } from "lucide-react";
@@ -33,6 +33,16 @@ export default function GrupoPage() {
   const { data: groups = [], isLoading } = useMyGroups();
   const [activeGroupIdx, setActiveGroupIdx] = useState(0);
   const [showInvite, setShowInvite] = useState(false);
+  const initializedRef = useRef(false);
+
+  // On first load, default to the group the user owns; otherwise index 0
+  useEffect(() => {
+    if (!initializedRef.current && groups.length > 0 && user) {
+      initializedRef.current = true;
+      const ownedIdx = groups.findIndex((g) => g.owner_id === user.id);
+      if (ownedIdx !== -1) setActiveGroupIdx(ownedIdx);
+    }
+  }, [groups, user]);
 
   // Clamp index when groups array shrinks (e.g. after leaving a group)
   useEffect(() => {
