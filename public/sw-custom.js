@@ -9,8 +9,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title ?? "Olympo";
   const options = {
     body: payload.body ?? "",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
     data: { url: payload.url ?? "/" },
   };
 

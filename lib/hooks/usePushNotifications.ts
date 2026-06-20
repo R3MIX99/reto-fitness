@@ -4,7 +4,26 @@ import { useState, useEffect } from "react";
 
 export type PushState = "unsupported" | "denied" | "granted" | "default";
 
-export function usePushNotifications(groupId: string | null) {
+async function registerSubscription(groupId?: string | null): Promise<boolean> {
+  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!vapidKey || !("serviceWorker" in navigator)) return false;
+
+  const reg = await navigator.serviceWorker.ready;
+  const existing = await reg.pushManager.getSubscription();
+  const sub = existing ?? await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidKey).buffer as ArrayBuffer,
+  });
+
+  const res = await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subscription: sub.toJSON(), group_id: groupId ?? null }),
+  });
+  return res.ok;
+}
+
+export function usePushNotifications(groupId?: string | null) {
   const [state, setState] = useState<PushState>("default");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,18 +33,20 @@ export function usePushNotifications(groupId: string | null) {
       setState("unsupported");
       return;
     }
-    setState(Notification.permission as PushState);
+    const perm = Notification.permission as PushState;
+    setState(perm);
+
+    // Auto-register if permission already granted (e.g. returning visit)
+    if (perm === "granted") {
+      registerSubscription(groupId).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function subscribe(): Promise<boolean> {
     setError(null);
-
     if (!("serviceWorker" in navigator)) {
       setError("Tu navegador no soporta notificaciones push.");
-      return false;
-    }
-    if (!groupId) {
-      setError("Únete a un grupo primero.");
       return false;
     }
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -40,23 +61,8 @@ export function usePushNotifications(groupId: string | null) {
       setState(permission as PushState);
       if (permission !== "granted") return false;
 
-      const reg = await navigator.serviceWorker.ready;
-      const existing = await reg.pushManager.getSubscription();
-      const sub = existing ?? await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey).buffer as ArrayBuffer,
-      });
-
-      const res = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription: sub.toJSON(), group_id: groupId }),
-      });
-
-      if (!res.ok) {
-        setError("Error al guardar la suscripción.");
-        return false;
-      }
+      const ok = await registerSubscription(groupId);
+      if (!ok) { setError("Error al guardar la suscripción."); return false; }
 
       setState("granted");
       return true;
