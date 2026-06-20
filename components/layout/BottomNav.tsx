@@ -19,6 +19,8 @@ export function BottomNav() {
   const pathname   = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  if (pathname === "/perfil") return null;
+
   return (
     <>
       <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 h-[56px] w-fit min-w-[260px] bg-[#0c0c0c] border border-[#1c1c1c] rounded-full flex items-center justify-center gap-1 px-3">

@@ -7,7 +7,7 @@ import { useMyGroups, useLeaderboard, useProfileStats } from "@/lib/hooks/useGro
 import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
 import { useRouter } from "next/navigation";
 import {
-  LogOut, ChevronRight, Bell, BellOff, X,
+  LogOut, ChevronRight, ChevronLeft, Bell, BellOff, X,
   Trophy, Flame, Zap, Users, Copy, Check,
   ShieldCheck, Pencil,
 } from "lucide-react";
@@ -122,10 +122,12 @@ export default function PerfilPage() {
   const positionLabel = myPosition === 1 ? "1ero" : myPosition === 2 ? "2do" : myPosition === 3 ? "3ero" : myPosition ? `${myPosition}°` : null;
 
   return (
-    <div className="pb-28">
+    <div className="pb-10">
       {/* Barra superior */}
       <div className="flex items-center justify-between px-[18px] py-3">
-        <div className="w-[22px]" />
+        <button onClick={() => router.back()} aria-label="Volver">
+          <ChevronLeft size={22} strokeWidth={1.5} className="text-[var(--color-fg)]" />
+        </button>
         <span className="text-[15px] font-medium">Perfil</span>
         <button onClick={() => setShowEditName(true)} aria-label="Editar perfil">
           <Pencil size={17} strokeWidth={1.5} className="text-[var(--color-muted)]" />

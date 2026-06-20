@@ -2,6 +2,7 @@
 
 import { Bell } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useProfile } from "@/lib/hooks/useProfile";
 import Image from "next/image";
 
@@ -21,9 +22,12 @@ interface HeaderProps {
 }
 
 export function Header({ hasNotifications = false }: HeaderProps) {
+  const pathname = usePathname();
   const { avatarUrl, displayName } = useProfile();
   const greeting = getGreeting();
   const firstName = displayName.split(" ")[0];
+
+  if (pathname === "/perfil") return null;
 
   return (
     <header className="relative z-10 flex items-center gap-3 px-[18px] py-3">
