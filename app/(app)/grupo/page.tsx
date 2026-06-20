@@ -35,6 +35,7 @@ function GrupoPageInner() {
   const [activeGroupIdx, setActiveGroupIdx] = useState(0);
   const [showInvite, setShowInvite] = useState(false);
   const initializedRef = useRef(false);
+  const swipeRef = useRef<{ startY: number; startX: number } | null>(null);
 
   // On first load: if ?joined=ID, go to that group; else default to the owned group
   useEffect(() => {
@@ -120,8 +121,6 @@ function GrupoPageInner() {
       </div>
     );
   }
-
-  const swipeRef = useRef<{ startY: number; startX: number } | null>(null);
 
   function handleTouchStart(e: React.TouchEvent) {
     if (groups.length < 2) return;
