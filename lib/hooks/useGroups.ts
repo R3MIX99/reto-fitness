@@ -443,21 +443,11 @@ export function useLookupGroup(code: string) {
     retry: false,
     queryFn: async (): Promise<{ name: string; owner_name: string; member_count: number } | null> => {
       const supabase = createClient();
-      const { data: group } = await supabase
-        .from("groups")
-        .select("id, name, owner_id")
-        .eq("invite_code", code.trim().toUpperCase())
-        .maybeSingle() as unknown as { data: { id: string; name: string; owner_id: string } | null };
-      if (!group) return null;
-      const [{ data: profile }, { count }] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", group.owner_id).maybeSingle() as unknown as { data: { full_name: string } | null },
-        supabase.from("group_members").select("*", { count: "exact", head: true }).eq("group_id", group.id) as unknown as { count: number | null },
-      ]);
-      return {
-        name: group.name,
-        owner_name: profile?.full_name ?? "Desconocido",
-        member_count: count ?? 0,
-      };
+      const { data, error } = await (supabase.rpc as Function)("preview_group_by_code", {
+        p_invite_code: code.trim(),
+      });
+      if (error || !data) return null;
+      return data as { name: string; owner_name: string; member_count: number };
     },
   });
 }
