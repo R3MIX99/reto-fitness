@@ -334,7 +334,7 @@ export function useProfileStats() {
         .select("check_date")
         .eq("user_id", user!.id) as unknown as { data: CheckRow[] | null };
 
-      const days = [...new Set((checks ?? []).map((r) => r.check_date))].sort();
+      const days = Array.from(new Set((checks ?? []).map((r) => r.check_date))).sort();
       let bestStreak = 0, cur = 0;
       for (let i = 0; i < days.length; i++) {
         if (i === 0) { cur = 1; }
