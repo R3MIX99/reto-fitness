@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Hash } from "lucide-react";
 import Link from "next/link";
 import { useJoinGroup } from "@/lib/hooks/useGroups";
-import { Suspense } from "react";
 
 function UnirseForm() {
   const router = useRouter();
@@ -16,7 +15,7 @@ function UnirseForm() {
 
   useEffect(() => {
     const c = searchParams.get("code");
-    if (c) setCode(c.toUpperCase());
+    if (c) setCode(c.trim());
   }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -46,7 +45,7 @@ function UnirseForm() {
           <Hash size={28} strokeWidth={1.5} className="text-warm" />
         </div>
         <p className="text-[13px] text-[var(--color-muted)] text-center max-w-[240px]">
-          Ingresa el código de 6 caracteres que te compartió el administrador del grupo.
+          Ingresa el código de invitación que te compartió el administrador del grupo.
         </p>
       </div>
 
@@ -58,10 +57,12 @@ function UnirseForm() {
           <input
             type="text"
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="ABC123"
-            maxLength={6}
-            className="w-full bg-[var(--color-bg-card)] rounded-[14px] px-4 py-3 text-[20px] font-display font-medium tracking-widest text-center text-warm placeholder:text-[var(--color-muted)] placeholder:text-[15px] placeholder:tracking-normal outline-none border border-transparent focus:border-warm/40"
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Pega o escribe el código"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            className="w-full bg-[var(--color-bg-card)] rounded-[14px] px-4 py-3 text-[18px] font-display font-medium tracking-widest text-center text-warm placeholder:text-[var(--color-muted)] placeholder:text-[14px] placeholder:tracking-normal outline-none border border-transparent focus:border-warm/40"
           />
         </div>
 
@@ -69,7 +70,7 @@ function UnirseForm() {
 
         <button
           type="submit"
-          disabled={code.length < 6 || joinGroup.isPending}
+          disabled={code.trim().length < 4 || joinGroup.isPending}
           className="w-full bg-accent text-white rounded-pill py-3.5 text-[15px] font-medium disabled:opacity-50"
         >
           {joinGroup.isPending ? "Uniéndose..." : "Unirse al grupo"}

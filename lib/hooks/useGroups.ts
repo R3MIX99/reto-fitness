@@ -330,7 +330,7 @@ export function useJoinGroup() {
       const { data: group, error } = await supabase
         .from("groups")
         .select("id, name")
-        .eq("invite_code", inviteCode.toUpperCase())
+        .ilike("invite_code", inviteCode.trim())
         .single() as unknown as { data: { id: string; name: string } | null; error: unknown };
 
       if (error || !group) throw new Error("Código inválido o grupo no encontrado");
