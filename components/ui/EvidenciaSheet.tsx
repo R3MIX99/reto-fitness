@@ -2,9 +2,9 @@
 
 import { useRef, useState } from "react";
 import { Drawer } from "vaul";
-import { X, Dumbbell, UtensilsCrossed, Target, Camera, Lock, ChevronRight } from "lucide-react";
-import type { Goal, GoalKind } from "@/lib/hooks/useChecklist";
-import { useGoals, useMarkCheck } from "@/lib/hooks/useChecklist";
+import { X, Dumbbell, UtensilsCrossed, Target, Camera, Lock, ChevronRight, Check } from "lucide-react";
+import type { Goal, GoalKind, DailyCheck } from "@/lib/hooks/useChecklist";
+import { useGoals, useMarkCheck, useTodayChecks } from "@/lib/hooks/useChecklist";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 
 // ── Sub-sheet para elegir bloque de dieta o meta ───────────────────────────
@@ -13,12 +13,14 @@ function PickerSheet({
   open,
   kind,
   goals,
+  checks,
   onPick,
   onClose,
 }: {
   open: boolean;
   kind: GoalKind | null;
   goals: Goal[];
+  checks: DailyCheck[];
   onPick: (goal: Goal) => void;
   onClose: () => void;
 }) {
@@ -39,17 +41,29 @@ function PickerSheet({
               </p>
             ) : (
               <div className="flex flex-col gap-2">
-                {filtered.map((g) => (
-                  <button
-                    key={g.id}
-                    onClick={() => onPick(g)}
-                    className="flex items-center gap-3 bg-[#161616] border border-[#232323] rounded-[14px] px-4 py-3.5 text-left"
-                  >
-                    {g.icon && <span className="text-lg">{g.icon}</span>}
-                    <span className="flex-1 text-[14px] font-medium">{g.title}</span>
-                    <ChevronRight size={15} strokeWidth={1.5} className="text-[var(--color-muted)]" />
-                  </button>
-                ))}
+                {filtered.map((g) => {
+                  const done = checks.some((c) => c.goal_id === g.id);
+                  return (
+                    <button
+                      key={g.id}
+                      onClick={() => !done && onPick(g)}
+                      disabled={done}
+                      className="flex items-center gap-3 rounded-[14px] px-4 py-3.5 text-left transition-opacity"
+                      style={{
+                        background: done ? "rgba(207,92,54,0.08)" : "#161616",
+                        border: done ? "1px solid rgba(207,92,54,0.3)" : "1px solid #232323",
+                        opacity: done ? 0.7 : 1,
+                      }}
+                    >
+                      {g.icon && <span className="text-lg">{g.icon}</span>}
+                      <span className="flex-1 text-[14px] font-medium" style={{ textDecoration: done ? "line-through" : "none", color: done ? "var(--color-muted)" : "var(--color-fg)" }}>{g.title}</span>
+                      {done
+                        ? <Check size={15} strokeWidth={2} className="text-accent flex-shrink-0" />
+                        : <ChevronRight size={15} strokeWidth={1.5} className="text-[var(--color-muted)] flex-shrink-0" />
+                      }
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -78,7 +92,9 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
   const { data: goals = [] } = useGoals();
+  const { data: todayChecks = [] } = useTodayChecks(groupId);
   const markCheck = useMarkCheck(groupId);
+  const gymDone = todayChecks.some((c) => c.kind === "gym");
 
   const [pickerKind, setPickerKind] = useState<GoalKind | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -150,31 +166,42 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
 
               {/* Options */}
               <div className="flex flex-col gap-2.5">
-                {OPTIONS.map(({ kind, label, desc, color, tint, Icon }) => (
-                  <button
-                    key={kind}
-                    onClick={() => handleOption(kind)}
-                    disabled={markCheck.isPending}
-                    className="flex items-center gap-3 bg-[#161616] border border-[#232323] rounded-[16px] px-4 py-3.5 text-left transition-opacity disabled:opacity-40"
-                  >
-                    {/* Icon box */}
-                    <div
-                      className="w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0"
-                      style={{ background: tint }}
+                {OPTIONS.map(({ kind, label, desc, color, tint, Icon }) => {
+                  const done = kind === "gym" ? gymDone : false;
+                  return (
+                    <button
+                      key={kind}
+                      onClick={() => !done && handleOption(kind)}
+                      disabled={markCheck.isPending || done}
+                      className="flex items-center gap-3 rounded-[16px] px-4 py-3.5 text-left transition-opacity"
+                      style={{
+                        background: done ? "rgba(207,92,54,0.08)" : "#161616",
+                        border: done ? "1px solid rgba(207,92,54,0.3)" : "1px solid #232323",
+                        opacity: markCheck.isPending ? 0.4 : 1,
+                      }}
                     >
-                      <Icon size={20} strokeWidth={1.5} style={{ color }} />
-                    </div>
+                      {/* Icon box */}
+                      <div
+                        className="w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0"
+                        style={{ background: tint }}
+                      >
+                        <Icon size={20} strokeWidth={1.5} style={{ color }} />
+                      </div>
 
-                    {/* Text */}
-                    <div className="flex-1 leading-snug">
-                      <p className="text-[14px] font-medium">{label}</p>
-                      <p className="text-[11px] text-[var(--color-muted)]">{desc}</p>
-                    </div>
+                      {/* Text */}
+                      <div className="flex-1 leading-snug">
+                        <p className="text-[14px] font-medium" style={{ color: done ? "var(--color-muted)" : "var(--color-fg)", textDecoration: done ? "line-through" : "none" }}>{label}</p>
+                        <p className="text-[11px] text-[var(--color-muted)]">{done ? "Completado hoy" : desc}</p>
+                      </div>
 
-                    {/* Camera */}
-                    <Camera size={18} strokeWidth={1.5} className="text-warm flex-shrink-0" />
-                  </button>
-                ))}
+                      {/* Check or Camera */}
+                      {done
+                        ? <Check size={18} strokeWidth={2} className="text-accent flex-shrink-0" />
+                        : <Camera size={18} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+                      }
+                    </button>
+                  );
+                })}
               </div>
 
               {uploadError && (
@@ -196,6 +223,7 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
         open={pickerOpen}
         kind={pickerKind}
         goals={goals}
+        checks={todayChecks}
         onPick={handleGoalPicked}
         onClose={() => setPickerOpen(false)}
       />

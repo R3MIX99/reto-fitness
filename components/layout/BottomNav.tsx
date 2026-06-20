@@ -38,13 +38,13 @@ export function BottomNav() {
           );
         })}
 
-        {/* Botón "+" central destacado */}
+        {/* Botón "+" central */}
         <button
           onClick={() => setSheetOpen(true)}
           aria-label="Subir evidencia"
-          className="mx-1 w-11 h-11 rounded-full flex items-center justify-center bg-[#1a1a1a] border border-[#2a2a2a] transition-transform active:scale-95"
+          className="mx-1 w-11 h-11 flex items-center justify-center transition-transform active:scale-95"
         >
-          <Plus size={20} strokeWidth={1.8} className="text-warm" />
+          <Plus size={20} strokeWidth={1.5} style={{ color: "#7C7C7C" }} />
         </button>
 
         {RIGHT.map(({ href, Icon, label }) => {
