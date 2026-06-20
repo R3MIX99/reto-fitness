@@ -127,10 +127,12 @@ function CalendarGrid({
     const dietDone = dc.filter((c) => c.kind === "diet").length;
     const goalsDone = dc.filter((c) => c.kind === "goal").length;
     const gymPts = gym ? 3 : 0;
-    const dietPts = dietTotal > 0 ? Math.floor((dietDone / dietTotal) * 5) : 0;
-    const goalPts = goalsTotal > 0 ? Math.floor((goalsDone / goalsTotal) * 5) : 0;
+    const safeDiet = Number(dietTotal) || 0;
+    const safeGoals = Number(goalsTotal) || 0;
+    const dietPts = safeDiet > 0 ? Math.floor((dietDone / safeDiet) * 5) : 0;
+    const goalPts = safeGoals > 0 ? Math.floor((goalsDone / safeGoals) * 5) : 0;
     const pts = gymPts + dietPts + goalPts;
-    return { day, gym, dietDone, dietTotal, goalsDone, goalsTotal, pts, pct: Math.round((pts / 13) * 100) };
+    return { day, gym, dietDone, dietTotal: safeDiet, goalsDone, goalsTotal: safeGoals, pts, pct: Math.round((pts / 13) * 100) };
   }
 
   function isDone(day: number) {
@@ -192,7 +194,9 @@ function CalendarGrid({
         {selectedDay && (() => {
           const s = getDaySummary(selectedDay);
           const isToday = selectedDay === today;
-          const dayLabel = isToday ? "Hoy" : `${selectedDay} de ${now.toLocaleString("es-MX", { month: "long" })}`;
+          const mm = String(now.getMonth() + 1).padStart(2, "0");
+          const dd = String(selectedDay).padStart(2, "0");
+          const dayLabel = isToday ? "Hoy" : `${dd}/${mm}`;
           return (
             <div className="mt-3 pt-3 border-t border-[#1c1c1c]">
               <div className="flex items-center justify-between mb-2">
