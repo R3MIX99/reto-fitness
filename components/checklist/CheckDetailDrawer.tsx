@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { Drawer as VaulDrawer } from "vaul";
-import { Camera, Clock, CheckCircle2, RefreshCw, X, Expand } from "lucide-react";
+import { Camera, Clock, CheckCircle2, RefreshCw, X, Expand, XCircle } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
@@ -111,7 +111,10 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
   }
 
   const title = kindLabel(check?.kind ?? "", goal);
-  const isPending = check?.status === "pending";
+  const status = check?.status;
+  const isPending  = status === "pending";
+  const isApproved = status === "approved";
+  const isRejected = status === "rejected";
 
   return (
     <>
@@ -143,15 +146,22 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
                 )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                {isPending ? (
+                {isPending && (
                   <span className="flex items-center gap-1 text-[10px] text-warm bg-warm/10 rounded-full px-2.5 py-1">
                     <Clock size={9} strokeWidth={1.5} />
                     En revisión
                   </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-[10px] text-accent bg-accent/10 rounded-full px-2.5 py-1">
+                )}
+                {isApproved && (
+                  <span className="flex items-center gap-1 text-[10px] text-green-400 bg-green-400/10 rounded-full px-2.5 py-1">
                     <CheckCircle2 size={9} strokeWidth={2} />
                     Aprobado
+                  </span>
+                )}
+                {isRejected && (
+                  <span className="flex items-center gap-1 text-[10px] text-red-400 bg-red-400/10 rounded-full px-2.5 py-1">
+                    <XCircle size={9} strokeWidth={2} />
+                    Rechazado
                   </span>
                 )}
                 <button onClick={onClose} className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center">
