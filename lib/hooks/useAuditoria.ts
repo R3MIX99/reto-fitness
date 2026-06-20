@@ -7,6 +7,7 @@ import { useUser } from "./useUser";
 export interface PendingCheck {
   id: string;
   user_id: string;
+  group_id: string;
   kind: string;
   check_date: string;
   evidence_path: string;
@@ -48,13 +49,13 @@ function kindLabel(kind: string, goalTitle: string | null): string {
 
 export { kindLabel, getWeekNumber };
 
-export function usePendingChecks(groupId: string | null) {
+export function usePendingChecks(groupIds: string[]) {
   const { user } = useUser();
   return useQuery({
-    queryKey: ["pendingChecks", groupId],
-    enabled: !!user && !!groupId,
+    queryKey: ["pendingChecks", groupIds],
+    enabled: !!user && groupIds.length > 0,
     queryFn: async (): Promise<PendingCheck[]> => {
-      if (!groupId) return [];
+      if (!groupIds.length) return [];
       const supabase = createClient();
 
       type CheckRow = {
@@ -64,15 +65,16 @@ export function usePendingChecks(groupId: string | null) {
         check_date: string;
         evidence_path: string;
         goal_id: string | null;
+        group_id: string;
       };
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
       type GoalRow = { title: string };
 
-      // All pending checks this week that don't belong to the current user
+      // All pending checks this week across all groups, excluding own checks
       const { data: checks } = await supabase
         .from("daily_checks")
-        .select("id, user_id, kind, check_date, evidence_path, goal_id")
-        .eq("group_id", groupId)
+        .select("id, user_id, kind, check_date, evidence_path, goal_id, group_id")
+        .in("group_id", groupIds)
         .eq("status", "pending")
         .neq("user_id", user!.id)
         .gte("check_date", weekStart())
@@ -102,6 +104,7 @@ export function usePendingChecks(groupId: string | null) {
           return {
             id: c.id,
             user_id: c.user_id,
+            group_id: c.group_id,
             kind: c.kind,
             check_date: c.check_date,
             evidence_path: c.evidence_path,
@@ -115,12 +118,17 @@ export function usePendingChecks(groupId: string | null) {
   });
 }
 
-export function useAutoApproveOldChecks(groupId: string | null) {
+export function useAutoApproveOldChecks(groupIds: string[]) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      if (!groupId) return;
-      await (createClient().rpc as Function)("auto_approve_old_checks", { p_group_id: groupId });
+      if (!groupIds.length) return;
+      const supabase = createClient();
+      await Promise.all(
+        groupIds.map((id) =>
+          (supabase.rpc as Function)("auto_approve_old_checks", { p_group_id: id })
+        )
+      );
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pendingChecks"] });
@@ -130,7 +138,7 @@ export function useAutoApproveOldChecks(groupId: string | null) {
   });
 }
 
-export function useAuditCheck(groupId: string | null) {
+export function useAuditCheck() {
   const { user } = useUser();
   const qc = useQueryClient();
 
@@ -140,13 +148,15 @@ export function useAuditCheck(groupId: string | null) {
       approved,
       checkUserId,
       checkDate,
+      checkGroupId,
     }: {
       checkId: string;
       approved: boolean;
       checkUserId: string;
       checkDate: string;
+      checkGroupId: string;
     }) => {
-      if (!user || !groupId) throw new Error("Sin sesión");
+      if (!user) throw new Error("Sin sesión");
       const supabase = createClient();
 
       const { error } = await supabase
@@ -156,10 +166,10 @@ export function useAuditCheck(groupId: string | null) {
 
       if (error) throw error;
 
-      // Recalculate the audited user's score for that day
+      // Recalculate score for the audited user — recalc_day_score already updates ALL groups
       await (supabase.rpc as Function)("recalc_day_score", {
         p_user_id: checkUserId,
-        p_group_id: groupId,
+        p_group_id: checkGroupId,
         p_date: checkDate,
       });
     },

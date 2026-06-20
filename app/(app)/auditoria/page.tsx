@@ -80,19 +80,19 @@ function EvidenceImage({ path }: { path: string }) {
 export default function AuditoriaPage() {
   const router = useRouter();
   const { data: groups = [] } = useMyGroups();
-  const groupId = groups[0]?.id ?? null;
+  const groupIds = groups.map((g) => g.id);
 
-  const { data: checks = [], isLoading } = usePendingChecks(groupId);
-  const audit = useAuditCheck(groupId);
-  const autoApprove = useAutoApproveOldChecks(groupId);
+  const { data: checks = [], isLoading } = usePendingChecks(groupIds);
+  const audit = useAuditCheck();
+  const autoApprove = useAutoApproveOldChecks(groupIds);
 
   const [idx, setIdx] = useState(0);
 
   // Auto-approve pending checks from previous weeks on page open
   useEffect(() => {
-    if (groupId) autoApprove.mutate();
+    if (groupIds.length) autoApprove.mutate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId]);
+  }, [groupIds.join(",")]);
   const current = checks[idx] ?? null;
   const week = getWeekNumber();
 
@@ -103,6 +103,7 @@ export default function AuditoriaPage() {
       approved,
       checkUserId: current.user_id,
       checkDate: current.check_date,
+      checkGroupId: current.group_id,
     });
     if (idx < checks.length - 1) setIdx((i) => i + 1);
     else router.back();

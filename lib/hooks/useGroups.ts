@@ -287,18 +287,18 @@ function weekEndStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function usePendingAudits(groupId: string | null) {
+export function usePendingAudits(groupIds: string[]) {
   const { user } = useUser();
   return useQuery({
-    queryKey: ["pendingAudits", groupId],
-    enabled: !!groupId && !!user,
+    queryKey: ["pendingAudits", groupIds],
+    enabled: groupIds.length > 0 && !!user,
     queryFn: async () => {
-      if (!groupId || !user) return 0;
+      if (!groupIds.length || !user) return 0;
       const supabase = createClient();
       const { count } = await supabase
         .from("daily_checks")
         .select("id", { count: "exact", head: true })
-        .eq("group_id", groupId)
+        .in("group_id", groupIds)
         .eq("status", "pending")
         .neq("user_id", user.id)
         .gte("check_date", weekStartStr())

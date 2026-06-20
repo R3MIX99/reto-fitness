@@ -63,7 +63,8 @@ function GrupoPageInner() {
 
   const { data: leaderboard = [] } = useLeaderboard(activeGroup?.id ?? null);
   const { data: last7 = [] } = useLast7Days(activeGroup?.id ?? null);
-  const { data: pending = 0 } = usePendingAudits(activeGroup?.id ?? null);
+  const groupIds = groups.map((g) => g.id);
+  const { data: pending = 0 } = usePendingAudits(groupIds);
 
   // Merge real scores with all group members so everyone always appears
   const effectiveLeaderboard = (() => {
