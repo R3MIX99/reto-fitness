@@ -111,7 +111,7 @@ function UnirseForm() {
   const searchParams = useSearchParams();
   const [code, setCode] = useState(searchParams.get("code") ?? "");
   const [error, setError] = useState("");
-  const [joined, setJoined] = useState<{ name: string; owner_name: string } | null>(null);
+  const [joined, setJoined] = useState<{ id: string; name: string; owner_name: string } | null>(null);
   const joinGroup = useJoinGroup();
 
   useEffect(() => {
