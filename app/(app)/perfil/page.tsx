@@ -243,20 +243,30 @@ export default function PerfilPage() {
             <ThemeSwitch />
           </div>
           {pushState !== "unsupported" && (
-            <div className="flex items-center gap-3 py-3">
-              <span className="text-[13px] flex-1">Notificaciones</span>
-              {pushState === "granted" ? (
-                <span className="flex items-center gap-1.5 text-[12px] text-warm">
-                  <Bell size={13} strokeWidth={1.5} /> Activas
-                </span>
-              ) : pushState === "denied" ? (
-                <button onClick={() => setShowNotifHelp(true)} className="flex items-center gap-1.5 text-[12px] text-accent font-medium">
-                  <BellOff size={13} strokeWidth={1.5} /> Activar
-                </button>
-              ) : (
-                <button onClick={subscribe} disabled={pushLoading} className="text-[12px] text-accent font-medium disabled:opacity-50">
-                  {pushLoading ? "Activando…" : "Activar"}
-                </button>
+            <div className="py-3">
+              <div className="flex items-center gap-3">
+                <span className="text-[13px] flex-1">Notificaciones</span>
+                {pushState === "denied" ? (
+                  <button onClick={() => setShowNotifHelp(true)} className="flex items-center gap-1.5 text-[12px] text-accent font-medium">
+                    <BellOff size={13} strokeWidth={1.5} /> Activar
+                  </button>
+                ) : (
+                  <button
+                    onClick={subscribe}
+                    disabled={pushLoading}
+                    className="flex items-center gap-1.5 text-[12px] font-medium disabled:opacity-50"
+                    style={{ color: pushState === "granted" ? "#EFC88B" : "#CF5C36" }}
+                  >
+                    {pushLoading
+                      ? "Registrando…"
+                      : pushState === "granted"
+                      ? <><Bell size={13} strokeWidth={1.5} /> Activas · Reactivar</>
+                      : "Activar"}
+                  </button>
+                )}
+              </div>
+              {pushError && (
+                <p className="text-[11px] text-accent mt-1">{pushError}</p>
               )}
             </div>
           )}

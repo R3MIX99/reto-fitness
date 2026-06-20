@@ -21,14 +21,20 @@ export async function POST(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
   );
-  const { data: { user } } = await authClient.auth.getUser();
-  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  const { data: { user }, error: authError } = await authClient.auth.getUser();
+  if (!user) {
+    console.error("[push/subscribe] auth error:", authError);
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    console.error("[push/subscribe] SUPABASE_SERVICE_ROLE_KEY not set");
+    return NextResponse.json({ error: "Service key no configurada" }, { status: 500 });
+  }
 
   // Use service_role to bypass RLS for the upsert
-  const admin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const admin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey);
 
   const { error } = await admin
     .from("push_subscriptions")
@@ -44,9 +50,10 @@ export async function POST(req: NextRequest) {
     ) as unknown as { error: unknown };
 
   if (error) {
-    console.error("push_subscriptions upsert error:", error);
-    return NextResponse.json({ error: "Error al guardar suscripción" }, { status: 500 });
+    console.error("[push/subscribe] upsert error:", JSON.stringify(error));
+    return NextResponse.json({ error: "Error al guardar suscripción", detail: JSON.stringify(error) }, { status: 500 });
   }
 
+  console.log("[push/subscribe] saved for user:", user.id);
   return NextResponse.json({ ok: true });
 }

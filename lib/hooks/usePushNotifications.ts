@@ -20,6 +20,10 @@ async function registerSubscription(groupId?: string | null): Promise<boolean> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ subscription: sub.toJSON(), group_id: groupId ?? null }),
   });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    console.error("[push] subscribe failed:", res.status, body);
+  }
   return res.ok;
 }
 
