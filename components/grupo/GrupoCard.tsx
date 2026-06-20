@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle } from "lucide-react";
+import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import type { GroupWithMembers } from "@/lib/hooks/useGroups";
 import { getInitials, useLeaveGroup } from "@/lib/hooks/useGroups";
@@ -23,6 +23,7 @@ interface GrupoCardProps {
 export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUserId, onInvite, onSwitchGroup, onLeft }: GrupoCardProps) {
   const [open, setOpen] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [leftGroup, setLeftGroup] = useState<string | null>(null);
   const leaveGroup = useLeaveGroup();
 
   const shownMembers = group.members.slice(0, 2);
@@ -30,9 +31,10 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
   const isOwner = group.owner_id === currentUserId;
 
   async function handleLeave() {
+    const name = group.name;
     await leaveGroup.mutateAsync(group.id);
     setConfirmLeave(false);
-    onLeft();
+    setLeftGroup(name);
   }
 
   return (
@@ -161,6 +163,30 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
           Invitar amigos
         </button>
       </div>
+
+      {/* Modal éxito al salir */}
+      {leftGroup && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center px-4">
+          <div className="absolute inset-0 bg-black/70" />
+          <div className="relative w-full max-w-[420px] bg-[#0e0e0e] rounded-t-[24px] pb-[88px] pt-6 px-6 flex flex-col items-center text-center animate-slide-up">
+            <div className="w-10 h-1 rounded-full bg-[#2a2a2a] mx-auto mb-5" />
+            <div className="w-14 h-14 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center mb-4">
+              <CheckCircle2 size={28} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+            </div>
+            <p className="font-display font-semibold text-[18px] mb-1">Has salido del grupo</p>
+            <p className="text-[14px] font-medium text-warm mb-5">{leftGroup}</p>
+            <p className="text-[12px] text-[var(--color-muted)] mb-6">
+              Tu historial de puntos se conserva en el ranking de ese grupo.
+            </p>
+            <button
+              onClick={() => { setLeftGroup(null); onLeft(); }}
+              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-[var(--color-fg)] rounded-pill py-3.5 text-[14px] font-medium"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal confirmación — posicionado encima del navbar */}
       {confirmLeave && (
