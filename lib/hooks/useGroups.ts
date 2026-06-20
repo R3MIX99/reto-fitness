@@ -325,6 +325,7 @@ export function useLeaveGroup() {
     mutationFn: async (groupId: string): Promise<void> => {
       if (!user) throw new Error("No autenticado");
       const supabase = createClient();
+      await supabase.from("daily_scores").delete().eq("group_id", groupId).eq("user_id", user.id);
       const { error } = await supabase
         .from("group_members")
         .delete()
