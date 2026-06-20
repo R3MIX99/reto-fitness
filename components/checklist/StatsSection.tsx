@@ -24,6 +24,7 @@ interface StatsSectionProps {
   goalsTotal: number;
   view: CategoryView;
   onViewChange: (v: CategoryView) => void;
+  onDaySelect?: (dateStr: string | null) => void;
 }
 
 const ORDER: CategoryView[] = ["general", "ejercicio", "dieta", "metas"];
@@ -101,7 +102,7 @@ function BarChart({ checks, view, month, dietTotal, goalsTotal }: { checks: Dail
 // ── Calendar ───────────────────────────────────────────────────────────────
 
 function CalendarGrid({
-  checks, view, expanded, onToggleExpand, dietTotal, goalsTotal,
+  checks, view, expanded, onToggleExpand, dietTotal, goalsTotal, onDaySelect,
 }: {
   checks: DailyCheck[];
   view: CategoryView;
@@ -109,10 +110,24 @@ function CalendarGrid({
   onToggleExpand: () => void;
   dietTotal: number;
   goalsTotal: number;
+  onDaySelect?: (dateStr: string | null) => void;
 }) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const cfg = CATEGORY_CONFIG[view];
   const now = new Date();
+
+  function selectDay(d: number | null) {
+    setSelectedDay(d);
+    if (onDaySelect) {
+      if (d === null) {
+        onDaySelect(null);
+      } else {
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const dd = String(d).padStart(2, "0");
+        onDaySelect(`${now.getFullYear()}-${mm}-${dd}`);
+      }
+    }
+  }
+  const cfg = CATEGORY_CONFIG[view];
   const today = now.getDate();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const firstDow = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
@@ -174,7 +189,7 @@ function CalendarGrid({
             d === null ? <div key={`e-${i}`} /> : (
               <button
                 key={d}
-                onClick={() => setSelectedDay(selectedDay === d ? null : d)}
+                onClick={() => selectDay(selectedDay === d ? null : d)}
                 className="flex items-center justify-center rounded-full transition-colors mx-auto"
                 style={{
                   width: cellSize, height: cellSize,
@@ -281,7 +296,7 @@ function calcPct(checks: DailyCheck[], view: CategoryView, dietTotal: number, go
 
 // ── Main Component ─────────────────────────────────────────────────────────
 
-export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange }: StatsSectionProps) {
+export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange, onDaySelect }: StatsSectionProps) {
   const cardsRef = useRef<HTMLDivElement>(null);
   const [thumbLeft, setThumbLeft] = useState(0);
   const [thumbWidth, setThumbWidth] = useState(24);
@@ -400,6 +415,7 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
           onToggleExpand={() => setCalExpanded((e) => !e)}
           dietTotal={dietTotal}
           goalsTotal={goalsTotal}
+          onDaySelect={onDaySelect}
         />
 
         {/* Dots indicator */}

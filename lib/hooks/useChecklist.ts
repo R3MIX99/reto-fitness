@@ -87,6 +87,25 @@ export function useGoals() {
   });
 }
 
+export function useDateChecks(groupId: string | null, date: string) {
+  const { user } = useUser();
+  return useQuery({
+    queryKey: ["dateChecks", user?.id, groupId, date],
+    enabled: !!user && !!groupId && !!date,
+    queryFn: async (): Promise<DailyCheck[]> => {
+      const supabase = createClient();
+      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string; created_at: string };
+      const { data } = await supabase
+        .from("daily_checks")
+        .select("id, goal_id, kind, check_date, status, evidence_path, group_id, created_at")
+        .eq("user_id", user!.id)
+        .eq("group_id", groupId!)
+        .eq("check_date", date) as unknown as { data: CheckRow[] | null };
+      return (data ?? []) as DailyCheck[];
+    },
+  });
+}
+
 export function useTodayChecks(groupId: string | null) {
   const { user } = useUser();
   return useQuery({
