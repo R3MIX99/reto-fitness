@@ -141,7 +141,7 @@ export function useMarkCheck(groupId: string | null) {
 
       const { error: insertError } = await supabase
         .from("daily_checks")
-        .insert({
+        .upsert({
           user_id: user.id,
           group_id: groupId,
           kind,
@@ -149,6 +149,9 @@ export function useMarkCheck(groupId: string | null) {
           evidence_path: path,
           check_date: todayStr(),
           status: "pending",
+        } as never, {
+          onConflict: goalId ? "user_id,group_id,check_date,kind,goal_id" : "user_id,group_id,check_date,kind",
+          ignoreDuplicates: false,
         } as never) as unknown as { error: unknown };
 
       if (insertError) throw insertError;
