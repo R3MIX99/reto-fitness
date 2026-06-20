@@ -152,11 +152,19 @@ export function useMarkCheck(groupId: string | null) {
         } as never) as unknown as { error: unknown };
 
       if (insertError) throw insertError;
+
+      // Recalculate day score so leaderboard updates immediately
+      await (supabase.rpc as Function)("recalc_day_score", {
+        p_user_id: user.id,
+        p_group_id: groupId,
+        p_date: todayStr(),
+      });
     },
-    onSuccess: (_, { kind }) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["todayChecks"] });
       qc.invalidateQueries({ queryKey: ["monthChecks"] });
-      if (kind === "gym") qc.invalidateQueries({ queryKey: ["todayChecks"] });
+      qc.invalidateQueries({ queryKey: ["leaderboard"] });
+      qc.invalidateQueries({ queryKey: ["todayScore"] });
     },
   });
 }

@@ -87,7 +87,12 @@ export default function AuditoriaPage() {
 
   async function handleAudit(approved: boolean) {
     if (!current) return;
-    await audit.mutateAsync({ checkId: current.id, approved });
+    await audit.mutateAsync({
+      checkId: current.id,
+      approved,
+      checkUserId: current.user_id,
+      checkDate: current.check_date,
+    });
     if (idx < checks.length - 1) setIdx((i) => i + 1);
     else router.back();
   }

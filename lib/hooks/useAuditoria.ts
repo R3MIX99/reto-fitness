@@ -100,22 +100,38 @@ export function useAuditCheck(groupId: string | null) {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ checkId, approved }: { checkId: string; approved: boolean }) => {
+    mutationFn: async ({
+      checkId,
+      approved,
+      checkUserId,
+      checkDate,
+    }: {
+      checkId: string;
+      approved: boolean;
+      checkUserId: string;
+      checkDate: string;
+    }) => {
       if (!user || !groupId) throw new Error("Sin sesión");
       const supabase = createClient();
 
-      const newStatus = approved ? "approved" : "rejected";
-
       const { error } = await supabase
         .from("daily_checks")
-        .update({ status: newStatus } as never)
+        .update({ status: approved ? "approved" : "rejected" } as never)
         .eq("id", checkId) as unknown as { error: unknown };
 
       if (error) throw error;
+
+      // Recalculate the audited user's score for that day
+      await (supabase.rpc as Function)("recalc_day_score", {
+        p_user_id: checkUserId,
+        p_group_id: groupId,
+        p_date: checkDate,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pendingChecks"] });
       qc.invalidateQueries({ queryKey: ["pendingAudits"] });
+      qc.invalidateQueries({ queryKey: ["leaderboard"] });
     },
   });
 }
