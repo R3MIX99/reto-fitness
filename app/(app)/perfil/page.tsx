@@ -122,7 +122,7 @@ export default function PerfilPage() {
   const positionLabel = myPosition === 1 ? "1ero" : myPosition === 2 ? "2do" : myPosition === 3 ? "3ero" : myPosition ? `${myPosition}°` : null;
 
   return (
-    <div className="pb-10">
+    <div className="pb-24">
       {/* Barra superior */}
       <div className="flex items-center justify-between px-[18px] py-3">
         <button onClick={() => router.back()} aria-label="Volver">
