@@ -31,6 +31,7 @@ export function usePushNotifications(groupId?: string | null) {
   const [state, setState] = useState<PushState>("default");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
@@ -69,6 +70,8 @@ export function usePushNotifications(groupId?: string | null) {
       if (!ok) { setError("Error al guardar la suscripción."); return false; }
 
       setState("granted");
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
       return true;
     } catch (err) {
       console.error("Push subscribe error:", err);
@@ -79,7 +82,7 @@ export function usePushNotifications(groupId?: string | null) {
     }
   }
 
-  return { state, loading, error, subscribe };
+  return { state, loading, error, success, subscribe };
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {

@@ -99,7 +99,7 @@ export default function PerfilPage() {
   const myPosition = leaderboard.find((e) => e.user_id === user?.id)?.position ?? null;
 
   const groupId = ownedGroup?.id ?? null;
-  const { state: pushState, loading: pushLoading, error: pushError, subscribe } = usePushNotifications(groupId);
+  const { state: pushState, loading: pushLoading, error: pushError, success: pushSuccess, subscribe } = usePushNotifications(groupId);
   const [showNotifHelp, setShowNotifHelp] = useState(false);
   const [showEditName, setShowEditName] = useState(false);
 
@@ -267,6 +267,9 @@ export default function PerfilPage() {
               </div>
               {pushError && (
                 <p className="text-[11px] text-accent mt-1">{pushError}</p>
+              )}
+              {pushSuccess && (
+                <p className="text-[11px] mt-1" style={{ color: "#22c55e" }}>Notificaciones activadas correctamente.</p>
               )}
             </div>
           )}
