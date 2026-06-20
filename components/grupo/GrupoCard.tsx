@@ -1,64 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle } from "lucide-react";
+import { ChevronDown, UserPlus, Plus, Hash, Check } from "lucide-react";
 import Link from "next/link";
 import type { GroupWithMembers } from "@/lib/hooks/useGroups";
-import { getInitials, useLeaveGroup } from "@/lib/hooks/useGroups";
+import { getInitials } from "@/lib/hooks/useGroups";
 import Image from "next/image";
-
-// ── Modal de confirmación para salir ──────────────────────────────────────
-
-function LeaveModal({
-  groupName,
-  onConfirm,
-  onCancel,
-  loading,
-}: {
-  groupName: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-  loading: boolean;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-6">
-      <div
-        className="absolute inset-0 bg-black/70"
-        onClick={onCancel}
-      />
-      <div className="relative w-full max-w-[380px] bg-[#0e0e0e] rounded-[24px] p-6 flex flex-col items-center text-center animate-slide-up">
-        <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
-          <AlertTriangle size={26} strokeWidth={1.5} className="text-red-400" />
-        </div>
-
-        <p className="font-display font-semibold text-[18px] mb-1">¿Salir del grupo?</p>
-        <p className="text-[13px] text-[var(--color-muted)] mb-1">
-          Estás a punto de abandonar
-        </p>
-        <p className="text-[14px] font-medium text-warm mb-5">{groupName}</p>
-        <p className="text-[12px] text-[var(--color-muted)] mb-6">
-          Tu historial de puntos se conservará pero dejarás de aparecer en el ranking.
-        </p>
-
-        <div className="flex flex-col gap-2.5 w-full">
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            className="w-full bg-red-500/80 text-white rounded-pill py-3.5 text-[14px] font-medium disabled:opacity-50"
-          >
-            {loading ? "Saliendo..." : "Sí, salir del grupo"}
-          </button>
-          <button
-            onClick={onCancel}
-            className="w-full bg-[#1a1a1a] text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]"
-          >
-            Cancelar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── GrupoCard ─────────────────────────────────────────────────────────────
 
@@ -75,18 +22,9 @@ interface GrupoCardProps {
 
 export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUserId, onInvite, onSwitchGroup, onLeft }: GrupoCardProps) {
   const [open, setOpen] = useState(false);
-  const [confirmLeave, setConfirmLeave] = useState(false);
-  const leaveGroup = useLeaveGroup();
 
   const shownMembers = group.members.slice(0, 2);
   const extra = group.members.length - 2;
-  const isOwner = group.owner_id === currentUserId;
-
-  async function handleLeave() {
-    await leaveGroup.mutateAsync(group.id);
-    setConfirmLeave(false);
-    onLeft();
-  }
 
   return (
     <>
@@ -177,21 +115,6 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
               </div>
             </Link>
 
-            {/* Salir del grupo — solo para no-dueños */}
-            {!isOwner && (
-              <button
-                onClick={() => { setOpen(false); setConfirmLeave(true); }}
-                className="w-full flex items-center gap-3 px-4 py-3"
-              >
-                <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                  <LogOut size={14} strokeWidth={1.5} className="text-red-400" />
-                </div>
-                <div>
-                  <p className="text-[13px] font-medium text-red-400">Salir del grupo</p>
-                  <p className="text-[11px] text-[var(--color-muted)]">Abandonar {group.name}</p>
-                </div>
-              </button>
-            )}
           </div>
         )}
 
@@ -215,14 +138,6 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
         </button>
       </div>
 
-      {confirmLeave && (
-        <LeaveModal
-          groupName={group.name}
-          onConfirm={handleLeave}
-          onCancel={() => setConfirmLeave(false)}
-          loading={leaveGroup.isPending}
-        />
-      )}
     </>
   );
 }

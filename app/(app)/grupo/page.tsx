@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Users, Plus } from "lucide-react";
-import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits } from "@/lib/hooks/useGroups";
+import { Users, Plus, LogOut, AlertTriangle } from "lucide-react";
+import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits, useLeaveGroup } from "@/lib/hooks/useGroups";
 import { useUser } from "@/lib/hooks/useUser";
 import { GrupoCard } from "@/components/grupo/GrupoCard";
 import { EvidenciasCard } from "@/components/grupo/EvidenciasCard";
@@ -33,6 +33,8 @@ export default function GrupoPage() {
   const { data: groups = [], isLoading } = useMyGroups();
   const [activeGroupIdx, setActiveGroupIdx] = useState(0);
   const [showInvite, setShowInvite] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const leaveGroup = useLeaveGroup();
 
   const activeGroup = groups[activeGroupIdx] ?? null;
 
@@ -53,6 +55,14 @@ export default function GrupoPage() {
       })) ?? [];
 
   const leaderEntry = effectiveLeaderboard[0];
+  const isOwner = activeGroup?.owner_id === user?.id;
+
+  async function handleLeave() {
+    if (!activeGroup) return;
+    await leaveGroup.mutateAsync(activeGroup.id);
+    setConfirmLeave(false);
+    setActiveGroupIdx(0);
+  }
 
   // No groups state
   if (!isLoading && groups.length === 0) {
@@ -134,6 +144,52 @@ export default function GrupoPage() {
         groupName={activeGroup.name}
         onClose={() => setShowInvite(false)}
       />
+
+      {/* Botón salir — fijo encima del navbar, solo para no-dueños */}
+      {!isOwner && (
+        <div className="fixed bottom-[76px] left-1/2 -translate-x-1/2 z-20">
+          <button
+            onClick={() => setConfirmLeave(true)}
+            className="flex items-center gap-1.5 text-[12px] text-red-400 border border-red-500/25 bg-[#0c0c0c] rounded-full px-4 py-2"
+          >
+            <LogOut size={13} strokeWidth={1.5} />
+            Salir del grupo
+          </button>
+        </div>
+      )}
+
+      {/* Modal confirmación salir */}
+      {confirmLeave && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-6">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setConfirmLeave(false)} />
+          <div className="relative w-full max-w-[380px] bg-[#0e0e0e] rounded-[24px] p-6 flex flex-col items-center text-center animate-slide-up">
+            <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
+              <AlertTriangle size={26} strokeWidth={1.5} className="text-red-400" />
+            </div>
+            <p className="font-display font-semibold text-[18px] mb-1">¿Salir del grupo?</p>
+            <p className="text-[13px] text-[var(--color-muted)] mb-1">Estás a punto de abandonar</p>
+            <p className="text-[14px] font-medium text-warm mb-5">{activeGroup.name}</p>
+            <p className="text-[12px] text-[var(--color-muted)] mb-6">
+              Tu historial de puntos se conservará pero dejarás de aparecer en el ranking.
+            </p>
+            <div className="flex flex-col gap-2.5 w-full">
+              <button
+                onClick={handleLeave}
+                disabled={leaveGroup.isPending}
+                className="w-full bg-red-500/80 text-white rounded-pill py-3.5 text-[14px] font-medium disabled:opacity-50"
+              >
+                {leaveGroup.isPending ? "Saliendo..." : "Sí, salir del grupo"}
+              </button>
+              <button
+                onClick={() => setConfirmLeave(false)}
+                className="w-full bg-[#1a1a1a] text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
