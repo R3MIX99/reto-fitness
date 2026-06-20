@@ -4,8 +4,48 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import webpush from "web-push";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AdminClient = ReturnType<typeof createAdminClient<any>>;
+
+async function sendPush(admin: AdminClient, userId: string, title: string, body: string, url: string) {
+  type SubRow = { endpoint: string; p256dh: string; auth: string };
+  const { data: subs } = await admin
+    .from("push_subscriptions")
+    .select("endpoint, p256dh, auth")
+    .eq("user_id", userId) as unknown as { data: SubRow[] | null };
+
+  if (!subs?.length) return;
+  const payload = JSON.stringify({ title, body, url });
+  await Promise.allSettled(
+    subs.map((s) =>
+      webpush.sendNotification(
+        { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+        payload
+      )
+    )
+  );
+}
+
+async function insertNotif(
+  admin: AdminClient,
+  userId: string,
+  type: string,
+  title: string,
+  body: string,
+  metadata: Record<string, unknown>
+) {
+  await admin.from("notifications").insert({
+    user_id: userId,
+    type,
+    title,
+    body,
+    read: false,
+    metadata,
+  } as never);
+}
+
 export async function POST(req: NextRequest) {
-  // Identify the caller (the person who just joined)
+  // Identify the caller from the session cookie
   const cookieStore = cookies();
   const authClient = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,13 +58,12 @@ export async function POST(req: NextRequest) {
   const { group_id } = await req.json() as { group_id: string };
   if (!group_id) return NextResponse.json({ error: "group_id requerido" }, { status: 400 });
 
-  // Use service role to bypass RLS for all lookups
   const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  ) as AdminClient;
 
-  // Get group info (name + owner)
+  // Fetch group name + owner (service_role bypasses RLS)
   type GroupRow = { name: string; owner_id: string };
   const { data: group } = await admin
     .from("groups")
@@ -34,10 +73,7 @@ export async function POST(req: NextRequest) {
 
   if (!group) return NextResponse.json({ error: "Grupo no encontrado" }, { status: 404 });
 
-  // Don't notify if the joiner IS the owner
-  if (group.owner_id === user.id) return NextResponse.json({ ok: true, skipped: true });
-
-  // Get joiner's display name from profiles table
+  // Fetch joiner's real display name from profiles
   type ProfileRow = { full_name: string | null };
   const { data: joinerProfile } = await admin
     .from("profiles")
@@ -45,47 +81,23 @@ export async function POST(req: NextRequest) {
     .eq("id", user.id)
     .single() as unknown as { data: ProfileRow | null };
 
-  const joinerName = joinerProfile?.full_name ?? user.user_metadata?.full_name ?? "Alguien";
+  const joinerName = joinerProfile?.full_name ?? (user.user_metadata as { full_name?: string } | undefined)?.full_name ?? "Alguien";
+  const groupUrl = `/grupo?joined=${group_id}`;
 
-  // Insert in-app notification for the owner
-  await admin.from("notifications").insert({
-    user_id: group.owner_id,
-    type: "new_member",
-    title: "Nuevo miembro en tu grupo",
-    body: `${joinerName} se unió a "${group.name}".`,
-    read: false,
-    metadata: { group_id, joiner_id: user.id, url: `/grupo?joined=${group_id}` },
-  });
-
-  // Send push notification to owner's devices
   const publicKey  = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const email      = process.env.VAPID_EMAIL;
+  const vapidEmail = process.env.VAPID_EMAIL;
+  const vapidOk = !!(publicKey && privateKey && vapidEmail);
+  if (vapidOk) webpush.setVapidDetails(`mailto:${vapidEmail}`, publicKey!, privateKey!);
 
-  if (publicKey && privateKey && email) {
-    webpush.setVapidDetails(`mailto:${email}`, publicKey, privateKey);
+  // 1. Notify joiner: "you joined a group"
+  await insertNotif(admin, user.id, "joined_group", "Te uniste a un grupo", `Ahora formas parte de "${group.name}".`, { group_id, url: groupUrl });
+  if (vapidOk) await sendPush(admin, user.id, "Te uniste a un grupo", `Ahora formas parte de "${group.name}".`, groupUrl);
 
-    type SubRow = { endpoint: string; p256dh: string; auth: string };
-    const { data: subs } = await admin
-      .from("push_subscriptions")
-      .select("endpoint, p256dh, auth")
-      .eq("user_id", group.owner_id) as unknown as { data: SubRow[] | null };
-
-    if (subs?.length) {
-      const payload = JSON.stringify({
-        title: "Nuevo miembro en tu grupo",
-        body: `${joinerName} se unió a "${group.name}".`,
-        url: `/grupo?joined=${group_id}`,
-      });
-      await Promise.allSettled(
-        subs.map((s) =>
-          webpush.sendNotification(
-            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-            payload
-          )
-        )
-      );
-    }
+  // 2. Notify owner: "someone joined your group" (only if joiner ≠ owner)
+  if (group.owner_id !== user.id) {
+    await insertNotif(admin, group.owner_id, "new_member", "Nuevo jugador en tu grupo", `${joinerName} se unió a "${group.name}".`, { group_id, joiner_id: user.id, url: groupUrl });
+    if (vapidOk) await sendPush(admin, group.owner_id, "Nuevo jugador en tu grupo", `${joinerName} se unió a "${group.name}".`, groupUrl);
   }
 
   return NextResponse.json({ ok: true });

@@ -35,14 +35,14 @@ export async function POST(req: NextRequest) {
   // Use service role to bypass RLS — this runs server-side only
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // 1. Insert in-app notification
+  // 1. Insert in-app notification — store url inside metadata so taps navigate correctly
   await supabase.from("notifications").insert({
     user_id,
     type,
     title,
     body: notif_body ?? null,
     read: false,
-    metadata: metadata ?? {},
+    metadata: { ...(metadata ?? {}), url: url ?? null },
   });
 
   // 2. Fetch push subscriptions for this user
