@@ -102,7 +102,12 @@ export default function NotificacionesPage() {
   }
 
   function handleDeleteAll() {
-    if (!confirmDelete) { setConfirmDelete(true); return; }
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      // Auto-cancel confirm state after 3 s if user doesn't tap again
+      setTimeout(() => setConfirmDelete(false), 3000);
+      return;
+    }
     deleteAll.mutate(undefined, { onSuccess: () => setConfirmDelete(false) });
   }
 
@@ -138,7 +143,6 @@ export default function NotificacionesPage() {
               background: confirmDelete ? "rgba(239,68,68,0.18)" : "rgba(124,124,124,0.12)",
               color: confirmDelete ? "#ef4444" : "var(--color-muted)",
             }}
-            onBlur={() => setConfirmDelete(false)}
           >
             <Trash2 size={13} strokeWidth={1.6} />
             {confirmDelete ? "Confirmar" : "Limpiar"}
