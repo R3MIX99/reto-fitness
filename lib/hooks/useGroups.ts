@@ -318,6 +318,24 @@ export function useCreateGroup() {
   });
 }
 
+export function useLeaveGroup() {
+  const { user } = useUser();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (groupId: string): Promise<void> => {
+      if (!user) throw new Error("No autenticado");
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("group_members")
+        .delete()
+        .eq("group_id", groupId)
+        .eq("user_id", user.id) as unknown as { error: unknown };
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+  });
+}
+
 export function useJoinGroup() {
   const qc = useQueryClient();
 

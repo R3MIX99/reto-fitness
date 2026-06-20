@@ -103,11 +103,13 @@ export default function GrupoPage() {
           allGroups={groups}
           weekNumber={getWeekNumber()}
           closeDate={getNextSunday()}
+          currentUserId={user?.id ?? ""}
           onInvite={() => setShowInvite(true)}
           onSwitchGroup={(id) => {
             const idx = groups.findIndex((g) => g.id === id);
             if (idx !== -1) setActiveGroupIdx(idx);
           }}
+          onLeft={() => setActiveGroupIdx(0)}
         />
 
         {/* 2) Evidencias por revisar */}
