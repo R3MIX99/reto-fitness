@@ -52,7 +52,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="font-display font-semibold text-[32px] text-[var(--color-fg)] leading-none">
-            Reto Fitness
+            Olympo
           </h1>
           <p className="text-[var(--color-muted)] text-sm">
             Compite con tus amigos. El más constante gana.

@@ -4,9 +4,9 @@
 self.addEventListener("push", (event) => {
   if (!event.data) return;
   let payload;
-  try { payload = event.data.json(); } catch { payload = { title: "Reto Fitness", body: event.data.text() }; }
+  try { payload = event.data.json(); } catch { payload = { title: "Olympo", body: event.data.text() }; }
 
-  const title = payload.title ?? "Reto Fitness";
+  const title = payload.title ?? "Olympo";
   const options = {
     body: payload.body ?? "",
     icon: "/icon-192.png",

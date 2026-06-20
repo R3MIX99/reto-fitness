@@ -37,7 +37,7 @@ export function InviteSheet({ open, inviteCode, groupName, onClose }: InviteShee
       try {
         await navigator.share({
           title: `Únete a ${groupName}`,
-          text: `Te invito a unirte a mi grupo "${groupName}" en Reto Fitness. Usa el código: ${inviteCode}`,
+          text: `Te invito a unirte a mi grupo "${groupName}" en Olympo. Usa el código: ${inviteCode}`,
           url: inviteLink,
         });
       } catch {
