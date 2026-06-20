@@ -322,13 +322,13 @@ export function useJoinGroup() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (inviteCode: string): Promise<string> => {
+    mutationFn: async (inviteCode: string): Promise<{ id: string; name: string; owner_name: string }> => {
       const supabase = createClient();
       const { data, error } = await (supabase.rpc as Function)("join_group_by_code", {
         p_invite_code: inviteCode.trim(),
       });
       if (error) throw new Error(error.message ?? "Código inválido o grupo no encontrado");
-      return (data as { id: string }).id;
+      return data as { id: string; name: string; owner_name: string };
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
   });
