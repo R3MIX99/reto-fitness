@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Drawer } from "vaul";
 import { X, Dumbbell, UtensilsCrossed, Target, Camera, Lock, ChevronRight, Check } from "lucide-react";
 import type { Goal, GoalKind, DailyCheck } from "@/lib/hooks/useChecklist";
@@ -73,6 +73,40 @@ function PickerSheet({
   );
 }
 
+// ── Toast de éxito ────────────────────────────────────────────────────────
+
+function SuccessToast({ label, onDone }: { label: string; onDone: () => void }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+    const t = setTimeout(() => {
+      setVisible(false);
+      setTimeout(onDone, 300);
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  return (
+    <div
+      className="fixed z-[200] left-1/2 flex items-center gap-2.5 bg-[#161616] border border-[#2a2a2a] rounded-full px-4 py-2.5 shadow-lg"
+      style={{
+        bottom: "80px",
+        transform: `translateX(-50%) translateY(${visible ? "0" : "12px"})`,
+        opacity: visible ? 1 : 0,
+        transition: "transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease",
+      }}
+    >
+      <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+        <Check size={11} strokeWidth={2.5} className="text-accent" />
+      </div>
+      <span className="text-[13px] font-medium text-[var(--color-fg)] whitespace-nowrap">
+        {label} registrado
+      </span>
+    </div>
+  );
+}
+
 // ── Main EvidenciaSheet ────────────────────────────────────────────────────
 
 interface EvidenciaSheetProps {
@@ -99,6 +133,7 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
   const [pickerKind, setPickerKind] = useState<GoalKind | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [successLabel, setSuccessLabel] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingGoal = useRef<Goal | null>(null);
   const pendingKind = useRef<OptionKind | null>(null);
@@ -134,7 +169,10 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
         kind: pendingKind.current as GoalKind,
         goalId: pendingGoal.current?.id,
       });
+      const label = pendingGoal.current?.title
+        ?? (pendingKind.current === "gym" ? "Ejercicio" : "Elemento");
       onClose();
+      setSuccessLabel(label);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Error al subir la foto");
     }
@@ -237,6 +275,11 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
         className="hidden"
         onChange={handleFile}
       />
+
+      {/* Toast de confirmación */}
+      {successLabel && (
+        <SuccessToast label={successLabel} onDone={() => setSuccessLabel(null)} />
+      )}
     </>
   );
 }
