@@ -76,12 +76,11 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
     <VaulDrawer.Root
       open={open}
       onOpenChange={(o) => !o && onClose()}
-      snapPoints={[0.75, 0.95]}
       shouldScaleBackground
     >
       <VaulDrawer.Portal>
         <VaulDrawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
-        <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[#0e0e0e] rounded-t-[26px] outline-none flex flex-col overflow-y-auto" style={{ maxHeight: "95dvh" }}>
+        <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[#0e0e0e] rounded-t-[26px] outline-none flex flex-col">
 
           {/* Handle */}
           <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
