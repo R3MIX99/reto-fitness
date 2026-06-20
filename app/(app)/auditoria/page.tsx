@@ -97,6 +97,17 @@ export default function AuditoriaPage() {
     if (groupIds.length) autoApprove.mutate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupIds.join(",")]);
+
+  // Redirect to /grupo when all checks have been reviewed
+  const [started, setStarted] = useState(false);
+  useEffect(() => {
+    if (!isLoading && checks.length > 0) setStarted(true);
+  }, [isLoading, checks.length]);
+  useEffect(() => {
+    if (started && !isLoading && checks.length === 0) {
+      router.push("/grupo");
+    }
+  }, [started, isLoading, checks.length, router]);
   const current = checks[idx] ?? null;
   const week = getWeekNumber();
 
