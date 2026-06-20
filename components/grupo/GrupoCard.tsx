@@ -162,7 +162,7 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
 
         {/* Dropdown con slide animado */}
         <SlideDown open={open}>
-          <div className="mb-3 rounded-[14px] bg-[#161616] border border-[#232323] overflow-hidden">
+          <div className="mb-4 rounded-[14px] bg-[#161616] border border-[#232323] overflow-hidden">
             {allGroups.map((g) => (
               <button
                 key={g.id}
@@ -222,7 +222,7 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
         </SlideDown>
 
         {/* Chips */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-4">
           <span className="text-[11px] text-[var(--color-muted)] border border-[#2a2a2a] rounded-full px-3 py-1">
             Semana {weekNumber}
           </span>
