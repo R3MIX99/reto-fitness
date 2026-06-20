@@ -10,11 +10,12 @@ import {
   useDeleteGoal,
   useReorderGoals,
 } from "@/lib/hooks/useChecklist";
-import type { Goal, GoalKind, CategoryView } from "@/lib/hooks/useChecklist";
+import type { Goal, DailyCheck, GoalKind, CategoryView } from "@/lib/hooks/useChecklist";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { StatsSection } from "@/components/checklist/StatsSection";
 import { GymSection, DietSection, GoalsSection } from "@/components/checklist/CheckSection";
 import { GoalDrawer } from "@/components/checklist/GoalDrawer";
+import { CheckDetailDrawer } from "@/components/checklist/CheckDetailDrawer";
 
 export default function ChecklistPage() {
   const { data: groups = [] } = useMyGroups();
@@ -33,6 +34,16 @@ export default function ChecklistPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [defaultKind, setDefaultKind] = useState<GoalKind>("goal");
+
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailGoal, setDetailGoal] = useState<Goal | null>(null);
+  const [detailCheck, setDetailCheck] = useState<DailyCheck | null>(null);
+
+  function openDetail(goal: Goal | null, check: DailyCheck) {
+    setDetailGoal(goal);
+    setDetailCheck(check);
+    setDetailOpen(true);
+  }
 
   function openAdd(kind: GoalKind) {
     setEditingGoal(null);
@@ -84,6 +95,7 @@ export default function ChecklistPage() {
         <GymSection
           check={gymCheck}
           onMark={(file) => handleMark(file, "gym")}
+          onDetail={() => gymCheck && openDetail(null, gymCheck)}
           loading={markCheck.isPending}
         />
 
@@ -94,6 +106,7 @@ export default function ChecklistPage() {
           onMark={handleMark}
           onAdd={() => openAdd("diet")}
           onEdit={openEdit}
+          onDetail={openDetail}
           onReorder={(ids) => reorderGoals.mutate(ids)}
           loading={markCheck.isPending}
         />
@@ -105,6 +118,7 @@ export default function ChecklistPage() {
           onMark={handleMark}
           onAdd={() => openAdd("goal")}
           onEdit={openEdit}
+          onDetail={openDetail}
           onReorder={(ids) => reorderGoals.mutate(ids)}
           loading={markCheck.isPending}
         />
@@ -117,6 +131,14 @@ export default function ChecklistPage() {
         onClose={() => setDrawerOpen(false)}
         onSave={(data) => upsertGoal.mutateAsync({ ...data, kind: data.kind as GoalKind })}
         onDelete={(id) => deleteGoal.mutateAsync(id)}
+      />
+
+      <CheckDetailDrawer
+        open={detailOpen}
+        goal={detailGoal}
+        check={detailCheck}
+        onClose={() => setDetailOpen(false)}
+        onReplace={handleMark}
       />
     </>
   );

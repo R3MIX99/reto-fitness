@@ -28,6 +28,7 @@ export interface DailyCheck {
   status: string;
   evidence_path: string;
   group_id: string;
+  created_at: string;
 }
 
 export type CategoryView = "general" | "ejercicio" | "dieta" | "metas";
@@ -93,10 +94,10 @@ export function useTodayChecks(groupId: string | null) {
     enabled: !!user && !!groupId,
     queryFn: async (): Promise<DailyCheck[]> => {
       const supabase = createClient();
-      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string };
+      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string; created_at: string };
       const { data } = await supabase
         .from("daily_checks")
-        .select("id, goal_id, kind, check_date, status, evidence_path, group_id")
+        .select("id, goal_id, kind, check_date, status, evidence_path, group_id, created_at")
         .eq("user_id", user!.id)
         .eq("group_id", groupId!)
         .eq("check_date", todayStr()) as unknown as { data: CheckRow[] | null };
@@ -114,10 +115,10 @@ export function useMonthChecks(groupId: string | null) {
     staleTime: 0,
     queryFn: async (): Promise<DailyCheck[]> => {
       const supabase = createClient();
-      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string };
+      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string; created_at: string };
       const { data } = await supabase
         .from("daily_checks")
-        .select("id, goal_id, kind, check_date, status, evidence_path, group_id")
+        .select("id, goal_id, kind, check_date, status, evidence_path, group_id, created_at")
         .eq("user_id", user!.id)
         .eq("group_id", groupId!)
         .gte("check_date", monthStart())

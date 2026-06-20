@@ -9,12 +9,13 @@ interface CheckItemProps {
   check?: DailyCheck;
   onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
   onEdit?: () => void;
+  onDetail?: () => void;
   loading?: boolean;
   reordering?: boolean;
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
-export function CheckItem({ goal, check, onMark, onEdit, loading, reordering, dragHandleProps }: CheckItemProps) {
+export function CheckItem({ goal, check, onMark, onEdit, onDetail, loading, reordering, dragHandleProps }: CheckItemProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,17 +59,19 @@ export function CheckItem({ goal, check, onMark, onEdit, loading, reordering, dr
         </button>
       )}
 
-      {/* Title */}
-      <span
-        className="flex-1 text-[14px]"
+      {/* Title — clickable when done to view detail */}
+      <button
+        className="flex-1 text-[14px] text-left"
         style={{
           color: reordering ? "var(--color-fg)" : isDone ? "var(--color-muted)" : "var(--color-fg)",
           textDecoration: !reordering && isDone ? "line-through" : "none",
         }}
+        onClick={() => isDone && !reordering && onDetail?.()}
+        disabled={!isDone || reordering}
       >
         {goal.icon && <span className="mr-1.5">{goal.icon}</span>}
         {goal.title}
-      </span>
+      </button>
 
       {/* Drag handle in reorder mode, badges+actions otherwise */}
       {reordering ? (

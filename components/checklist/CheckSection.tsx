@@ -28,6 +28,7 @@ function SortableCheckItem({
   check,
   onMark,
   onEdit,
+  onDetail,
   loading,
   reordering,
 }: {
@@ -35,6 +36,7 @@ function SortableCheckItem({
   check?: DailyCheck;
   onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
   onEdit: () => void;
+  onDetail: () => void;
   loading?: boolean;
   reordering: boolean;
 }) {
@@ -54,6 +56,7 @@ function SortableCheckItem({
         check={check}
         onMark={onMark}
         onEdit={onEdit}
+        onDetail={onDetail}
         loading={loading}
         reordering={reordering}
         dragHandleProps={reordering ? { ...attributes, ...listeners } : undefined}
@@ -67,10 +70,11 @@ function SortableCheckItem({
 interface GymSectionProps {
   check?: DailyCheck;
   onMark: (file: File) => void;
+  onDetail?: () => void;
   loading?: boolean;
 }
 
-export function GymSection({ check, onMark, loading }: GymSectionProps) {
+export function GymSection({ check, onMark, onDetail, loading }: GymSectionProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const isDone = !!check;
   const isPending = check?.status === "pending";
@@ -94,12 +98,16 @@ export function GymSection({ check, onMark, loading }: GymSectionProps) {
           )}
         </button>
 
-        <div className="flex-1 min-w-0">
+        <button
+          className="flex-1 min-w-0 text-left"
+          onClick={() => isDone && onDetail?.()}
+          disabled={!isDone}
+        >
           <p className="text-[15px] font-medium">Ejercicio de hoy</p>
           <p className="text-[12px] text-[var(--color-muted)]">
             {isDone ? (isPending ? "En revisión" : "Completado") : "Sube una foto del entrenamiento"}
           </p>
-        </div>
+        </button>
 
         {isPending && (
           <span className="flex items-center gap-1 text-[10px] text-[#EFC88B] bg-[rgba(239,200,139,0.12)] rounded-full px-2.5 py-1">
@@ -142,11 +150,12 @@ interface DietSectionProps {
   onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
   onAdd: () => void;
   onEdit: (goal: Goal) => void;
+  onDetail: (goal: Goal, check: DailyCheck) => void;
   onReorder: (orderedIds: string[]) => void;
   loading?: boolean;
 }
 
-export function DietSection({ goals, checks, onMark, onAdd, onEdit, onReorder, loading }: DietSectionProps) {
+export function DietSection({ goals, checks, onMark, onAdd, onEdit, onDetail, onReorder, loading }: DietSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [localOrder, setLocalOrder] = useState<string[]>([]);
@@ -230,6 +239,7 @@ export function DietSection({ goals, checks, onMark, onAdd, onEdit, onReorder, l
                         check={check}
                         onMark={onMark}
                         onEdit={() => onEdit(goal)}
+                        onDetail={() => check && onDetail(goal, check)}
                         loading={loading}
                         reordering={reordering}
                       />
@@ -263,11 +273,12 @@ interface GoalsSectionProps {
   onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
   onAdd: () => void;
   onEdit: (goal: Goal) => void;
+  onDetail: (goal: Goal, check: DailyCheck) => void;
   onReorder: (orderedIds: string[]) => void;
   loading?: boolean;
 }
 
-export function GoalsSection({ goals, checks, onMark, onAdd, onEdit, onReorder, loading }: GoalsSectionProps) {
+export function GoalsSection({ goals, checks, onMark, onAdd, onEdit, onDetail, onReorder, loading }: GoalsSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [localOrder, setLocalOrder] = useState<string[]>([]);
@@ -350,6 +361,7 @@ export function GoalsSection({ goals, checks, onMark, onAdd, onEdit, onReorder, 
                         check={check}
                         onMark={onMark}
                         onEdit={() => onEdit(goal)}
+                        onDetail={() => check && onDetail(goal, check)}
                         loading={loading}
                         reordering={reordering}
                       />
