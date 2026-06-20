@@ -31,25 +31,44 @@ function getConfig(type: string, metadata?: Record<string, unknown>): NotifConfi
 const DIAS  = ["dom","lun","mar","mié","jue","vie","sáb"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 
+function calendarDay(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
 function relativeLabel(dateStr: string): string {
   const now  = new Date();
   const date = new Date(dateStr);
   const diffMin = Math.floor((now.getTime() - date.getTime()) / 60000);
   const diffH   = Math.floor(diffMin / 60);
-  const diffD   = Math.floor(diffH / 24);
+
   if (diffMin < 1)  return "Ahora";
   if (diffMin < 60) return `Hace ${diffMin} min`;
-  if (diffH   < 24) return `Hace ${diffH} h`;
-  if (diffD   === 1) return "Ayer";
-  if (diffD   < 7)  return `${DIAS[date.getDay()]} ${date.getDate()}`;
-  return `${date.getDate()} ${MESES[date.getMonth()]}`;
+
+  // If it's a different calendar day, don't say "Hace X h"
+  if (calendarDay(date) !== calendarDay(now)) {
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (calendarDay(date) === calendarDay(yesterday)) return "Ayer";
+    const diffD = Math.floor(diffH / 24);
+    if (diffD < 7) return `${DIAS[date.getDay()]} ${date.getDate()}`;
+    return `${date.getDate()} ${MESES[date.getMonth()]}`;
+  }
+
+  return `Hace ${diffH} h`;
 }
 
 function groupLabel(dateStr: string): string {
-  const diffD = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
-  if (diffD === 0) return "Hoy";
-  if (diffD === 1) return "Ayer";
-  if (diffD  < 7) return "Esta semana";
+  const now  = new Date();
+  const date = new Date(dateStr);
+
+  if (calendarDay(date) === calendarDay(now)) return "Hoy";
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (calendarDay(date) === calendarDay(yesterday)) return "Ayer";
+
+  const diffD = Math.floor((now.getTime() - date.getTime()) / 86400000);
+  if (diffD < 7) return "Esta semana";
   return "Antes";
 }
 
