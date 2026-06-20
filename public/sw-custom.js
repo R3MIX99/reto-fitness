@@ -10,7 +10,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: payload.body ?? "",
     icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    badge: "/icons/badge.png",
     data: { url: payload.url ?? "/" },
   };
 
