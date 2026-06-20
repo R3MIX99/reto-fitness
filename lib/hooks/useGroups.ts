@@ -438,7 +438,7 @@ export function useLeaveGroup() {
 
 export function useLookupGroup(code: string) {
   return useQuery({
-    queryKey: ["groupLookup", code.trim().toUpperCase()],
+    queryKey: ["groupLookup", code.trim().toLowerCase()],
     enabled: code.trim().length >= 4,
     retry: false,
     queryFn: async (): Promise<{ name: string; owner_name: string; member_count: number } | null> => {
