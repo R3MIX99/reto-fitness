@@ -46,8 +46,8 @@ export default function ChecklistPage() {
     setDrawerOpen(true);
   }
 
-  async function handleMark(file: File, kind: GoalKind, goalId?: string) {
-    if (!groupId) return;
+  async function handleMark(file: File, kind: GoalKind, goalId?: string): Promise<void> {
+    if (!groupId) throw new Error("Sin grupo activo");
     await markCheck.mutateAsync({ file, kind, goalId });
   }
 

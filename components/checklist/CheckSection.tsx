@@ -33,7 +33,7 @@ function SortableCheckItem({
 }: {
   goal: Goal;
   check?: DailyCheck;
-  onMark: (file: File, kind: GoalKind, goalId?: string) => void;
+  onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
   onEdit: () => void;
   loading?: boolean;
   reordering: boolean;
@@ -139,7 +139,7 @@ export function GymSection({ check, onMark, loading }: GymSectionProps) {
 interface DietSectionProps {
   goals: Goal[];
   checks: DailyCheck[];
-  onMark: (file: File, kind: GoalKind, goalId?: string) => void;
+  onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
   onAdd: () => void;
   onEdit: (goal: Goal) => void;
   onReorder: (orderedIds: string[]) => void;
@@ -260,7 +260,7 @@ export function DietSection({ goals, checks, onMark, onAdd, onEdit, onReorder, l
 interface GoalsSectionProps {
   goals: Goal[];
   checks: DailyCheck[];
-  onMark: (file: File, kind: GoalKind, goalId?: string) => void;
+  onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
   onAdd: () => void;
   onEdit: (goal: Goal) => void;
   onReorder: (orderedIds: string[]) => void;

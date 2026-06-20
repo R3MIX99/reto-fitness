@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Camera, Check, Clock, Pencil, ChevronsUpDown } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
 
 interface CheckItemProps {
   goal: Goal;
   check?: DailyCheck;
-  onMark: (file: File, kind: GoalKind, goalId?: string) => void;
+  onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
   onEdit?: () => void;
   loading?: boolean;
   reordering?: boolean;
@@ -16,15 +16,25 @@ interface CheckItemProps {
 
 export function CheckItem({ goal, check, onMark, onEdit, loading, reordering, dragHandleProps }: CheckItemProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isDone = !!check;
   const isPending = check?.status === "pending";
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    onMark(file, goal.kind, goal.id);
     e.target.value = "";
+    setError(null);
+    setUploading(true);
+    try {
+      await onMark(file, goal.kind, goal.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al subir");
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
@@ -87,10 +97,10 @@ export function CheckItem({ goal, check, onMark, onEdit, loading, reordering, dr
           {!isDone && (
             <button
               onClick={() => inputRef.current?.click()}
-              disabled={loading}
-              className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center text-[var(--color-muted)] transition-colors"
+              disabled={loading || uploading}
+              className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center text-[var(--color-muted)] transition-colors disabled:opacity-40"
             >
-              <Camera size={13} strokeWidth={1.5} />
+              <Camera size={13} strokeWidth={1.5} style={{ color: error ? "#f87171" : undefined }} />
             </button>
           )}
         </div>

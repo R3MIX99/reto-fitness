@@ -148,9 +148,24 @@ export function useMarkCheck(groupId: string | null) {
 
       if (uploadError) throw uploadError;
 
+      // Delete any existing check for this slot first (handles re-uploads cleanly)
+      const deleteQuery = supabase
+        .from("daily_checks")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("group_id", groupId)
+        .eq("check_date", todayStr())
+        .eq("kind", kind);
+
+      if (goalId) {
+        await (deleteQuery.eq("goal_id", goalId) as unknown as Promise<unknown>);
+      } else {
+        await (deleteQuery.is("goal_id", null) as unknown as Promise<unknown>);
+      }
+
       const { error: insertError } = await supabase
         .from("daily_checks")
-        .upsert({
+        .insert({
           user_id: user.id,
           group_id: groupId,
           kind,
@@ -158,12 +173,9 @@ export function useMarkCheck(groupId: string | null) {
           evidence_path: path,
           check_date: todayStr(),
           status: "pending",
-        } as never, {
-          onConflict: goalId ? "user_id,group_id,check_date,kind,goal_id" : "user_id,group_id,check_date,kind",
-          ignoreDuplicates: false,
-        } as never) as unknown as { error: unknown };
+        } as never) as unknown as { error: { message: string } | null };
 
-      if (insertError) throw insertError;
+      if (insertError) throw new Error((insertError as { message: string }).message);
 
       // Recalculate day score so leaderboard updates immediately
       await (supabase.rpc as Function)("recalc_day_score", {
