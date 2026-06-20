@@ -206,23 +206,21 @@ export default function AuditoriaPage() {
             <span className="font-medium text-[15px]">{current.full_name ?? "—"}</span>
           </div>
 
-          {/* Date + kind */}
-          <div className="flex items-center gap-2 mb-3">
+          {/* Date + kind + goal title */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="text-[11px] text-[var(--color-muted)] capitalize">
               {formatDate(current.check_date)}
             </span>
             <KindBadge kind={current.kind} />
+            {current.kind !== "gym" && current.goal_title && (
+              <span className="text-[12px] font-medium text-[var(--color-fg)]">
+                · {current.goal_title}
+              </span>
+            )}
           </div>
 
           {/* Evidence photo */}
           <EvidenceImage path={current.evidence_path} />
-
-          {/* Goal label if exists */}
-          {current.goal_title && (
-            <p className="text-[12px] text-[var(--color-muted)] mt-2 text-center">
-              {kindLabel(current.kind, current.goal_title)}
-            </p>
-          )}
 
           {/* Question */}
           <p className="text-[12px] text-[#cfcfcf] text-center mt-3.5 mb-3">¿Cumplió con esta meta?</p>
@@ -262,10 +260,13 @@ export default function AuditoriaPage() {
                 >
                   {getInitials(c.full_name)}
                 </div>
-                <span className="text-[13px] flex-1 truncate">{c.full_name ?? "—"}</span>
-                <span className="text-[11px] text-[var(--color-muted)]">
-                  {kindLabel(c.kind, c.goal_title)}
-                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[13px] truncate block">{c.full_name ?? "—"}</span>
+                  {c.kind !== "gym" && c.goal_title && (
+                    <span className="text-[11px] text-[var(--color-muted)] truncate block">{c.goal_title}</span>
+                  )}
+                </div>
+                <KindBadge kind={c.kind} />
               </div>
             ))}
           </div>
