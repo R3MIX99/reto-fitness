@@ -194,9 +194,9 @@ function CalendarGrid({
         {selectedDay && (() => {
           const s = getDaySummary(selectedDay);
           const isToday = selectedDay === today;
-          const mm = String(now.getMonth() + 1).padStart(2, "0");
-          const dd = String(selectedDay).padStart(2, "0");
-          const dayLabel = isToday ? "Hoy" : `${dd}/${mm}`;
+          const _mm = String(now.getMonth() + 1).padStart(2, "0");
+          const _dd = String(selectedDay).padStart(2, "0");
+          const dayLabel = isToday ? "Hoy" : `${_dd}/${_mm}`;
           return (
             <div className="mt-3 pt-3 border-t border-[#1c1c1c]">
               <div className="flex items-center justify-between mb-2">
@@ -287,9 +287,10 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
   const [thumbWidth, setThumbWidth] = useState(24);
   const [calExpanded, setCalExpanded] = useState(false);
 
+  const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const monthName = now.toLocaleString("es-MX", { month: "long" });
+  const monthName = MESES[now.getMonth()];
 
   // Swipe on the stats stage
   const swipeX = useRef<number | null>(null);
