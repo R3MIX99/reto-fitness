@@ -121,23 +121,66 @@ function GrupoPageInner() {
     );
   }
 
+  const swipeRef = useRef<{ startY: number; startX: number } | null>(null);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    if (groups.length < 2) return;
+    swipeRef.current = { startY: e.touches[0].clientY, startX: e.touches[0].clientX };
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (!swipeRef.current || groups.length < 2) return;
+    const deltaY = swipeRef.current.startY - e.changedTouches[0].clientY;
+    const deltaX = Math.abs(swipeRef.current.startX - e.changedTouches[0].clientX);
+    swipeRef.current = null;
+    // Only vertical swipes (more vertical movement than horizontal, min 40px)
+    if (Math.abs(deltaY) < 40 || deltaX > Math.abs(deltaY)) return;
+    if (deltaY > 0) {
+      // swipe up → next group
+      setActiveGroupIdx((i) => (i + 1) % groups.length);
+    } else {
+      // swipe down → previous group
+      setActiveGroupIdx((i) => (i - 1 + groups.length) % groups.length);
+    }
+  }
+
   return (
     <>
       <div className="px-4 pb-28 pt-2">
         {/* 1) Tarjeta del grupo */}
-        <GrupoCard
-          group={activeGroup}
-          allGroups={groups}
-          weekNumber={getWeekNumber()}
-          closeDate={getNextSunday()}
-          currentUserId={user?.id ?? ""}
-          onInvite={() => setShowInvite(true)}
-          onSwitchGroup={(id) => {
-            const idx = groups.findIndex((g) => g.id === id);
-            if (idx !== -1) setActiveGroupIdx(idx);
-          }}
-          onLeft={() => setActiveGroupIdx(0)}
-        />
+        <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+          <GrupoCard
+            group={activeGroup}
+            allGroups={groups}
+            weekNumber={getWeekNumber()}
+            closeDate={getNextSunday()}
+            currentUserId={user?.id ?? ""}
+            onInvite={() => setShowInvite(true)}
+            onSwitchGroup={(id) => {
+              const idx = groups.findIndex((g) => g.id === id);
+              if (idx !== -1) setActiveGroupIdx(idx);
+            }}
+            onLeft={() => setActiveGroupIdx(0)}
+          />
+        </div>
+
+        {/* Indicador de grupos (puntitos) */}
+        {groups.length > 1 && (
+          <div className="flex justify-center gap-1.5 -mt-1 mb-2">
+            {groups.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveGroupIdx(i)}
+                className="rounded-full transition-all"
+                style={{
+                  width: i === activeGroupIdx ? 16 : 6,
+                  height: 6,
+                  background: i === activeGroupIdx ? "var(--color-warm)" : "#2a2a2a",
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* 2) Evidencias por revisar */}
         <EvidenciasCard
