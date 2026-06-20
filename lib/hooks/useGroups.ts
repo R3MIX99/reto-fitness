@@ -227,7 +227,8 @@ export function useTodayScore(groupId: string | null) {
     queryFn: async (): Promise<number> => {
       if (!groupId) return 0;
       const supabase = createClient();
-      const today = new Date().toISOString().split("T")[0];
+      const _d = new Date();
+      const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
       type CheckRow = { kind: string };
       type GoalRow = { kind: string };
       const [{ data: checks }, { data: goals }] = await Promise.all([
@@ -263,7 +264,7 @@ export function useStreak(groupId: string | null) {
       for (let i = 0; i < days.length; i++) {
         const expected = new Date(today);
         expected.setDate(today.getDate() - i);
-        const expectedStr = expected.toISOString().split("T")[0];
+        const expectedStr = `${expected.getFullYear()}-${String(expected.getMonth()+1).padStart(2,"0")}-${String(expected.getDate()).padStart(2,"0")}`;
         if (days[i] === expectedStr) streak++;
         else break;
       }

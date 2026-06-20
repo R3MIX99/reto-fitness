@@ -41,20 +41,27 @@ export const CATEGORY_CONFIG = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+function localDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function todayStr() {
-  return new Date().toISOString().split("T")[0];
+  return localDateStr(new Date());
 }
 
 function monthStart(offset = 0) {
   const d = new Date();
   d.setMonth(d.getMonth() + offset, 1);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 function monthEnd(offset = 0) {
   const d = new Date();
   d.setMonth(d.getMonth() + offset + 1, 0);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
