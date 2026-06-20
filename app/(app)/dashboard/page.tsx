@@ -9,11 +9,14 @@ import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
 const TOTAL_PTS = 13;
 const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to"];
 
+const DIAS_CORTOS = ["dom","lun","mar","mié","jue","vie","sáb"];
 function getNextSunday(): string {
   const d = new Date();
   const diff = d.getDay() === 0 ? 7 : 7 - d.getDay();
   d.setDate(d.getDate() + diff);
-  return d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric" });
+  const dia = String(d.getDate()).padStart(2, "0");
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  return `${DIAS_CORTOS[d.getDay()]} ${dia}/${mes}`;
 }
 
 // ── Avatar ─────────────────────────────────────────────────────────────────

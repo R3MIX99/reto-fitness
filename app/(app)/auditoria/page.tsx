@@ -10,9 +10,11 @@ import { usePendingChecks, useAuditCheck, kindLabel, getWeekNumber } from "@/lib
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+const DIAS_LARGOS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const MESES_LARGOS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + "T12:00:00");
-  return d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+  return `${DIAS_LARGOS[d.getDay()]} ${d.getDate()} de ${MESES_LARGOS[d.getMonth()]}`;
 }
 
 function getInitials(name: string | null): string {
