@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import type { GroupWithMembers } from "@/lib/hooks/useGroups";
 import { getInitials, useLeaveGroup } from "@/lib/hooks/useGroups";
@@ -106,6 +106,8 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
     await leaveGroup.mutateAsync(group.id);
     setConfirmLeave(false);
     setLeftGroup(name);
+    onLeft();
+    setTimeout(() => setLeftGroup(null), 3000);
   }
 
   function handleSwitch(id: string, name: string) {
@@ -246,23 +248,14 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
         <SwitchToast name={switchedTo} onDone={() => setSwitchedTo(null)} />
       )}
 
-      {/* Modal éxito al salir */}
+      {/* Toast: salida de grupo */}
       {leftGroup && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center px-4">
-          <div className="absolute inset-0 bg-black/70" />
-          <div className="relative w-full max-w-[420px] bg-[#0e0e0e] rounded-t-[24px] pb-[88px] pt-6 px-6 flex flex-col items-center text-center animate-slide-up">
-            <div className="w-10 h-1 rounded-full bg-[#2a2a2a] mx-auto mb-5" />
-            <div className="w-14 h-14 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center mb-4">
-              <CheckCircle2 size={28} strokeWidth={1.5} className="text-[var(--color-muted)]" />
-            </div>
-            <p className="font-display font-semibold text-[18px] mb-1">Has salido del grupo</p>
-            <p className="text-[14px] font-medium text-warm mb-5">{leftGroup}</p>
-            <button
-              onClick={() => { setLeftGroup(null); onLeft(); }}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-[var(--color-fg)] rounded-pill py-3.5 text-[14px] font-medium"
-            >
-              Continuar
-            </button>
+        <div className="fixed bottom-[88px] left-4 right-4 z-[90] flex justify-center pointer-events-none">
+          <div className="flex items-center gap-2.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-full px-4 py-3 shadow-lg">
+            <Check size={14} strokeWidth={2} className="text-[var(--color-muted)] flex-shrink-0" />
+            <p className="text-[13px] text-[var(--color-fg)]">
+              Saliste de <span className="font-medium text-warm">{leftGroup}</span>
+            </p>
           </div>
         </div>
       )}
