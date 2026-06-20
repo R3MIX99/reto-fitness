@@ -21,6 +21,24 @@ function getWeekNumber(): number {
   return Math.ceil(((now.getTime() - start.getTime()) / 86400000 + start.getDay() + 1) / 7);
 }
 
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function weekStart(): string {
+  const d = new Date();
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  return localDateStr(d);
+}
+
+function weekEnd(): string {
+  const d = new Date();
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? 0 : 7 - day));
+  return localDateStr(d);
+}
+
 function kindLabel(kind: string, goalTitle: string | null): string {
   if (kind === "gym") return "Gimnasio";
   if (kind === "diet") return `Dieta · ${goalTitle ?? "Comida"}`;
@@ -50,13 +68,15 @@ export function usePendingChecks(groupId: string | null) {
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
       type GoalRow = { title: string };
 
-      // All pending checks in the group that don't belong to the current user
+      // All pending checks this week that don't belong to the current user
       const { data: checks } = await supabase
         .from("daily_checks")
         .select("id, user_id, kind, check_date, evidence_path, goal_id")
         .eq("group_id", groupId)
         .eq("status", "pending")
         .neq("user_id", user!.id)
+        .gte("check_date", weekStart())
+        .lte("check_date", weekEnd())
         .order("check_date", { ascending: false }) as unknown as { data: CheckRow[] | null };
 
       if (!checks?.length) return [];
@@ -91,6 +111,21 @@ export function usePendingChecks(groupId: string | null) {
           };
         })
       );
+    },
+  });
+}
+
+export function useAutoApproveOldChecks(groupId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (!groupId) return;
+      await (createClient().rpc as Function)("auto_approve_old_checks", { p_group_id: groupId });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pendingChecks"] });
+      qc.invalidateQueries({ queryKey: ["pendingAudits"] });
+      qc.invalidateQueries({ queryKey: ["leaderboard"] });
     },
   });
 }

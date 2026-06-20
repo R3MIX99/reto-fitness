@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, X, Check, Dumbbell, UtensilsCrossed, Target, ImageIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useMyGroups } from "@/lib/hooks/useGroups";
-import { usePendingChecks, useAuditCheck, kindLabel, getWeekNumber } from "@/lib/hooks/useAuditoria";
+import { usePendingChecks, useAuditCheck, useAutoApproveOldChecks, kindLabel, getWeekNumber } from "@/lib/hooks/useAuditoria";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -82,8 +84,15 @@ export default function AuditoriaPage() {
 
   const { data: checks = [], isLoading } = usePendingChecks(groupId);
   const audit = useAuditCheck(groupId);
+  const autoApprove = useAutoApproveOldChecks(groupId);
 
   const [idx, setIdx] = useState(0);
+
+  // Auto-approve pending checks from previous weeks on page open
+  useEffect(() => {
+    if (groupId) autoApprove.mutate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
   const current = checks[idx] ?? null;
   const week = getWeekNumber();
 

@@ -273,18 +273,36 @@ export function useStreak(groupId: string | null) {
   });
 }
 
+function weekStartStr(): string {
+  const d = new Date();
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function weekEndStr(): string {
+  const d = new Date();
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? 0 : 7 - day));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function usePendingAudits(groupId: string | null) {
+  const { user } = useUser();
   return useQuery({
     queryKey: ["pendingAudits", groupId],
-    enabled: !!groupId,
+    enabled: !!groupId && !!user,
     queryFn: async () => {
-      if (!groupId) return 0;
+      if (!groupId || !user) return 0;
       const supabase = createClient();
       const { count } = await supabase
         .from("daily_checks")
         .select("id", { count: "exact", head: true })
         .eq("group_id", groupId)
-        .eq("status", "pending") as unknown as { count: number | null };
+        .eq("status", "pending")
+        .neq("user_id", user.id)
+        .gte("check_date", weekStartStr())
+        .lte("check_date", weekEndStr()) as unknown as { count: number | null };
       return count ?? 0;
     },
   });
