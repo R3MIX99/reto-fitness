@@ -4,8 +4,8 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import webpush from "web-push";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AdminClient = ReturnType<typeof createAdminClient<any>>;
+// eslint-disable-next-line -- supabase admin client needs loose generic
+type AdminClient = ReturnType<typeof createAdminClient<object>>;
 
 async function sendPush(admin: AdminClient, userId: string, title: string, body: string, url: string) {
   type SubRow = { endpoint: string; p256dh: string; auth: string };
