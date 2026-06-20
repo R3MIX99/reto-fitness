@@ -62,9 +62,24 @@ function GrupoPageInner() {
   const activeGroup = groups[activeGroupIdx] ?? null;
 
   const { data: leaderboard = [] } = useLeaderboard(activeGroup?.id ?? null);
-  const { data: last7 = [] } = useLast7Days(activeGroup?.id ?? null);
+  const { data: last7Raw = [] } = useLast7Days(activeGroup?.id ?? null);
   const groupIds = groups.map((g) => g.id);
   const { data: pending = 0 } = usePendingAudits(groupIds);
+
+  // Ensure all members appear in the chart even with 0 scores
+  const last7 = (() => {
+    const members = activeGroup?.members ?? [];
+    const usersInData = new Set(last7Raw.map((r) => r.user_id));
+    const synthetic = members
+      .filter((m) => !usersInData.has(m.user_id))
+      .map((m) => ({
+        user_id: m.user_id,
+        full_name: m.full_name,
+        score_date: new Date().toISOString().split("T")[0],
+        total_points: 0,
+      }));
+    return [...last7Raw, ...synthetic];
+  })();
 
   // Merge real scores with all group members so everyone always appears
   const effectiveLeaderboard = (() => {

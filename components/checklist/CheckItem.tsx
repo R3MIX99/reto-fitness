@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Check, Clock, Pencil, ChevronsUpDown } from "lucide-react";
+import { Camera, Check, Clock, Pencil, ChevronsUpDown, X } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
 
 interface CheckItemProps {
@@ -20,8 +20,11 @@ export function CheckItem({ goal, check, onMark, onEdit, onDetail, loading, reor
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const status = check?.status;
   const isDone = !!check;
-  const isPending = check?.status === "pending";
+  const isPending = status === "pending";
+  const isApproved = status === "approved";
+  const isRejected = status === "rejected";
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -38,33 +41,49 @@ export function CheckItem({ goal, check, onMark, onEdit, onDetail, loading, reor
     }
   }
 
+  // Circle styles per status
+  const circleStyle: React.CSSProperties = isRejected
+    ? { background: "rgba(239,68,68,0.12)", border: "1.5px solid rgba(239,68,68,0.5)" }
+    : isApproved
+    ? { background: "rgba(34,197,94,0.12)", border: "1.5px solid rgba(34,197,94,0.5)" }
+    : isPending
+    ? { background: "rgba(239,200,139,0.12)", border: "1.5px solid rgba(239,200,139,0.4)" }
+    : { background: "#1a1a1a", border: "1.5px solid #2a2a2a" };
+
   return (
     <div className="flex items-center gap-3 py-2.5">
-      {/* Status circle — hidden in reorder mode */}
+      {/* Status circle */}
       {!reordering && (
         <button
           onClick={() => !isDone && inputRef.current?.click()}
           disabled={isDone || loading}
           className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-          style={{
-            background: isDone ? "rgba(207,92,54,0.15)" : "#1a1a1a",
-            border: isDone ? "1.5px solid #CF5C36" : "1.5px solid #2a2a2a",
-          }}
+          style={circleStyle}
         >
-          {isDone ? (
-            <Check size={14} strokeWidth={2} className="text-accent" />
+          {isRejected ? (
+            <X size={14} strokeWidth={2} style={{ color: "#ef4444" }} />
+          ) : isApproved ? (
+            <Check size={14} strokeWidth={2} style={{ color: "#22c55e" }} />
+          ) : isPending ? (
+            <Clock size={12} strokeWidth={1.5} style={{ color: "#EFC88B" }} />
           ) : (
             <div className="w-2.5 h-2.5 rounded-full bg-[#2a2a2a]" />
           )}
         </button>
       )}
 
-      {/* Title — clickable when done to view detail */}
+      {/* Title */}
       <button
         className="flex-1 text-[14px] text-left"
         style={{
-          color: reordering ? "var(--color-fg)" : isDone ? "var(--color-muted)" : "var(--color-fg)",
-          textDecoration: !reordering && isDone ? "line-through" : "none",
+          color: reordering
+            ? "var(--color-fg)"
+            : isRejected
+            ? "#ef4444"
+            : isDone
+            ? "var(--color-muted)"
+            : "var(--color-fg)",
+          textDecoration: !reordering && isDone && !isRejected ? "line-through" : "none",
         }}
         onClick={() => isDone && !reordering && onDetail?.()}
         disabled={!isDone || reordering}
@@ -73,7 +92,7 @@ export function CheckItem({ goal, check, onMark, onEdit, onDetail, loading, reor
         {goal.title}
       </button>
 
-      {/* Drag handle in reorder mode, badges+actions otherwise */}
+      {/* Badges + actions */}
       {reordering ? (
         <div
           {...dragHandleProps}
@@ -87,6 +106,18 @@ export function CheckItem({ goal, check, onMark, onEdit, onDetail, loading, reor
             <span className="flex items-center gap-1 text-[10px] text-[#EFC88B] bg-[rgba(239,200,139,0.12)] rounded-full px-2 py-0.5">
               <Clock size={9} strokeWidth={1.5} />
               revisión
+            </span>
+          )}
+          {isApproved && (
+            <span className="flex items-center gap-1 text-[10px] text-green-400 bg-[rgba(34,197,94,0.1)] rounded-full px-2 py-0.5">
+              <Check size={9} strokeWidth={2} />
+              aprobado
+            </span>
+          )}
+          {isRejected && (
+            <span className="flex items-center gap-1 text-[10px] text-red-400 bg-[rgba(239,68,68,0.1)] rounded-full px-2 py-0.5">
+              <X size={9} strokeWidth={2} />
+              rechazado
             </span>
           )}
           {onEdit && (

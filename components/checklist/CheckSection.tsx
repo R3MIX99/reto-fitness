@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown, X } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -78,6 +78,18 @@ export function GymSection({ check, onMark, onDetail, loading }: GymSectionProps
   const inputRef = useRef<HTMLInputElement>(null);
   const isDone = !!check;
   const isPending = check?.status === "pending";
+  const isApproved = check?.status === "approved";
+  const isRejected = check?.status === "rejected";
+
+  const circleStyle: React.CSSProperties = isRejected
+    ? { background: "rgba(239,68,68,0.12)", border: "2px solid rgba(239,68,68,0.5)" }
+    : isApproved
+    ? { background: "rgba(34,197,94,0.12)", border: "2px solid rgba(34,197,94,0.5)" }
+    : isPending
+    ? { background: "rgba(239,200,139,0.12)", border: "2px solid rgba(239,200,139,0.4)" }
+    : { background: "#1a1a1a", border: "2px solid #2a2a2a" };
+
+  const statusLabel = isRejected ? "Rechazado" : isApproved ? "Aprobado" : isPending ? "En revisión" : "Sube una foto del entrenamiento";
 
   return (
     <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4 mb-3">
@@ -86,13 +98,14 @@ export function GymSection({ check, onMark, onDetail, loading }: GymSectionProps
           onClick={() => !isDone && inputRef.current?.click()}
           disabled={isDone || loading}
           className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all"
-          style={{
-            background: isDone ? "rgba(207,92,54,0.18)" : "#1a1a1a",
-            border: isDone ? "2px solid #CF5C36" : "2px solid #2a2a2a",
-          }}
+          style={circleStyle}
         >
-          {isDone ? (
-            <Check size={20} strokeWidth={2} className="text-accent" />
+          {isRejected ? (
+            <X size={20} strokeWidth={2} style={{ color: "#ef4444" }} />
+          ) : isApproved ? (
+            <Check size={20} strokeWidth={2} style={{ color: "#22c55e" }} />
+          ) : isPending ? (
+            <Clock size={18} strokeWidth={1.5} style={{ color: "#EFC88B" }} />
           ) : (
             <Camera size={18} strokeWidth={1.5} className="text-[var(--color-muted)]" />
           )}
@@ -103,16 +116,28 @@ export function GymSection({ check, onMark, onDetail, loading }: GymSectionProps
           onClick={() => isDone && onDetail?.()}
           disabled={!isDone}
         >
-          <p className="text-[15px] font-medium">Ejercicio de hoy</p>
-          <p className="text-[12px] text-[var(--color-muted)]">
-            {isDone ? (isPending ? "En revisión" : "Completado") : "Sube una foto del entrenamiento"}
+          <p className="text-[15px] font-medium" style={{ color: isRejected ? "#ef4444" : undefined }}>
+            Ejercicio de hoy
           </p>
+          <p className="text-[12px] text-[var(--color-muted)]">{statusLabel}</p>
         </button>
 
         {isPending && (
           <span className="flex items-center gap-1 text-[10px] text-[#EFC88B] bg-[rgba(239,200,139,0.12)] rounded-full px-2.5 py-1">
             <Clock size={9} strokeWidth={1.5} />
             revisión
+          </span>
+        )}
+        {isApproved && (
+          <span className="flex items-center gap-1 text-[10px] text-green-400 bg-[rgba(34,197,94,0.1)] rounded-full px-2.5 py-1">
+            <Check size={9} strokeWidth={2} />
+            aprobado
+          </span>
+        )}
+        {isRejected && (
+          <span className="flex items-center gap-1 text-[10px] text-red-400 bg-[rgba(239,68,68,0.1)] rounded-full px-2.5 py-1">
+            <X size={9} strokeWidth={2} />
+            rechazado
           </span>
         )}
         {!isDone && (
