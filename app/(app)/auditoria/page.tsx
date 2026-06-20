@@ -87,6 +87,7 @@ export default function AuditoriaPage() {
   const autoApprove = useAutoApproveOldChecks(groupIds);
 
   const [idx, setIdx] = useState(0);
+  const [toast, setToast] = useState<"approved" | "rejected" | null>(null);
 
   // Auto-approve pending checks from previous weeks on page open
   useEffect(() => {
@@ -105,8 +106,10 @@ export default function AuditoriaPage() {
       checkDate: current.check_date,
       checkGroupId: current.group_id,
     });
+    setToast(approved ? "approved" : "rejected");
+    setTimeout(() => setToast(null), 2500);
     if (idx < checks.length - 1) setIdx((i) => i + 1);
-    else router.back();
+    else setTimeout(() => router.back(), 600);
   }
 
   // ── States ────────────────────────────────────────────────────────────────
@@ -247,5 +250,26 @@ export default function AuditoriaPage() {
         </>
       )}
     </div>
+
+    {/* Toast */}
+    {toast && (
+      <div className="fixed bottom-[88px] left-4 right-4 z-[90] flex justify-center pointer-events-none">
+        <div
+          className="flex items-center gap-2.5 rounded-full px-4 py-3 shadow-lg"
+          style={{
+            background: toast === "approved" ? "rgba(207,92,54,0.15)" : "#1a1a1a",
+            border: toast === "approved" ? "1px solid rgba(207,92,54,0.4)" : "1px solid #2a2a2a",
+          }}
+        >
+          {toast === "approved"
+            ? <Check size={14} strokeWidth={2} className="text-accent flex-shrink-0" />
+            : <X size={14} strokeWidth={2} className="text-[var(--color-muted)] flex-shrink-0" />
+          }
+          <p className="text-[13px] text-[var(--color-fg)]">
+            {toast === "approved" ? "Evidencia aprobada" : "Evidencia rechazada"}
+          </p>
+        </div>
+      </div>
+    )}
   );
 }
