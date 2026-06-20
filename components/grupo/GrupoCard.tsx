@@ -39,7 +39,7 @@ function SlideDown({ open, children }: { open: boolean; children: React.ReactNod
         transition: "height 0.28s cubic-bezier(0.4,0,0.2,1)",
       }}
     >
-      <div ref={ref}>{children}</div>
+      <div ref={ref} className="pb-4">{children}</div>
     </div>
   );
 }
@@ -162,7 +162,7 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
 
         {/* Dropdown con slide animado */}
         <SlideDown open={open}>
-          <div className="mb-4 rounded-[14px] bg-[#161616] border border-[#232323] overflow-hidden">
+          <div className="rounded-[14px] bg-[#161616] border border-[#232323] overflow-hidden">
             {allGroups.map((g) => (
               <button
                 key={g.id}
