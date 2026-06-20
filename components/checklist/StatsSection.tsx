@@ -65,7 +65,7 @@ function BarChart({ checks, view, month, dietTotal, goalsTotal }: { checks: Dail
       const maxPts = days.length * 13;
       let pts = 0;
       for (const ds of dayStrs) {
-        const dc = checks.filter((c) => c.check_date === ds);
+        const dc = checks.filter((c) => c.check_date === ds && c.status !== "rejected");
         const gymPts = dc.some((c) => c.kind === "gym") ? 3 : 0;
         const dietDone = dc.filter((c) => c.kind === "diet").length;
         const goalDone = dc.filter((c) => c.kind === "goal").length;
@@ -73,7 +73,7 @@ function BarChart({ checks, view, month, dietTotal, goalsTotal }: { checks: Dail
       }
       return Math.min(100, Math.round((pts / maxPts) * 100));
     }
-    const relevant = checks.filter((c) => dayStrs.includes(c.check_date) && viewMatchesKind(view, c.kind));
+    const relevant = checks.filter((c) => dayStrs.includes(c.check_date) && viewMatchesKind(view, c.kind) && c.status !== "rejected");
     if (view === "ejercicio") return Math.min(100, Math.round((new Set(relevant.map((c) => c.check_date)).size / days.length) * 100));
     if (view === "dieta") return Math.min(100, dietTotal > 0 ? Math.round((relevant.length / (days.length * dietTotal)) * 100) : 0);
     if (view === "metas") return Math.min(100, goalsTotal > 0 ? Math.round((relevant.length / (days.length * goalsTotal)) * 100) : 0);
@@ -137,7 +137,7 @@ function CalendarGrid({
 
   function getDaySummary(day: number): DaySummary {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    const dc = checks.filter((c) => c.check_date === dateStr);
+    const dc = checks.filter((c) => c.check_date === dateStr && c.status !== "rejected");
     const gym = dc.some((c) => c.kind === "gym");
     const dietDone = dc.filter((c) => c.kind === "diet").length;
     const goalsDone = dc.filter((c) => c.kind === "goal").length;
@@ -153,7 +153,7 @@ function CalendarGrid({
   function isDone(day: number) {
     const dateStr = `${month}-${String(day).padStart(2, "0")}`;
     if (view === "general") return getDaySummary(day).pts === 13;
-    return checks.some((c) => c.check_date === dateStr && viewMatchesKind(view, c.kind));
+    return checks.some((c) => c.check_date === dateStr && viewMatchesKind(view, c.kind) && c.status !== "rejected");
   }
 
   const cellSize = expanded ? 42 : 36;
@@ -264,12 +264,13 @@ function calcPct(checks: DailyCheck[], view: CategoryView, dietTotal: number, go
   const today = now.getDate();
   if (today === 0) return 0;
 
+  const nonRejected = checks.filter((c) => c.status !== "rejected");
   if (view === "general") {
     const maxPts = today * 13;
     let pts = 0;
     for (let d = 1; d <= today; d++) {
       const ds = `${month}-${String(d).padStart(2, "0")}`;
-      const dc = checks.filter((c) => c.check_date === ds);
+      const dc = nonRejected.filter((c) => c.check_date === ds);
       const gymPts = dc.some((c) => c.kind === "gym") ? 3 : 0;
       const dietDone = dc.filter((c) => c.kind === "diet").length;
       const goalDone = dc.filter((c) => c.kind === "goal").length;
@@ -278,17 +279,17 @@ function calcPct(checks: DailyCheck[], view: CategoryView, dietTotal: number, go
     return Math.min(100, Math.round((pts / maxPts) * 100));
   }
   if (view === "ejercicio") {
-    const done = new Set(checks.filter((c) => c.kind === "gym").map((c) => c.check_date)).size;
+    const done = new Set(nonRejected.filter((c) => c.kind === "gym").map((c) => c.check_date)).size;
     return Math.round((done / today) * 100);
   }
   if (view === "dieta") {
     if (dietTotal === 0) return 0;
-    const done = checks.filter((c) => c.kind === "diet").length;
+    const done = nonRejected.filter((c) => c.kind === "diet").length;
     return Math.min(100, Math.round((done / (today * dietTotal)) * 100));
   }
   if (view === "metas") {
     if (goalsTotal === 0) return 0;
-    const done = checks.filter((c) => c.kind === "goal").length;
+    const done = nonRejected.filter((c) => c.kind === "goal").length;
     return Math.min(100, Math.round((done / (today * goalsTotal)) * 100));
   }
   return 0;

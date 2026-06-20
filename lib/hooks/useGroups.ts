@@ -232,7 +232,7 @@ export function useTodayScore(groupId: string | null) {
       type CheckRow = { kind: string };
       type GoalRow = { kind: string };
       const [{ data: checks }, { data: goals }] = await Promise.all([
-        supabase.from("daily_checks").select("kind").eq("user_id", user!.id).eq("group_id", groupId).eq("check_date", today) as unknown as { data: CheckRow[] | null },
+        supabase.from("daily_checks").select("kind").eq("user_id", user!.id).eq("group_id", groupId).eq("check_date", today).neq("status", "rejected") as unknown as { data: CheckRow[] | null },
         supabase.from("goals").select("kind").eq("user_id", user!.id).eq("active", true) as unknown as { data: GoalRow[] | null },
       ]);
       return calcDayPoints(checks ?? [], goals ?? []);
