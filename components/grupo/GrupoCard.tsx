@@ -60,8 +60,10 @@ function SwitchToast({ name, onDone }: { name: string; onDone: () => void }) {
 
   return (
     <div
-      className="fixed top-[72px] left-1/2 z-50 -translate-x-1/2 flex items-center gap-2.5 bg-[#161616] border border-[#2a2a2a] rounded-full px-4 py-2.5 shadow-lg"
+      className="fixed top-[72px] left-1/2 z-50 -translate-x-1/2 flex items-center gap-2.5 rounded-full px-4 py-2.5 shadow-lg"
       style={{
+        background: "var(--color-bg-card2)",
+        border: "1px solid var(--color-border)",
         transform: `translateX(-50%) translateY(${visible ? "0" : "-16px"})`,
         opacity: visible ? 1 : 0,
         transition: "transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease",
@@ -153,8 +155,8 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
             ))}
             {extra > 0 && (
               <div
-                className="w-6 h-6 rounded-full border-[1.5px] border-[var(--color-bg-card)] bg-[#2b2b2b] flex items-center justify-center text-[9px] font-medium"
-                style={{ marginLeft: -8 }}
+                className="w-6 h-6 rounded-full border-[1.5px] border-[var(--color-bg-card)] flex items-center justify-center text-[9px] font-medium"
+                style={{ background: "var(--color-surface)", marginLeft: -8 }}
               >
                 +{extra}
               </div>
@@ -164,24 +166,24 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
 
         {/* Dropdown con slide animado */}
         <SlideDown open={open}>
-          <div className="rounded-[14px] bg-[#161616] border border-[#232323] overflow-hidden">
+          <div className="rounded-[14px] overflow-hidden" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
             {allGroups.map((g) => (
               <button
                 key={g.id}
                 onClick={() => handleSwitch(g.id, g.name)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-[#1f1f1f] last:border-b-0"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left border-b last:border-b-0" style={{ borderColor: "var(--color-border)" }}
               >
                 <span className="flex-1 text-[14px] truncate">{g.name}</span>
                 {g.id === group.id && <Check size={14} strokeWidth={2} className="text-warm flex-shrink-0" />}
               </button>
             ))}
 
-            <div className="border-t border-[#232323]" />
+            <div className="border-t" style={{ borderColor: "var(--color-border)" }} />
 
             <Link
               href="/grupo/crear"
               onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-3 px-4 py-3 border-b border-[#1f1f1f]"
+              className="w-full flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}
             >
               <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
                 <Plus size={14} strokeWidth={1.5} className="text-accent" />
@@ -208,7 +210,7 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
 
             {!isOwner && (
               <>
-                <div className="border-t border-[#2a2a2a] mx-3" />
+                <div className="border-t mx-3" style={{ borderColor: "var(--color-border)" }} />
                 <button
                   onClick={() => { setOpen(false); setConfirmLeave(true); }}
                   className="w-full flex items-center gap-3 px-4 py-3"
@@ -225,7 +227,7 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
 
         {/* Chips */}
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-[11px] text-[var(--color-muted)] border border-[#2a2a2a] rounded-full px-3 py-1">
+          <span className="text-[11px] text-[var(--color-muted)] rounded-full px-3 py-1" style={{ border: "1px solid var(--color-border)" }}>
             Semana {weekNumber}
           </span>
           <span className="text-[11px] text-warm border border-warm/50 rounded-full px-3 py-1">
@@ -251,7 +253,7 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
       {/* Toast: salida de grupo */}
       {leftGroup && (
         <div className="fixed bottom-[88px] left-4 right-4 z-[90] flex justify-center pointer-events-none">
-          <div className="flex items-center gap-2.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-full px-4 py-3 shadow-lg">
+          <div className="flex items-center gap-2.5 rounded-full px-4 py-3 shadow-lg" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
             <Check size={14} strokeWidth={2} className="text-[var(--color-muted)] flex-shrink-0" />
             <p className="text-[13px] text-[var(--color-fg)]">
               Saliste de <span className="font-medium text-warm">{leftGroup}</span>
@@ -264,8 +266,8 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
       {confirmLeave && (
         <div className="fixed inset-0 z-50 flex items-end justify-center px-4">
           <div className="absolute inset-0 bg-black/70" onClick={() => setConfirmLeave(false)} />
-          <div className="relative w-full max-w-[420px] bg-[#0e0e0e] rounded-t-[24px] pb-[88px] pt-6 px-6 flex flex-col items-center text-center animate-slide-up">
-            <div className="w-10 h-1 rounded-full bg-[#2a2a2a] mx-auto mb-5" />
+          <div className="relative w-full max-w-[420px] rounded-t-[24px] pb-[88px] pt-6 px-6 flex flex-col items-center text-center animate-slide-up" style={{ background: "var(--color-bg-card)" }}>
+            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--color-border)" }} />
             <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
               <AlertTriangle size={26} strokeWidth={1.5} className="text-red-400" />
             </div>
@@ -285,7 +287,7 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
               </button>
               <button
                 onClick={() => setConfirmLeave(false)}
-                className="w-full bg-[#1a1a1a] text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]"
+                className="w-full text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]" style={{ background: "var(--color-surface)" }}
               >
                 Cancelar
               </button>

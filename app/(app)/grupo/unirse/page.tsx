@@ -35,8 +35,9 @@ function SuccessModal({
       }}
     >
       <div
-        className="w-full max-w-[320px] bg-[#0e0e0e] rounded-[26px] p-8 flex flex-col items-center text-center"
+        className="w-full max-w-[320px] rounded-[26px] p-8 flex flex-col items-center text-center"
         style={{
+          background: "var(--color-bg-card)",
           transform: visible ? "scale(1) translateY(0)" : "scale(0.88) translateY(24px)",
           transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease",
           opacity: visible ? 1 : 0,
@@ -171,10 +172,10 @@ function UnirseForm() {
 
           {/* Preview del grupo */}
           {code.trim().length >= 4 && (
-            <div className="rounded-[16px] bg-[var(--color-bg-card)] border border-[#2a2a2a] overflow-hidden transition-all">
+            <div className="rounded-[16px] bg-[var(--color-bg-card)] overflow-hidden transition-all" style={{ border: "1px solid var(--color-border)" }}>
               {lookingUp ? (
                 <div className="flex items-center gap-3 px-4 py-4">
-                  <div className="w-4 h-4 border-2 border-[#2a2a2a] border-t-warm rounded-full animate-spin flex-shrink-0" />
+                  <div className="w-4 h-4 border-2 border-t-warm rounded-full animate-spin flex-shrink-0" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-warm)" }} />
                   <p className="text-[13px] text-[var(--color-muted)]">Buscando grupo…</p>
                 </div>
               ) : preview ? (

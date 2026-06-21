@@ -12,7 +12,7 @@ export function Chip({ children, variant = "muted", className }: ChipProps) {
       className={cn(
         "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border",
         variant === "warm" && "border-warm/40 text-warm bg-warm/10",
-        variant === "muted" && "border-[#2a2a2a] text-[var(--color-muted)] bg-transparent",
+        variant === "muted" && "border-[var(--color-border)] text-[var(--color-muted)] bg-transparent",
         variant === "accent" && "border-accent/40 text-accent bg-accent/10",
         className
       )}

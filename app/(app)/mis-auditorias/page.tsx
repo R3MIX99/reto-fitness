@@ -39,7 +39,7 @@ function KindBadge({ kind }: { kind: string }) {
     </span>
   );
   return (
-    <span className="flex items-center gap-1 text-[11px] text-[var(--color-muted)] border border-[#2a2a2a] rounded-full px-2 py-0.5">
+    <span className="flex items-center gap-1 text-[11px] text-[var(--color-muted)] rounded-full px-2 py-0.5" style={{ border: "1px solid var(--color-border)" }}>
       <Target size={10} strokeWidth={1.5} /> Meta
     </span>
   );
@@ -63,17 +63,17 @@ function EvidenceThumb({ path }: { path: string }) {
 
   if (!url) {
     return (
-      <div className="w-[72px] h-[72px] flex-shrink-0 rounded-[12px] bg-[#1a1a1a] flex items-center justify-center">
+      <div className="w-[72px] h-[72px] flex-shrink-0 rounded-[12px] flex items-center justify-center" style={{ background: "var(--color-surface)" }}>
         {errored
-          ? <ImageIcon size={20} strokeWidth={1} className="text-[#3a3a3a]" />
-          : <div className="w-4 h-4 rounded-full border-2 border-[#3a3a3a] border-t-[var(--color-muted)] animate-spin" />
+          ? <ImageIcon size={20} strokeWidth={1} className="text-[var(--color-muted)]" />
+          : <div className="w-4 h-4 rounded-full border-2 border-t-[var(--color-muted)] animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-muted)" }} />
         }
       </div>
     );
   }
 
   return (
-    <div className="relative w-[72px] h-[72px] flex-shrink-0 rounded-[12px] overflow-hidden bg-[#1a1a1a]">
+    <div className="relative w-[72px] h-[72px] flex-shrink-0 rounded-[12px] overflow-hidden" style={{ background: "var(--color-surface)" }}>
       <Image src={url} alt="Evidencia" fill className="object-cover" unoptimized />
     </div>
   );
@@ -105,7 +105,7 @@ function AuditCard({
     <div className={`bg-[var(--color-bg-card)] rounded-[18px] p-4 ${isResubmitted ? "ring-1 ring-[var(--color-warm)]/30" : ""}`}>
       {/* Header: avatar + name + date + kind */}
       <div className="flex items-start gap-3 mb-3">
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center overflow-hidden">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center overflow-hidden" style={{ background: "var(--color-border)" }}>
           {entry.owner_avatar ? (
             <Image src={entry.owner_avatar} alt={entry.owner_name ?? ""} width={40} height={40} className="object-cover" unoptimized />
           ) : (
@@ -189,12 +189,12 @@ function AuditCard({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Razón del rechazo (opcional)"
-            className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-[12px] px-3 py-2 text-[13px] text-[var(--color-fg)] placeholder:text-[var(--color-muted)] outline-none"
+            className="w-full rounded-[12px] px-3 py-2 text-[13px] text-[var(--color-fg)] placeholder:text-[var(--color-muted)] outline-none" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
           />
           <div className="flex gap-2">
             <button
               onClick={() => setRejectOpen(false)}
-              className="flex-1 text-[12px] text-[var(--color-muted)] border border-[#2a2a2a] rounded-full py-2"
+              className="flex-1 text-[12px] text-[var(--color-muted)] rounded-full py-2" style={{ border: "1px solid var(--color-border)" }}
             >
               Cancelar
             </button>

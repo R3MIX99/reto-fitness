@@ -94,7 +94,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
     ? { background: "rgba(34,197,94,0.12)", border: "2px solid rgba(34,197,94,0.5)" }
     : isPending
     ? { background: "rgba(239,200,139,0.12)", border: "2px solid rgba(239,200,139,0.4)" }
-    : { background: "#1a1a1a", border: "2px solid #2a2a2a" };
+    : { background: "var(--color-surface)", border: "2px solid var(--color-border)" };
 
   const statusLabel = isRejected ? "Rechazado" : isApproved ? "Aprobado" : isPending ? "En revisión" : "Sube una foto del entrenamiento";
 
@@ -298,7 +298,7 @@ export function DietSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, 
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={orderedGoals.map((g) => g.id)} strategy={verticalListSortingStrategy}>
-                <div className="divide-y divide-[#1a1a1a]">
+                <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
                   {orderedGoals.map((goal) => {
                     const check = dietChecks.find((c) => c.goal_id === goal.id);
                     return (
@@ -422,7 +422,7 @@ export function GoalsSection({ goals, checks, onMark, onResubmit, onAdd, onEdit,
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={orderedGoals.map((g) => g.id)} strategy={verticalListSortingStrategy}>
-                <div className="divide-y divide-[#1a1a1a]">
+                <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
                   {orderedGoals.map((goal) => {
                     const check = goalChecks.find((c) => c.goal_id === goal.id);
                     return (

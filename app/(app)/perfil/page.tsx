@@ -53,7 +53,7 @@ function EditNameDrawer({ open, current, onSave, onClose }: { open: boolean; cur
           value={value}
           onChange={(e) => setValue(e.target.value)}
           maxLength={40}
-          className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-[14px] px-4 py-3 text-[15px] text-[var(--color-fg)] outline-none focus:border-warm/50 mb-4"
+          className="w-full rounded-[14px] px-4 py-3 text-[15px] text-[var(--color-fg)] outline-none focus:border-warm/50 mb-4" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
           placeholder="Tu nombre"
         />
         <button
@@ -180,7 +180,7 @@ export default function PerfilPage() {
         {/* Editar perfil */}
         <button
           onClick={() => setShowEditName(true)}
-          className="w-full flex items-center justify-center gap-2 text-[12px] text-[var(--color-fg)] bg-[var(--color-bg-card)] border border-[#2a2a2a] rounded-[12px] py-2.5 mb-5"
+          className="w-full flex items-center justify-center gap-2 text-[12px] text-[var(--color-fg)] bg-[var(--color-bg-card)] rounded-[12px] py-2.5 mb-5" style={{ border: "1px solid var(--color-border)" }}
         >
           <Pencil size={13} strokeWidth={1.5} />
           Editar perfil
@@ -205,7 +205,7 @@ export default function PerfilPage() {
                     {isOwner ? "Dueño" : "Miembro"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#1c1c1c]">
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
                   <span className="text-[11px] text-[var(--color-muted)]">Código de invitación</span>
                   <span className="flex-1" />
                   <span className="text-[12px] font-medium tracking-wider">{g.invite_code.toUpperCase()}</span>
@@ -220,7 +220,7 @@ export default function PerfilPage() {
         {(stats?.wonWeeks.length ?? 0) > 0 && (
           <>
             <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Títulos ganados</p>
-            <div className="mb-5 divide-y divide-[#1c1c1c]">
+            <div className="mb-5 divide-y" style={{ borderColor: "var(--color-border)" }}>
               {stats!.wonWeeks.map((w, i) => (
                 <div key={w.id} className="flex items-center gap-3 py-2.5">
                   <Trophy size={17} strokeWidth={1.5} className="text-warm flex-shrink-0" />
@@ -237,7 +237,7 @@ export default function PerfilPage() {
 
         {/* Ajustes */}
         <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Ajustes</p>
-        <div className="bg-[var(--color-bg-card)] rounded-[16px] px-4 divide-y divide-[#1c1c1c] mb-4">
+        <div className="bg-[var(--color-bg-card)] rounded-[16px] px-4 divide-y mb-4" style={{ borderColor: "var(--color-border)" }}>
           <div className="flex items-center gap-3 py-3">
             <span className="text-[13px] flex-1">Tema</span>
             <ThemeSwitch />
@@ -282,7 +282,7 @@ export default function PerfilPage() {
 
         {/* Cuenta */}
         <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Cuenta</p>
-        <div className="bg-[var(--color-bg-card)] rounded-[16px] px-4 divide-y divide-[#1c1c1c]">
+        <div className="bg-[var(--color-bg-card)] rounded-[16px] px-4 divide-y" style={{ borderColor: "var(--color-border)" }}>
           <div className="flex items-center gap-3 py-3">
             <ShieldCheck size={17} strokeWidth={1.5} className="text-warm" />
             <span className="text-[13px] flex-1">Seguridad y contraseña</span>
@@ -306,10 +306,10 @@ export default function PerfilPage() {
       {/* Notif help modal */}
       {showNotifHelp && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center px-6 bg-black/75 backdrop-blur-sm" onClick={() => setShowNotifHelp(false)}>
-          <div className="w-full max-w-sm bg-[#0e0e0e] border border-[#1f1f1f] rounded-[24px] p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-[24px] p-6" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-2">
               <span className="font-display font-medium text-[18px]">Activar notificaciones</span>
-              <button onClick={() => setShowNotifHelp(false)} className="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center text-[var(--color-muted)]">
+              <button onClick={() => setShowNotifHelp(false)} className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--color-muted)]" style={{ background: "var(--color-surface)" }}>
                 <X size={15} strokeWidth={1.5} />
               </button>
             </div>
@@ -322,12 +322,12 @@ export default function PerfilPage() {
                 "Recarga la página y toca Activar de nuevo.",
               ].map((step, i) => (
                 <li key={i} className="flex gap-3 items-start">
-                  <span className="w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-[11px] text-warm flex-shrink-0 mt-0.5 font-medium">{i + 1}</span>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] text-warm flex-shrink-0 mt-0.5 font-medium" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>{i + 1}</span>
                   <span className="text-[13px] leading-snug">{step}</span>
                 </li>
               ))}
             </ol>
-            <button onClick={() => setShowNotifHelp(false)} className="w-full py-3 rounded-full bg-[#1a1a1a] text-[13px] text-[var(--color-muted)]">Entendido</button>
+            <button onClick={() => setShowNotifHelp(false)} className="w-full py-3 rounded-full text-[13px] text-[var(--color-muted)]" style={{ background: "var(--color-surface)" }}>Entendido</button>
           </div>
         </div>
       )}

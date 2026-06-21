@@ -38,7 +38,7 @@ function KindBadge({ kind }: { kind: string }) {
     </span>
   );
   return (
-    <span className="flex items-center gap-1.5 text-[11px] text-[var(--color-muted)] border border-[#2a2a2a] rounded-full px-2.5 py-0.5">
+    <span className="flex items-center gap-1.5 text-[11px] text-[var(--color-muted)] rounded-full px-2.5 py-0.5" style={{ border: "1px solid var(--color-border)" }}>
       <Target size={11} strokeWidth={1.5} /> Meta
     </span>
   );
@@ -65,15 +65,15 @@ function EvidenceImage({ path }: { path: string }) {
 
   if (error || (!url)) {
     return (
-      <div className="w-full h-[180px] rounded-[14px] bg-[#1a1a1a] flex flex-col items-center justify-center gap-2">
-        <ImageIcon size={30} strokeWidth={1} className="text-[#3f3f3f]" />
-        <span className="text-[11px] text-[#555]">{error ? "No se pudo cargar" : "Cargando…"}</span>
+      <div className="w-full h-[180px] rounded-[14px] flex flex-col items-center justify-center gap-2" style={{ background: "var(--color-surface)" }}>
+        <ImageIcon size={30} strokeWidth={1} className="text-[var(--color-muted)]" />
+        <span className="text-[11px] text-[var(--color-muted)]">{error ? "No se pudo cargar" : "Cargando…"}</span>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-[180px] rounded-[14px] overflow-hidden bg-[#1a1a1a]">
+    <div className="relative w-full h-[180px] rounded-[14px] overflow-hidden" style={{ background: "var(--color-surface)" }}>
       <Image src={url} alt="Evidencia" fill className="object-cover" unoptimized />
     </div>
   );
@@ -189,7 +189,7 @@ export default function AuditoriaPage() {
           <div
             key={c.id}
             className="flex-1 h-1 rounded-full transition-colors"
-            style={{ background: auditedIds.has(c.id) ? "#EFC88B" : "#2a2a2a" }}
+            style={{ background: auditedIds.has(c.id) ? "#EFC88B" : "var(--color-border)" }}
           />
         ))}
       </div>
@@ -201,7 +201,7 @@ export default function AuditoriaPage() {
           <div className="flex items-center gap-2.5 mb-3">
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-medium flex-shrink-0"
-              style={{ background: "#2b2b2b", color: "#EEE5E9" }}
+              style={{ background: "var(--color-surface)", color: "var(--color-fg)" }}
             >
               {getInitials(current.full_name)}
             </div>
@@ -225,14 +225,14 @@ export default function AuditoriaPage() {
           <EvidenceImage path={current.evidence_path} />
 
           {/* Question */}
-          <p className="text-[12px] text-[#cfcfcf] text-center mt-3.5 mb-3">¿Cumplió con esta meta?</p>
+          <p className="text-[12px] text-[var(--color-fg)] text-center mt-3.5 mb-3">¿Cumplió con esta meta?</p>
 
           {/* Action buttons */}
           <div className="flex gap-2.5">
             <button
               onClick={() => setRejectOpen(true)}
               disabled={audit.isPending}
-              className="flex-1 flex items-center justify-center gap-1.5 text-[13px] border border-[#3a3a3a] rounded-[13px] py-3 transition-opacity disabled:opacity-40"
+              className="flex-1 flex items-center justify-center gap-1.5 text-[13px] rounded-[13px] py-3 transition-opacity disabled:opacity-40" style={{ border: "1px solid var(--color-border)" }}
             >
               <X size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
               Rechazar
@@ -258,7 +258,7 @@ export default function AuditoriaPage() {
               <div key={c.id} className="flex items-center gap-2.5 bg-[var(--color-bg-card)] rounded-[13px] px-3.5 py-2.5">
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0"
-                  style={{ background: "#2b2b2b", color: "#EEE5E9" }}
+                  style={{ background: "var(--color-surface)", color: "var(--color-fg)" }}
                 >
                   {getInitials(c.full_name)}
                 </div>
@@ -279,10 +279,10 @@ export default function AuditoriaPage() {
     {/* Drawer: razón de rechazo */}
     <VaulDrawer.Root open={rejectOpen} onOpenChange={(o) => !o && setRejectOpen(false)}>
       <VaulDrawer.Portal>
-        <VaulDrawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
-        <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[#0e0e0e] rounded-t-[26px] outline-none flex flex-col">
+        <VaulDrawer.Overlay className="fixed inset-0 z-[70]" style={{ background: "var(--color-overlay)" }} />
+        <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] rounded-t-[26px] outline-none flex flex-col" style={{ background: "var(--color-bg-card)" }}>
           <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 rounded-full bg-[#2a2a2a]" />
+            <div className="w-10 h-1 rounded-full" style={{ background: "var(--color-border)" }} />
           </div>
           <div className="px-5 pb-8">
             <p className="font-display font-medium text-[17px] mb-1">Rechazar evidencia</p>
@@ -292,7 +292,7 @@ export default function AuditoriaPage() {
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Ej: La foto no muestra claramente el ejercicio…"
               rows={3}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-[14px] px-4 py-3 text-[14px] text-[var(--color-fg)] placeholder:text-[var(--color-muted)] outline-none resize-none mb-4"
+              className="w-full rounded-[14px] px-4 py-3 text-[14px] text-[var(--color-fg)] placeholder:text-[var(--color-muted)] outline-none resize-none mb-4" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
             />
             <button
               onClick={() => handleAudit(false, rejectReason || undefined)}

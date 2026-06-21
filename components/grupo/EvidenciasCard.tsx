@@ -14,13 +14,13 @@ export function EvidenciasCard({ pending, onReview, onViewHistory }: EvidenciasC
       className="rounded-[18px] p-4 mb-5 border"
       style={{
         background: "var(--color-bg-card)",
-        borderColor: hasPending ? "rgba(207,92,54,0.4)" : "#2a2a2a",
+        borderColor: hasPending ? "rgba(207,92,54,0.4)" : "var(--color-border)",
       }}
     >
       <div className="flex items-center gap-3 mb-2.5">
         <div
           className="w-[30px] h-[30px] rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: hasPending ? "rgba(207,92,54,0.2)" : "#1a1a1a" }}
+          style={{ background: hasPending ? "rgba(207,92,54,0.2)" : "var(--color-surface)" }}
         >
           {hasPending
             ? <ClipboardList size={17} strokeWidth={1.5} className="text-accent" />
@@ -40,9 +40,9 @@ export function EvidenciasCard({ pending, onReview, onViewHistory }: EvidenciasC
         onClick={hasPending ? onReview : onViewHistory}
         className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium rounded-[12px] py-2.5 transition-opacity"
         style={{
-          background: hasPending ? "#CF5C36" : "#1a1a1a",
+          background: hasPending ? "#CF5C36" : "var(--color-surface)",
           color: hasPending ? "white" : "var(--color-muted)",
-          border: hasPending ? "none" : "1px solid #2a2a2a",
+          border: hasPending ? "none" : "1px solid var(--color-border)",
         }}
       >
         <ClipboardList size={14} strokeWidth={1.5} />

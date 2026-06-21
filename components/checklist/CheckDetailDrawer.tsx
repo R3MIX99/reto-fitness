@@ -123,12 +123,12 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
         onOpenChange={(o) => !o && onClose()}
       >
         <VaulDrawer.Portal>
-          <VaulDrawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
-          <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[#0e0e0e] rounded-t-[26px] outline-none flex flex-col">
+          <VaulDrawer.Overlay className="fixed inset-0 z-[70]" style={{ background: "var(--color-overlay)" }} />
+          <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] rounded-t-[26px] outline-none flex flex-col" style={{ background: "var(--color-bg-card)" }}>
 
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
-              <div className="w-10 h-1 rounded-full bg-[#2a2a2a]" />
+              <div className="w-10 h-1 rounded-full" style={{ background: "var(--color-border)" }} />
             </div>
 
             {/* Header */}
@@ -163,7 +163,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
                     Rechazado
                   </span>
                 )}
-                <button onClick={onClose} className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center">
+                <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "var(--color-surface)" }}>
                   <X size={14} strokeWidth={1.5} className="text-[var(--color-muted)]" />
                 </button>
               </div>
@@ -171,7 +171,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
 
             {/* Evidence photo */}
             <div className="px-5 pb-8">
-              <div className="relative rounded-[18px] overflow-hidden bg-[#1a1a1a] mb-4 aspect-square w-full max-w-[260px] mx-auto">
+              <div className="relative rounded-[18px] overflow-hidden mb-4 aspect-square w-full max-w-[260px] mx-auto" style={{ background: "var(--color-surface)" }}>
                 {signedUrl ? (
                   <>
                     <button
@@ -196,7 +196,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
                   </>
                 ) : (
                   <div className="flex items-center justify-center h-full min-h-[260px]">
-                    <div className="w-8 h-8 border-2 border-[#2a2a2a] border-t-warm rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 border-t-warm rounded-full animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-warm)" }} />
                   </div>
                 )}
               </div>
@@ -205,7 +205,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={replacing}
-                className="w-full flex items-center justify-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] text-[var(--color-fg)] rounded-full py-3 text-[14px] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 text-[var(--color-fg)] rounded-full py-3 text-[14px] disabled:opacity-50" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
               >
                 {replacing ? (
                   <RefreshCw size={15} strokeWidth={1.5} className="animate-spin text-[var(--color-muted)]" />

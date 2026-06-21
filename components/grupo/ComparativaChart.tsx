@@ -102,9 +102,9 @@ export function ComparativaChart({ data, leaderUserId }: ComparativaChartProps) 
               tickLine={false}
             />
             <Tooltip
-              contentStyle={{ background: "#141414", border: "none", borderRadius: 10, fontSize: 11 }}
-              labelStyle={{ color: "#7C7C7C" }}
-              itemStyle={{ color: "#EEE5E9" }}
+              contentStyle={{ background: "var(--color-bg-card2)", border: "none", borderRadius: 10, fontSize: 11 }}
+              labelStyle={{ color: "var(--color-muted)" }}
+              itemStyle={{ color: "var(--color-fg)" }}
             />
             {userList.map((u) => (
               <Line

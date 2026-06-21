@@ -24,7 +24,7 @@ export function BottomNav() {
 
   return (
     <>
-      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 h-[56px] w-fit min-w-[260px] bg-[#0c0c0c] border border-[#1c1c1c] rounded-full flex items-center justify-center gap-1 px-3">
+      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 h-[56px] w-fit min-w-[260px] rounded-full flex items-center justify-center gap-1 px-3" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
         {LEFT.map(({ href, Icon, label }) => {
           const active = pathname.startsWith(href);
           return (

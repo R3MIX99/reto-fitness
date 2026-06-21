@@ -33,7 +33,7 @@ function Avatar({ url, initials, size = 26 }: { url?: string | null; initials: s
   return (
     <div
       className="rounded-full flex items-center justify-center flex-shrink-0 font-medium"
-      style={{ width: size, height: size, background: "#2b2b2b", color: "#EEE5E9", fontSize: size * 0.38 }}
+      style={{ width: size, height: size, background: "var(--color-surface)", color: "var(--color-fg)", fontSize: size * 0.38 }}
     >
       {initials}
     </div>
@@ -64,7 +64,7 @@ function PlayerRow({
   return (
     <div
       className="flex items-center gap-2.5 py-2.5"
-      style={{ borderBottom: isLast ? "none" : "0.5px solid #1c1c1c" }}
+      style={{ borderBottom: isLast ? "none" : "0.5px solid var(--color-border)" }}
     >
       <Avatar url={avatar_url} initials={initials} size={28} />
 
@@ -79,7 +79,7 @@ function PlayerRow({
         className="text-[11px] rounded-full px-2.5 py-0.5 flex-shrink-0"
         style={{
           color: isFirst ? "#EFC88B" : "#7C7C7C",
-          border: isFirst ? "0.5px solid rgba(239,200,139,0.5)" : "0.5px solid #2a2a2a",
+          border: isFirst ? "0.5px solid rgba(239,200,139,0.5)" : "0.5px solid var(--color-border)",
         }}
       >
         {ordinal}
@@ -169,7 +169,7 @@ export default function DashboardPage() {
         <div className="font-display font-medium text-[30px] mb-2.5">
           {todayPts}<span className="text-[var(--color-muted)] text-[18px]"> / {TOTAL_PTS}</span>
         </div>
-        <div className="h-2 rounded-full bg-[#1f1f1f] overflow-hidden">
+        <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface)" }}>
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{ width: `${pct}%`, background: "linear-gradient(90deg,#EFC88B,#EEE5E9)" }}
@@ -217,13 +217,13 @@ export default function DashboardPage() {
               <div
                 key={i}
                 className="flex items-center gap-3 py-2.5"
-                style={{ borderBottom: i < pendingItems.length - 1 ? "0.5px solid #1c1c1c" : "none" }}
+                style={{ borderBottom: i < pendingItems.length - 1 ? "0.5px solid var(--color-border)" : "none" }}
               >
-                <div className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center flex-shrink-0">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--color-surface)" }}>
                   {item.icon}
                 </div>
                 <span className="text-[13px] flex-1">{item.label}</span>
-                <div className="w-2 h-2 rounded-full bg-[#2a2a2a] flex-shrink-0" />
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "var(--color-border)" }} />
               </div>
             ))}
           </div>

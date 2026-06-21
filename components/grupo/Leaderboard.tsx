@@ -19,7 +19,7 @@ function PlayerRow({ entry, currentUserId }: { entry: LeaderboardEntry; currentU
   const isTop = entry.position === 1;
 
   return (
-    <div className="flex items-center gap-2.5 py-2.5 border-b border-[#1c1c1c] last:border-0">
+    <div className="flex items-center gap-2.5 py-2.5 border-b last:border-0" style={{ borderColor: "var(--color-border)" }}>
       {/* Avatar */}
       <div className="relative flex-shrink-0">
         {entry.avatar_url ? (
@@ -41,11 +41,10 @@ function PlayerRow({ entry, currentUserId }: { entry: LeaderboardEntry; currentU
       </div>
 
       {/* Position chip */}
-      <span className={`text-[11px] rounded-full px-2.5 py-0.5 border flex-shrink-0 ${
-        isTop
-          ? "text-warm border-warm/50"
-          : "text-[var(--color-muted)] border-[#2a2a2a]"
-      }`}>
+      <span
+        className={`text-[11px] rounded-full px-2.5 py-0.5 border flex-shrink-0 ${isTop ? "text-warm" : "text-[var(--color-muted)]"}`}
+        style={{ borderColor: isTop ? "rgba(239,200,139,0.5)" : "var(--color-border)" }}
+      >
         {label}
       </span>
 

@@ -42,11 +42,11 @@ export function Header({ hasNotifications = false }: HeaderProps) {
             alt={firstName}
             width={44}
             height={44}
-            className="w-11 h-11 rounded-full border-2 border-[#2a2a2a] object-cover flex-shrink-0"
+            className="w-11 h-11 rounded-full border-2 border-[var(--color-border)] object-cover flex-shrink-0"
             unoptimized={avatarUrl.includes("?t=")}
           />
         ) : (
-          <div className="w-11 h-11 rounded-full bg-accent border-2 border-[#2a2a2a] flex items-center justify-center text-accent-dark font-medium text-[15px] flex-shrink-0">
+          <div className="w-11 h-11 rounded-full bg-accent border-2 border-[var(--color-border)] flex items-center justify-center text-accent-dark font-medium text-[15px] flex-shrink-0">
             {getInitials(displayName)}
           </div>
         )}

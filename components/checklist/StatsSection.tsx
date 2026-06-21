@@ -38,13 +38,13 @@ function Donut({ pct, color, size = 44 }: { pct: number; color: string; size?: n
   const off = C * (1 - pct / 100);
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1f1f1f" strokeWidth={sw} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-surface)" strokeWidth={sw} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color}
         strokeWidth={sw} strokeLinecap="round"
         strokeDasharray={C.toFixed(1)} strokeDashoffset={off.toFixed(1)}
         transform={`rotate(-90 ${size / 2} ${size / 2})`} />
       <text x={size / 2} y={size / 2 + 4} textAnchor="middle" fontSize={size * 0.25}
-        fontWeight="500" fill="#EEE5E9">{pct}%</text>
+        fontWeight="500" fill="var(--color-fg)">{pct}%</text>
     </svg>
   );
 }
@@ -213,7 +213,7 @@ function CalendarGrid({
           const _dd = String(selectedDay).padStart(2, "0");
           const dayLabel = isToday ? "Hoy" : `${_dd}/${_mm}`;
           return (
-            <div className="mt-3 pt-3 border-t border-[#1c1c1c]">
+            <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[13px] font-medium">{dayLabel}</span>
                 <span className="text-[12px] text-warm font-medium">{s.pts}/13 pts</span>
@@ -367,7 +367,7 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
               style={{
                 scrollSnapAlign: "start",
                 background: active ? c.tint : "var(--color-bg-card)",
-                borderColor: active ? c.color : "#1c1c1c",
+                borderColor: active ? c.color : "var(--color-border)",
               }}
             >
               <Donut pct={p} color={c.color} size={44} />
@@ -381,7 +381,7 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
 
       {/* Scroll indicator */}
       <div className="flex justify-center my-2.5">
-        <div className="relative w-14 h-1 bg-[#1f1f1f] rounded-full">
+        <div className="relative w-14 h-1 rounded-full" style={{ background: "var(--color-surface)" }}>
           <div
             className="absolute top-0 h-1 bg-[#7C7C7C] rounded-full transition-all duration-150"
             style={{ width: thumbWidth, left: thumbLeft }}
@@ -428,7 +428,7 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
               style={{
                 width: cat === view ? 14 : 5,
                 height: 5,
-                background: cat === view ? cfg.color : "#2a2a2a",
+                background: cat === view ? cfg.color : "var(--color-border)",
               }}
             />
           ))}

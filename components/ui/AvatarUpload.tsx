@@ -51,13 +51,13 @@ export function AvatarUpload({ avatarUrl, displayName, size = 74, onUpload }: Av
           alt={displayName}
           width={size}
           height={size}
-          className="rounded-full border-2 border-[#2a2a2a] object-cover"
+          className="rounded-full border-2 border-[var(--color-border)] object-cover"
           style={{ width: size, height: size }}
           unoptimized={!!preview}
         />
       ) : (
         <div
-          className="rounded-full bg-accent border-2 border-[#2a2a2a] flex items-center justify-center text-accent-dark font-medium"
+          className="rounded-full bg-accent border-2 border-[var(--color-border)] flex items-center justify-center text-accent-dark font-medium"
           style={{ width: size, height: size, fontSize: size * 0.32 }}
         >
           {getInitials(displayName)}

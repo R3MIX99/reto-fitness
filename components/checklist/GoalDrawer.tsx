@@ -49,10 +49,10 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
   return (
     <VaulDrawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <VaulDrawer.Portal>
-        <VaulDrawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
+        <VaulDrawer.Overlay className="fixed inset-0 z-[70]" style={{ background: "var(--color-overlay)" }} />
         <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[var(--color-bg-card)] rounded-t-[24px] outline-none">
           <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 rounded-full bg-[#2a2a2a]" />
+            <div className="w-10 h-1 rounded-full" style={{ background: "var(--color-border)" }} />
           </div>
 
           <div className="px-6 pb-10 pt-3">
@@ -66,7 +66,7 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
               placeholder={defaultKind === "diet" ? "Ej. Almuerzo, cena, snack…" : "Ej. Leer 20 min"}
-              className="w-full bg-[#1a1a1a] rounded-[12px] px-4 py-3 text-[15px] outline-none placeholder:text-[var(--color-muted)] mb-4"
+              className="w-full rounded-[12px] px-4 py-3 text-[15px] outline-none placeholder:text-[var(--color-muted)] mb-4" style={{ background: "var(--color-surface)" }}
             />
 
             {error && <p className="text-[11px] text-red-400 mb-3">{error}</p>}
@@ -76,7 +76,7 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
                 <button
                   onClick={handleDelete}
                   disabled={saving}
-                  className="w-11 h-11 rounded-full bg-[#1a1a1a] flex items-center justify-center text-red-400 flex-shrink-0"
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-red-400 flex-shrink-0" style={{ background: "var(--color-surface)" }}
                 >
                   <Trash2 size={15} strokeWidth={1.5} />
                 </button>

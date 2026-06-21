@@ -9,7 +9,7 @@ export function ThemeSwitch() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="w-[52px] h-[28px] rounded-full bg-[#1c1c1c]" />;
+  if (!mounted) return <div className="w-[52px] h-[28px] rounded-full" style={{ background: "var(--color-surface)" }} />;
 
   const isDark = theme === "dark";
 
@@ -18,7 +18,7 @@ export function ThemeSwitch() {
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       className="relative flex-shrink-0 w-[50px] h-[26px] rounded-full overflow-hidden transition-colors duration-200"
-      style={{ background: isDark ? "#1c1c1c" : "#d4cdd1" }}
+      style={{ background: isDark ? "var(--color-surface)" : "#d4cdd1" }}
     >
       {/* Thumb */}
       <span

@@ -15,14 +15,14 @@ export function Drawer({ open, onClose, children }: DrawerProps) {
       onOpenChange={(o) => { if (!o) onClose(); }}
     >
       <VaulDrawer.Portal>
-        <VaulDrawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
+        <VaulDrawer.Overlay className="fixed inset-0 z-[70]" style={{ background: "var(--color-overlay)" }} />
         <VaulDrawer.Content
           className="fixed bottom-0 left-0 right-0 z-[80] bg-[var(--color-bg-card)] rounded-t-[24px] outline-none"
           style={{ maxHeight: "92dvh" }}
         >
           {/* Handle */}
           <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 rounded-full bg-[#2a2a2a]" />
+            <div className="w-10 h-1 rounded-full" style={{ background: "var(--color-border)" }} />
           </div>
           {children}
         </VaulDrawer.Content>

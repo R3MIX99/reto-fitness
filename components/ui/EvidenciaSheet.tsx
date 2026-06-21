@@ -30,9 +30,9 @@ function PickerSheet({
   return (
     <Drawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-black/60 z-[90]" />
-        <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[100] bg-[#0e0e0e] rounded-t-[26px] outline-none">
-          <div className="w-10 h-1 rounded-full bg-[#2a2a2a] mx-auto mt-3 mb-4" />
+        <Drawer.Overlay className="fixed inset-0 z-[90]" style={{ background: "var(--color-overlay)" }} />
+        <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[100] rounded-t-[26px] outline-none" style={{ background: "var(--color-bg-card)" }}>
+          <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: "var(--color-border)" }} />
           <div className="px-5 pb-10">
             <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-4">{title}</p>
             {filtered.length === 0 ? (
@@ -50,8 +50,8 @@ function PickerSheet({
                       disabled={done}
                       className="flex items-center gap-3 rounded-[14px] px-4 py-3.5 text-left transition-opacity"
                       style={{
-                        background: done ? "rgba(207,92,54,0.08)" : "#161616",
-                        border: done ? "1px solid rgba(207,92,54,0.3)" : "1px solid #232323",
+                        background: done ? "rgba(207,92,54,0.08)" : "var(--color-surface)",
+                        border: done ? "1px solid rgba(207,92,54,0.3)" : "1px solid var(--color-border)",
                         opacity: done ? 0.7 : 1,
                       }}
                     >
@@ -89,8 +89,10 @@ function SuccessToast({ label, onDone }: { label: string; onDone: () => void }) 
 
   return (
     <div
-      className="fixed z-[200] left-1/2 flex items-center gap-2.5 bg-[#161616] border border-[#2a2a2a] rounded-full px-4 py-2.5 shadow-lg"
+      className="fixed z-[200] left-1/2 flex items-center gap-2.5 rounded-full px-4 py-2.5 shadow-lg"
       style={{
+        background: "var(--color-bg-card2)",
+        border: "1px solid var(--color-border)",
         bottom: "80px",
         transform: `translateX(-50%) translateY(${visible ? "0" : "12px"})`,
         opacity: visible ? 1 : 0,
@@ -182,10 +184,10 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
     <>
       <Drawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[#0e0e0e] rounded-t-[26px] outline-none">
+          <Drawer.Overlay className="fixed inset-0 z-[70]" style={{ background: "var(--color-overlay)" }} />
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[80] rounded-t-[26px] outline-none" style={{ background: "var(--color-bg-card)" }}>
             {/* Handle */}
-            <div className="w-10 h-1 rounded-full bg-[#2a2a2a] mx-auto mt-3" />
+            <div className="w-10 h-1 rounded-full mx-auto mt-3" style={{ background: "var(--color-border)" }} />
 
             <div className="px-5 pb-8 pt-4">
               {/* Header */}
@@ -213,8 +215,8 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
                       disabled={markCheck.isPending || done}
                       className="flex items-center gap-3 rounded-[16px] px-4 py-3.5 text-left transition-opacity"
                       style={{
-                        background: done ? "rgba(207,92,54,0.08)" : "#161616",
-                        border: done ? "1px solid rgba(207,92,54,0.3)" : "1px solid #232323",
+                        background: done ? "rgba(207,92,54,0.08)" : "var(--color-surface)",
+                        border: done ? "1px solid rgba(207,92,54,0.3)" : "1px solid var(--color-border)",
                         opacity: markCheck.isPending ? 0.4 : 1,
                       }}
                     >
@@ -247,7 +249,7 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
               )}
 
               {/* Footer note */}
-              <div className="flex items-center justify-center gap-1.5 mt-5 text-[11px] text-[#555]">
+              <div className="flex items-center justify-center gap-1.5 mt-5 text-[11px] text-[var(--color-muted)]">
                 <Lock size={11} strokeWidth={1.5} />
                 La foto se valida en la auditoría semanal
               </div>

@@ -282,7 +282,7 @@ export default function ChecklistPage() {
         />
 
         {/* Divider */}
-        <div className="h-px bg-[#1a1a1a] my-4" />
+        <div className="h-px my-4" style={{ background: "var(--color-border)" }} />
 
         {isToday ? (
           <>

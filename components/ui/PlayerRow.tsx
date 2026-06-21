@@ -32,7 +32,7 @@ export function PlayerRow({
   isCurrentUser,
 }: PlayerRowProps) {
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-[#1a1a1a] last:border-0">
+    <div className="flex items-center gap-3 py-3 border-b last:border-0" style={{ borderColor: "var(--color-border)" }}>
       {/* Avatar */}
       <div className="relative flex-shrink-0">
         {avatarUrl ? (

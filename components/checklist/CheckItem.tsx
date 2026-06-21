@@ -67,7 +67,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
     ? { background: "rgba(34,197,94,0.12)", border: "1.5px solid rgba(34,197,94,0.5)" }
     : isPending
     ? { background: "rgba(239,200,139,0.12)", border: "1.5px solid rgba(239,200,139,0.4)" }
-    : { background: "#1a1a1a", border: "1.5px solid #2a2a2a" };
+    : { background: "var(--color-surface)", border: "1.5px solid var(--color-border)" };
 
   return (
     <div className="flex items-center gap-3 py-2.5">
@@ -86,7 +86,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
           ) : isPending ? (
             <Clock size={12} strokeWidth={1.5} style={{ color: "#EFC88B" }} />
           ) : (
-            <div className="w-2.5 h-2.5 rounded-full bg-[#2a2a2a]" />
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--color-border)" }} />
           )}
         </button>
       )}
@@ -166,7 +166,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
             <button
               onClick={() => inputRef.current?.click()}
               disabled={loading || uploading}
-              className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center text-[var(--color-muted)] transition-colors disabled:opacity-40"
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-muted)] transition-colors disabled:opacity-40" style={{ background: "var(--color-surface)" }}
             >
               <Camera size={13} strokeWidth={1.5} style={{ color: error ? "#f87171" : undefined }} />
             </button>

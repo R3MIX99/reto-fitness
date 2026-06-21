@@ -10,6 +10,9 @@
   --color-bg-card2: #141414;
   --color-fg: #EEE5E9;
   --color-muted: #7C7C7C;
+  --color-surface: #1a1a1a;
+  --color-border: #2a2a2a;
+  --color-overlay: rgba(0,0,0,0.6);
 
   /* Invariantes */
   --color-accent: #CF5C36;
@@ -24,6 +27,9 @@
   --color-bg-card2: #f5f0f2;
   --color-fg: #000000;
   --color-muted: #7C7C7C;
+  --color-surface: #ece5e8;
+  --color-border: #d8d0d4;
+  --color-overlay: rgba(0,0,0,0.4);
 }
 
 /* ── Base ── */

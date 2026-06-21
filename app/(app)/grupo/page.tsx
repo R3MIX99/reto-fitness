@@ -210,7 +210,7 @@ function GrupoPageInner() {
                 style={{
                   width: i === activeGroupIdx ? 16 : 6,
                   height: 6,
-                  background: i === activeGroupIdx ? "var(--color-warm)" : "#2a2a2a",
+                  background: i === activeGroupIdx ? "var(--color-warm)" : "var(--color-border)",
                 }}
               />
             ))}

@@ -55,14 +55,14 @@ export function InviteSheet({ open, inviteCode, groupName, onClose }: InviteShee
         <p className="text-[13px] text-[var(--color-muted)] mb-5">{groupName}</p>
 
         {/* Code display */}
-        <div className="bg-[#1a1a1a] rounded-[14px] p-4 mb-4 text-center">
+        <div className="rounded-[14px] p-4 mb-4 text-center" style={{ background: "var(--color-surface)" }}>
           <p className="text-[11px] text-[var(--color-muted)] mb-2">Código de invitación</p>
           <p className="font-display font-semibold text-[28px] tracking-widest text-warm mb-3">
             {inviteCode}
           </p>
           <button
             onClick={handleCopyCode}
-            className="flex items-center justify-center gap-2 mx-auto text-[12px] text-[var(--color-muted)] border border-[#2a2a2a] rounded-full px-4 py-1.5 transition-colors"
+            className="flex items-center justify-center gap-2 mx-auto text-[12px] text-[var(--color-muted)] rounded-full px-4 py-1.5 transition-colors" style={{ border: "1px solid var(--color-border)" }}
           >
             {copiedCode ? <Check size={13} strokeWidth={2} className="text-accent" /> : <Copy size={13} strokeWidth={1.5} />}
             {copiedCode ? "Código copiado" : "Copiar código"}
@@ -72,7 +72,7 @@ export function InviteSheet({ open, inviteCode, groupName, onClose }: InviteShee
         {/* QR toggle */}
         <button
           onClick={() => setShowQr((v) => !v)}
-          className="w-full flex items-center justify-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-[14px] py-3 text-[13px] text-[var(--color-muted)] mb-3"
+          className="w-full flex items-center justify-center gap-2 rounded-[14px] py-3 text-[13px] text-[var(--color-muted)] mb-3" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
         >
           <QrCode size={16} strokeWidth={1.5} />
           {showQr ? "Ocultar QR" : "Mostrar código QR"}
@@ -88,7 +88,7 @@ export function InviteSheet({ open, inviteCode, groupName, onClose }: InviteShee
         <div className="flex flex-col gap-2.5">
           <button
             onClick={handleCopyLink}
-            className="w-full flex items-center justify-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] text-[var(--color-fg)] rounded-pill py-3 text-[14px]"
+            className="w-full flex items-center justify-center gap-2 text-[var(--color-fg)] rounded-pill py-3 text-[14px]" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
           >
             {copiedLink ? <Check size={16} strokeWidth={2} className="text-accent" /> : <Copy size={16} strokeWidth={1.5} />}
             {copiedLink ? "Enlace copiado" : "Copiar enlace"}
