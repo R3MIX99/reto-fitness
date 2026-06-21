@@ -147,12 +147,14 @@ export function useResubmitCheck() {
       if (!user) throw new Error("Sin sesión");
 
       const compressed = await compressImage(file, 1080);
-      const path = `${user.id}/${checkDate}/${kind}${goalId ? `-${goalId}` : ""}.jpg`;
+      // Use a unique path (timestamp) so it's always a new INSERT,
+      // avoiding the need for a storage UPDATE policy on existing files.
+      const path = `${user.id}/${checkDate}/${kind}${goalId ? `-${goalId}` : ""}_${Date.now()}.jpg`;
 
       const supabase = createClient();
       const { error: uploadError } = await supabase.storage
         .from("evidencias")
-        .upload(path, compressed, { upsert: true });
+        .upload(path, compressed);
 
       if (uploadError) throw uploadError;
 

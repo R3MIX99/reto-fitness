@@ -82,6 +82,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
   const inputRef = useRef<HTMLInputElement>(null);
   const resubmitRef = useRef<HTMLInputElement>(null);
   const [resubmitting, setResubmitting] = useState(false);
+  const [resubmitError, setResubmitError] = useState(false);
   const isDone = !!check;
   const isPending = check?.status === "pending";
   const isApproved = check?.status === "approved";
@@ -148,12 +149,17 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
         )}
         {isRejected && onResubmit && (
           <button
-            onClick={() => resubmitRef.current?.click()}
+            onClick={() => { setResubmitError(false); resubmitRef.current?.click(); }}
             disabled={resubmitting}
-            className="flex-shrink-0 flex items-center gap-1.5 text-[var(--color-warm)] bg-[rgba(239,200,139,0.1)] border border-[var(--color-warm)]/30 text-[12px] font-medium rounded-full px-3.5 py-2 transition-opacity disabled:opacity-50"
+            className="flex-shrink-0 flex items-center gap-1.5 text-[12px] font-medium rounded-full px-3.5 py-2 transition-opacity disabled:opacity-50"
+            style={{
+              color: resubmitError ? "#ef4444" : "var(--color-warm)",
+              background: resubmitError ? "rgba(239,68,68,0.1)" : "rgba(239,200,139,0.1)",
+              border: resubmitError ? "1px solid rgba(239,68,68,0.3)" : "1px solid rgba(239,200,139,0.3)",
+            }}
           >
             <RefreshCw size={12} strokeWidth={1.5} />
-            {resubmitting ? "Subiendo…" : "Volver a subir"}
+            {resubmitting ? "Subiendo…" : resubmitError ? "Error, reintentar" : "Volver a subir"}
           </button>
         )}
         {!isDone && (
@@ -179,7 +185,14 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
           if (!file || !onResubmit) return;
           e.target.value = "";
           setResubmitting(true);
-          try { await onResubmit(file); } finally { setResubmitting(false); }
+          try {
+            await onResubmit(file);
+            setResubmitError(false);
+          } catch {
+            setResubmitError(true);
+          } finally {
+            setResubmitting(false);
+          }
         }}
       />
       <input

@@ -21,6 +21,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
   const resubmitRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resubmitFailed, setResubmitFailed] = useState(false);
 
   const status = check?.status;
   const isDone = !!check;
@@ -47,12 +48,13 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
     const file = e.target.files?.[0];
     if (!file || !onResubmit) return;
     e.target.value = "";
-    setError(null);
+    setResubmitFailed(false);
     setUploading(true);
     try {
       await onResubmit(file);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al resubir");
+      setResubmitFailed(false);
+    } catch {
+      setResubmitFailed(true);
     } finally {
       setUploading(false);
     }
@@ -139,12 +141,17 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
           )}
           {isRejected && onResubmit && (
             <button
-              onClick={() => resubmitRef.current?.click()}
+              onClick={() => { setResubmitFailed(false); resubmitRef.current?.click(); }}
               disabled={uploading}
-              className="flex items-center gap-1 text-[10px] text-[var(--color-warm)] bg-[rgba(239,200,139,0.1)] border border-[var(--color-warm)]/30 rounded-full px-2.5 py-0.5 disabled:opacity-50"
+              className="flex items-center gap-1 text-[10px] rounded-full px-2.5 py-0.5 disabled:opacity-50"
+              style={{
+                color: resubmitFailed ? "#ef4444" : "var(--color-warm)",
+                background: resubmitFailed ? "rgba(239,68,68,0.1)" : "rgba(239,200,139,0.1)",
+                border: resubmitFailed ? "1px solid rgba(239,68,68,0.3)" : "1px solid rgba(239,200,139,0.3)",
+              }}
             >
               <RefreshCw size={9} strokeWidth={1.5} />
-              {uploading ? "Subiendo…" : "Volver a subir"}
+              {uploading ? "Subiendo…" : resubmitFailed ? "Error, reintentar" : "Volver a subir"}
             </button>
           )}
           {onEdit && (
