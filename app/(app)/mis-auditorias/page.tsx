@@ -142,7 +142,7 @@ function AuditCard({
 
           {/* Rejection reason if any */}
           {entry.reason && (
-            <p className="text-[11px] text-[var(--color-muted)] italic">"{entry.reason}"</p>
+            <p className="text-[11px] text-[var(--color-muted)] italic">&ldquo;{entry.reason}&rdquo;</p>
           )}
 
           {/* Change decision toggle for already-reviewed */}
