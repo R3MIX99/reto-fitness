@@ -185,13 +185,18 @@ export function useAuditCheck() {
 
       if (error) throw error;
 
-      // Record the audit vote (with optional reason)
-      await supabase.from("audits").insert({
-        check_id: checkId,
-        reviewer_id: user.id,
-        vote: approved ? "approved" : "rejected",
-        reason: reason ?? null,
-      } as never);
+      // Upsert the audit vote — handles first-time and changed decisions
+      await (supabase.from("audits") as unknown as {
+        upsert: (row: object, opts: object) => Promise<unknown>;
+      }).upsert(
+        {
+          check_id: checkId,
+          reviewer_id: user.id,
+          vote: approved ? "approved" : "rejected",
+          reason: reason ?? null,
+        },
+        { onConflict: "check_id,reviewer_id" }
+      );
 
       // Recalculate score for the audited user
       await (supabase.rpc as Function)("recalc_day_score", {
@@ -264,6 +269,7 @@ export function useAuditCheck() {
       qc.invalidateQueries({ queryKey: ["pendingChecks"] });
       qc.invalidateQueries({ queryKey: ["pendingAudits"] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
+      qc.invalidateQueries({ queryKey: ["myAudits"] });
     },
   });
 }
