@@ -50,7 +50,9 @@ function EvidenceImage({ path }: { path: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
-  if (!url && !error) {
+  useEffect(() => {
+    setUrl(null);
+    setError(false);
     const supabase = createClient();
     supabase.storage
       .from("evidencias")
@@ -59,7 +61,7 @@ function EvidenceImage({ path }: { path: string }) {
         if (data?.signedUrl) setUrl(data.signedUrl);
         else setError(true);
       });
-  }
+  }, [path]);
 
   if (error || (!url)) {
     return (

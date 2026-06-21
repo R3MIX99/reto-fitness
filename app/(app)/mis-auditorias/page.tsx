@@ -49,7 +49,9 @@ function EvidenceThumb({ path }: { path: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [errored, setErrored] = useState(false);
 
-  if (!url && !errored) {
+  useEffect(() => {
+    setUrl(null);
+    setErrored(false);
     createClient()
       .storage.from("evidencias")
       .createSignedUrl(path, 300)
@@ -57,7 +59,7 @@ function EvidenceThumb({ path }: { path: string }) {
         if (data?.signedUrl) setUrl(data.signedUrl);
         else setErrored(true);
       });
-  }
+  }, [path]);
 
   if (!url) {
     return (
