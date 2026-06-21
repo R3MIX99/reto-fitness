@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, CheckCircle2, Clock, TrendingUp, UserPlus, Users, Bell, X, Trash2 } from "lucide-react";
+import { ChevronLeft, CheckCircle2, Clock, TrendingUp, UserPlus, Users, Bell, X, Trash2, RefreshCw } from "lucide-react";
 import { useNotifications, useMarkAllRead, useMarkRead, useDeleteAllNotifications } from "@/lib/hooks/useNotifications";
 
 // ── Config de tipos ────────────────────────────────────────────────────────
@@ -20,6 +20,7 @@ function getConfig(type: string, metadata?: Record<string, unknown>): NotifConfi
   const map: Record<string, NotifConfig> = {
     check_completed: { Icon: CheckCircle2, color: "#EFC88B", bg: "rgba(239,200,139,0.15)", defaultUrl: "/checklist" },
     review_pending:  { Icon: Clock,        color: "#CF5C36", bg: "rgba(207,92,54,0.15)",   defaultUrl: "/auditoria" },
+    resubmit:        { Icon: RefreshCw,    color: "#EFC88B", bg: "rgba(239,200,139,0.15)", defaultUrl: "/mis-auditorias" },
     ranking_passed:  { Icon: TrendingUp,   color: "#CF5C36", bg: "rgba(207,92,54,0.15)",   defaultUrl: "/grupo" },
     new_member:      { Icon: UserPlus,     color: "#EFC88B", bg: "rgba(239,200,139,0.15)", defaultUrl: "/grupo" },
     joined_group:    { Icon: Users,        color: "#EFC88B", bg: "rgba(239,200,139,0.15)", defaultUrl: "/grupo" },
