@@ -22,13 +22,13 @@
 }
 
 [data-theme="light"] {
-  --color-bg: #EEE5E9;
+  --color-bg: #FAFAFA;
   --color-bg-card: #ffffff;
-  --color-bg-card2: #f5f0f2;
+  --color-bg-card2: #f0f0f0;
   --color-fg: #000000;
   --color-muted: #7C7C7C;
-  --color-surface: #ece5e8;
-  --color-border: #d8d0d4;
+  --color-surface: #eeeeee;
+  --color-border: #e0e0e0;
   --color-overlay: rgba(0,0,0,0.4);
 }
 
