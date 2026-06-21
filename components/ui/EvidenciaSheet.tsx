@@ -28,7 +28,7 @@ function PickerSheet({
   const title = kind === "diet" ? "Elige el bloque de comida" : "Elige la meta";
 
   return (
-    <Drawer.Root open={open} onOpenChange={(o) => !o && onClose()} shouldScaleBackground>
+    <Drawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/60 z-[90]" />
         <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[100] bg-[#0e0e0e] rounded-t-[26px] outline-none">
@@ -180,7 +180,7 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
 
   return (
     <>
-      <Drawer.Root open={open} onOpenChange={(o) => !o && onClose()} shouldScaleBackground>
+      <Drawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
           <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[#0e0e0e] rounded-t-[26px] outline-none">

@@ -13,7 +13,6 @@ export function Drawer({ open, onClose, children }: DrawerProps) {
     <VaulDrawer.Root
       open={open}
       onOpenChange={(o) => { if (!o) onClose(); }}
-      shouldScaleBackground
     >
       <VaulDrawer.Portal>
         <VaulDrawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />

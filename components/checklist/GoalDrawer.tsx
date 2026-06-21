@@ -47,7 +47,7 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
   }
 
   return (
-    <VaulDrawer.Root open={open} onOpenChange={(o) => !o && onClose()} shouldScaleBackground>
+    <VaulDrawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <VaulDrawer.Portal>
         <VaulDrawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
         <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] bg-[var(--color-bg-card)] rounded-t-[24px] outline-none">

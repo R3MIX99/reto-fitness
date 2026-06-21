@@ -121,7 +121,6 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
       <VaulDrawer.Root
         open={open}
         onOpenChange={(o) => !o && onClose()}
-        shouldScaleBackground
       >
         <VaulDrawer.Portal>
           <VaulDrawer.Overlay className="fixed inset-0 bg-black/60 z-[70]" />
