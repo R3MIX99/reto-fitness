@@ -221,6 +221,7 @@ function GrupoPageInner() {
         <EvidenciasCard
           pending={pending}
           onReview={() => router.push("/auditoria")}
+          onViewHistory={() => router.push("/mis-auditorias")}
         />
 
         {/* 3) Tabla de jugadores */}

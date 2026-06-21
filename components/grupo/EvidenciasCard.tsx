@@ -3,9 +3,10 @@ import { ClipboardList, CheckCircle2 } from "lucide-react";
 interface EvidenciasCardProps {
   pending: number;
   onReview: () => void;
+  onViewHistory: () => void;
 }
 
-export function EvidenciasCard({ pending, onReview }: EvidenciasCardProps) {
+export function EvidenciasCard({ pending, onReview, onViewHistory }: EvidenciasCardProps) {
   const hasPending = pending > 0;
 
   return (
@@ -36,7 +37,7 @@ export function EvidenciasCard({ pending, onReview }: EvidenciasCardProps) {
       </p>
 
       <button
-        onClick={onReview}
+        onClick={hasPending ? onReview : onViewHistory}
         className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium rounded-[12px] py-2.5 transition-opacity"
         style={{
           background: hasPending ? "#CF5C36" : "#1a1a1a",
