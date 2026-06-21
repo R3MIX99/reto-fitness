@@ -311,10 +311,10 @@ export default function AuditoriaPage() {
     {toast && (
       <div className="fixed bottom-[88px] left-4 right-4 z-[90] flex justify-center pointer-events-none">
         <div
-          className="flex items-center gap-2.5 rounded-full px-4 py-3 shadow-lg"
+          className="flex items-center gap-2.5 rounded-full px-4 py-3 shadow-xl"
           style={{
-            background: toast === "approved" ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-            border: toast === "approved" ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(239,68,68,0.4)",
+            background: toast === "approved" ? "#14532d" : "#450a0a",
+            border: toast === "approved" ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(239,68,68,0.5)",
           }}
         >
           {toast === "approved"
