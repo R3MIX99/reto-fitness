@@ -90,6 +90,11 @@ body {
   filter: blur(4px);
 }
 
+/* divide-y that respects the theme border color */
+.divide-border > * + * {
+  border-top: 1px solid var(--color-border);
+}
+
 @keyframes slide-up {
   from { transform: translateY(32px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }

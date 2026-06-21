@@ -220,7 +220,7 @@ export default function PerfilPage() {
         {(stats?.wonWeeks.length ?? 0) > 0 && (
           <>
             <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Títulos ganados</p>
-            <div className="mb-5 divide-y" style={{ borderColor: "var(--color-border)" }}>
+            <div className="mb-5 divide-border">
               {stats!.wonWeeks.map((w, i) => (
                 <div key={w.id} className="flex items-center gap-3 py-2.5">
                   <Trophy size={17} strokeWidth={1.5} className="text-warm flex-shrink-0" />
@@ -237,7 +237,7 @@ export default function PerfilPage() {
 
         {/* Ajustes */}
         <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Ajustes</p>
-        <div className="bg-[var(--color-bg-card)] rounded-[16px] px-4 divide-y mb-4" style={{ borderColor: "var(--color-border)" }}>
+        <div className="bg-[var(--color-bg-card)] rounded-[16px] px-4 divide-border mb-4">
           <div className="flex items-center gap-3 py-3">
             <span className="text-[13px] flex-1">Tema</span>
             <ThemeSwitch />
@@ -282,7 +282,7 @@ export default function PerfilPage() {
 
         {/* Cuenta */}
         <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Cuenta</p>
-        <div className="bg-[var(--color-bg-card)] rounded-[16px] px-4 divide-y" style={{ borderColor: "var(--color-border)" }}>
+        <div className="bg-[var(--color-bg-card)] rounded-[16px] px-4 divide-border">
           <div className="flex items-center gap-3 py-3">
             <ShieldCheck size={17} strokeWidth={1.5} className="text-warm" />
             <span className="text-[13px] flex-1">Seguridad y contraseña</span>

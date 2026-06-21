@@ -298,7 +298,7 @@ export function DietSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, 
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={orderedGoals.map((g) => g.id)} strategy={verticalListSortingStrategy}>
-                <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
+                <div className="divide-border">
                   {orderedGoals.map((goal) => {
                     const check = dietChecks.find((c) => c.goal_id === goal.id);
                     return (
@@ -422,7 +422,7 @@ export function GoalsSection({ goals, checks, onMark, onResubmit, onAdd, onEdit,
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={orderedGoals.map((g) => g.id)} strategy={verticalListSortingStrategy}>
-                <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
+                <div className="divide-border">
                   {orderedGoals.map((goal) => {
                     const check = goalChecks.find((c) => c.goal_id === goal.id);
                     return (
