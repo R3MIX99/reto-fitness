@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown, X } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown, X, RefreshCw } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -27,6 +27,7 @@ function SortableCheckItem({
   goal,
   check,
   onMark,
+  onResubmit,
   onEdit,
   onDetail,
   loading,
@@ -35,6 +36,7 @@ function SortableCheckItem({
   goal: Goal;
   check?: DailyCheck;
   onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
+  onResubmit?: (file: File) => Promise<void>;
   onEdit: () => void;
   onDetail: () => void;
   loading?: boolean;
@@ -55,6 +57,7 @@ function SortableCheckItem({
         goal={goal}
         check={check}
         onMark={onMark}
+        onResubmit={onResubmit}
         onEdit={onEdit}
         onDetail={onDetail}
         loading={loading}
@@ -70,12 +73,15 @@ function SortableCheckItem({
 interface GymSectionProps {
   check?: DailyCheck;
   onMark: (file: File) => void;
+  onResubmit?: (file: File) => Promise<void>;
   onDetail?: () => void;
   loading?: boolean;
 }
 
-export function GymSection({ check, onMark, onDetail, loading }: GymSectionProps) {
+export function GymSection({ check, onMark, onResubmit, onDetail, loading }: GymSectionProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const resubmitRef = useRef<HTMLInputElement>(null);
+  const [resubmitting, setResubmitting] = useState(false);
   const isDone = !!check;
   const isPending = check?.status === "pending";
   const isApproved = check?.status === "approved";
@@ -134,11 +140,21 @@ export function GymSection({ check, onMark, onDetail, loading }: GymSectionProps
             aprobado
           </span>
         )}
-        {isRejected && (
+        {isRejected && !onResubmit && (
           <span className="flex items-center gap-1 text-[10px] text-red-400 bg-[rgba(239,68,68,0.1)] rounded-full px-2.5 py-1">
             <X size={9} strokeWidth={2} />
             rechazado
           </span>
+        )}
+        {isRejected && onResubmit && (
+          <button
+            onClick={() => resubmitRef.current?.click()}
+            disabled={resubmitting}
+            className="flex-shrink-0 flex items-center gap-1.5 text-[var(--color-warm)] bg-[rgba(239,200,139,0.1)] border border-[var(--color-warm)]/30 text-[12px] font-medium rounded-full px-3.5 py-2 transition-opacity disabled:opacity-50"
+          >
+            <RefreshCw size={12} strokeWidth={1.5} />
+            {resubmitting ? "Subiendo…" : "Volver a subir"}
+          </button>
         )}
         {!isDone && (
           <button
@@ -152,6 +168,20 @@ export function GymSection({ check, onMark, onDetail, loading }: GymSectionProps
         )}
       </div>
 
+      <input
+        ref={resubmitRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file || !onResubmit) return;
+          e.target.value = "";
+          setResubmitting(true);
+          try { await onResubmit(file); } finally { setResubmitting(false); }
+        }}
+      />
       <input
         ref={inputRef}
         type="file"
@@ -173,6 +203,7 @@ interface DietSectionProps {
   goals: Goal[];
   checks: DailyCheck[];
   onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
+  onResubmit?: (check: DailyCheck, file: File) => Promise<void>;
   onAdd: () => void;
   onEdit: (goal: Goal) => void;
   onDetail: (goal: Goal, check: DailyCheck) => void;
@@ -180,7 +211,7 @@ interface DietSectionProps {
   loading?: boolean;
 }
 
-export function DietSection({ goals, checks, onMark, onAdd, onEdit, onDetail, onReorder, loading }: DietSectionProps) {
+export function DietSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, onDetail, onReorder, loading }: DietSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [localOrder, setLocalOrder] = useState<string[]>([]);
@@ -263,6 +294,7 @@ export function DietSection({ goals, checks, onMark, onAdd, onEdit, onDetail, on
                         goal={goal}
                         check={check}
                         onMark={onMark}
+                        onResubmit={check && onResubmit ? (file) => onResubmit(check, file) : undefined}
                         onEdit={() => onEdit(goal)}
                         onDetail={() => check && onDetail(goal, check)}
                         loading={loading}
@@ -296,6 +328,7 @@ interface GoalsSectionProps {
   goals: Goal[];
   checks: DailyCheck[];
   onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
+  onResubmit?: (check: DailyCheck, file: File) => Promise<void>;
   onAdd: () => void;
   onEdit: (goal: Goal) => void;
   onDetail: (goal: Goal, check: DailyCheck) => void;
@@ -303,7 +336,7 @@ interface GoalsSectionProps {
   loading?: boolean;
 }
 
-export function GoalsSection({ goals, checks, onMark, onAdd, onEdit, onDetail, onReorder, loading }: GoalsSectionProps) {
+export function GoalsSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, onDetail, onReorder, loading }: GoalsSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [localOrder, setLocalOrder] = useState<string[]>([]);
@@ -385,6 +418,7 @@ export function GoalsSection({ goals, checks, onMark, onAdd, onEdit, onDetail, o
                         goal={goal}
                         check={check}
                         onMark={onMark}
+                        onResubmit={check && onResubmit ? (file) => onResubmit(check, file) : undefined}
                         onEdit={() => onEdit(goal)}
                         onDetail={() => check && onDetail(goal, check)}
                         loading={loading}

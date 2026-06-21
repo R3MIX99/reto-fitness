@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Check, Clock, Pencil, ChevronsUpDown, X } from "lucide-react";
+import { Camera, Check, Clock, Pencil, ChevronsUpDown, X, RefreshCw } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
 
 interface CheckItemProps {
   goal: Goal;
   check?: DailyCheck;
   onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
+  onResubmit?: (file: File) => Promise<void>;
   onEdit?: () => void;
   onDetail?: () => void;
   loading?: boolean;
@@ -15,8 +16,9 @@ interface CheckItemProps {
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
-export function CheckItem({ goal, check, onMark, onEdit, onDetail, loading, reordering, dragHandleProps }: CheckItemProps) {
+export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, loading, reordering, dragHandleProps }: CheckItemProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const resubmitRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +38,21 @@ export function CheckItem({ goal, check, onMark, onEdit, onDetail, loading, reor
       await onMark(file, goal.kind, goal.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al subir");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleResubmitChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !onResubmit) return;
+    e.target.value = "";
+    setError(null);
+    setUploading(true);
+    try {
+      await onResubmit(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al resubir");
     } finally {
       setUploading(false);
     }
@@ -114,11 +131,21 @@ export function CheckItem({ goal, check, onMark, onEdit, onDetail, loading, reor
               aprobado
             </span>
           )}
-          {isRejected && (
+          {isRejected && !onResubmit && (
             <span className="flex items-center gap-1 text-[10px] text-red-400 bg-[rgba(239,68,68,0.1)] rounded-full px-2 py-0.5">
               <X size={9} strokeWidth={2} />
               rechazado
             </span>
+          )}
+          {isRejected && onResubmit && (
+            <button
+              onClick={() => resubmitRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-1 text-[10px] text-[var(--color-warm)] bg-[rgba(239,200,139,0.1)] border border-[var(--color-warm)]/30 rounded-full px-2.5 py-0.5 disabled:opacity-50"
+            >
+              <RefreshCw size={9} strokeWidth={1.5} />
+              {uploading ? "Subiendo…" : "Volver a subir"}
+            </button>
           )}
           {onEdit && (
             <button
@@ -147,6 +174,14 @@ export function CheckItem({ goal, check, onMark, onEdit, onDetail, loading, reor
         capture="environment"
         className="hidden"
         onChange={handleFileChange}
+      />
+      <input
+        ref={resubmitRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleResubmitChange}
       />
     </div>
   );

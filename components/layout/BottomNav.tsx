@@ -1,15 +1,16 @@
 "use client";
 
-import { Home, CheckSquare, Plus, Users } from "lucide-react";
+import { Home, CheckSquare, Plus, Users, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { EvidenciaSheet } from "@/components/ui/EvidenciaSheet";
 
 const NAV_LINKS = [
-  { href: "/dashboard",  Icon: Home,         label: "Inicio"    },
-  { href: "/checklist",  Icon: CheckSquare,  label: "Checklist" },
-  { href: "/grupo",      Icon: Users,         label: "Grupo"     },
+  { href: "/dashboard",       Icon: Home,          label: "Inicio"     },
+  { href: "/checklist",       Icon: CheckSquare,   label: "Checklist"  },
+  { href: "/mis-auditorias",  Icon: ClipboardList, label: "Auditorías" },
+  { href: "/grupo",           Icon: Users,         label: "Grupo"      },
 ] as const;
 
 const LEFT  = NAV_LINKS.slice(0, 2);

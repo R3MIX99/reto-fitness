@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Clock, X, Dumbbell, UtensilsCrossed, Target } from "lucide-react";
+import { useState, useRef } from "react";
+import { Check, Clock, X, Dumbbell, UtensilsCrossed, Target, RefreshCw } from "lucide-react";
 import {
   useGoals,
   useTodayChecks,
@@ -14,6 +14,7 @@ import {
   todayStr,
 } from "@/lib/hooks/useChecklist";
 import type { Goal, DailyCheck, GoalKind, CategoryView } from "@/lib/hooks/useChecklist";
+import { useResubmitCheck } from "@/lib/hooks/useMyAudits";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { StatsSection } from "@/components/checklist/StatsSection";
 import { GymSection, DietSection, GoalsSection } from "@/components/checklist/CheckSection";
@@ -24,6 +25,18 @@ import { CheckDetailDrawer } from "@/components/checklist/CheckDetailDrawer";
 
 const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+function isInCurrentWeek(dateStr: string): boolean {
+  const d = new Date(dateStr + "T12:00:00");
+  const now = new Date();
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
+  mon.setHours(0, 0, 0, 0);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  sun.setHours(23, 59, 59, 999);
+  return d >= mon && d <= sun;
+}
 
 function formatPastDate(dateStr: string): string {
   const d = new Date(dateStr + "T12:00:00");
@@ -51,11 +64,55 @@ function StatusBadge({ status }: { status?: string }) {
   );
 }
 
-function PastDayView({ dateStr, checks, goals }: { dateStr: string; checks: DailyCheck[]; goals: Goal[] }) {
+type ResubmitFn = (check: DailyCheck, file: File) => Promise<void>;
+
+function ResubmitButton({ check, onResubmit }: { check: DailyCheck; onResubmit: ResubmitFn }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        className="flex items-center gap-1 text-[11px] text-[var(--color-warm)] bg-[rgba(239,200,139,0.1)] border border-[var(--color-warm)]/30 rounded-full px-2.5 py-0.5 disabled:opacity-50"
+      >
+        <RefreshCw size={9} strokeWidth={1.5} />
+        {uploading ? "Subiendo…" : "Volver a subir"}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          e.target.value = "";
+          setUploading(true);
+          try { await onResubmit(check, file); } finally { setUploading(false); }
+        }}
+      />
+    </>
+  );
+}
+
+function PastDayView({
+  dateStr,
+  checks,
+  goals,
+  onResubmit,
+}: {
+  dateStr: string;
+  checks: DailyCheck[];
+  goals: Goal[];
+  onResubmit?: ResubmitFn;
+}) {
   const gymCheck = checks.find((c) => c.kind === "gym");
   const dietGoals = goals.filter((g) => g.kind === "diet");
   const goalGoals = goals.filter((g) => g.kind === "goal");
   const hasAnything = checks.length > 0 || goals.length > 0;
+  const canResubmit = !!onResubmit && isInCurrentWeek(dateStr);
 
   if (!hasAnything) {
     return (
@@ -74,7 +131,12 @@ function PastDayView({ dateStr, checks, goals }: { dateStr: string; checks: Dail
             <Dumbbell size={15} strokeWidth={1.5} className="text-accent" />
             <span className="text-[14px] font-medium">Gimnasio</span>
           </div>
-          <StatusBadge status={gymCheck?.status} />
+          <div className="flex items-center gap-2">
+            {canResubmit && gymCheck?.status === "rejected" && onResubmit && (
+              <ResubmitButton check={gymCheck} onResubmit={onResubmit} />
+            )}
+            <StatusBadge status={gymCheck?.status} />
+          </div>
         </div>
       </div>
 
@@ -90,7 +152,12 @@ function PastDayView({ dateStr, checks, goals }: { dateStr: string; checks: Dail
             return (
               <div key={g.id} className="flex items-center justify-between">
                 <span className="text-[13px] text-[var(--color-fg)]">{g.title}</span>
-                <StatusBadge status={check?.status} />
+                <div className="flex items-center gap-2">
+                  {canResubmit && check?.status === "rejected" && onResubmit && (
+                    <ResubmitButton check={check} onResubmit={onResubmit} />
+                  )}
+                  <StatusBadge status={check?.status} />
+                </div>
               </div>
             );
           })}
@@ -109,7 +176,12 @@ function PastDayView({ dateStr, checks, goals }: { dateStr: string; checks: Dail
             return (
               <div key={g.id} className="flex items-center justify-between">
                 <span className="text-[13px] text-[var(--color-fg)]">{g.title}</span>
-                <StatusBadge status={check?.status} />
+                <div className="flex items-center gap-2">
+                  {canResubmit && check?.status === "rejected" && onResubmit && (
+                    <ResubmitButton check={check} onResubmit={onResubmit} />
+                  )}
+                  <StatusBadge status={check?.status} />
+                </div>
               </div>
             );
           })}
@@ -130,6 +202,7 @@ export default function ChecklistPage() {
   const { data: monthChecks = [] } = useMonthChecks(groupId);
 
   const markCheck = useMarkCheck(groupId);
+  const resubmitCheck = useResubmitCheck();
   const upsertGoal = useUpsertGoal();
   const deleteGoal = useDeleteGoal();
   const reorderGoals = useReorderGoals();
@@ -174,6 +247,16 @@ export default function ChecklistPage() {
     await markCheck.mutateAsync({ file, kind, goalId });
   }
 
+  async function handleResubmit(check: DailyCheck, file: File): Promise<void> {
+    await resubmitCheck.mutateAsync({
+      checkId: check.id,
+      checkDate: check.check_date,
+      kind: check.kind,
+      goalId: check.goal_id,
+      file,
+    });
+  }
+
   const gymCheck = todayChecks.find((c) => c.kind === "gym");
 
   if (!groupId) {
@@ -210,6 +293,7 @@ export default function ChecklistPage() {
             <GymSection
               check={gymCheck}
               onMark={(file) => handleMark(file, "gym")}
+              onResubmit={gymCheck ? (file) => handleResubmit(gymCheck, file) : undefined}
               onDetail={() => gymCheck && openDetail(null, gymCheck)}
               loading={markCheck.isPending}
             />
@@ -219,6 +303,7 @@ export default function ChecklistPage() {
               goals={goals}
               checks={todayChecks}
               onMark={handleMark}
+              onResubmit={handleResubmit}
               onAdd={() => openAdd("diet")}
               onEdit={openEdit}
               onDetail={openDetail}
@@ -231,6 +316,7 @@ export default function ChecklistPage() {
               goals={goals}
               checks={todayChecks}
               onMark={handleMark}
+              onResubmit={handleResubmit}
               onAdd={() => openAdd("goal")}
               onEdit={openEdit}
               onDetail={openDetail}
@@ -252,7 +338,7 @@ export default function ChecklistPage() {
                 <div className="h-24 bg-[var(--color-bg-card)] rounded-[16px]" />
               </div>
             ) : (
-              <PastDayView dateStr={selectedDate!} checks={pastChecks} goals={goals} />
+              <PastDayView dateStr={selectedDate!} checks={pastChecks} goals={goals} onResubmit={handleResubmit} />
             )}
           </>
         )}
