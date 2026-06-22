@@ -166,8 +166,8 @@ export function PlayerCard({
               <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-2">
                 {isOwn ? "Toca un título para equiparlo" : "Logros en este grupo"}
               </p>
-              <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto no-scrollbar">
-                {data.wins.map((w: PlayerWin) => {
+              <div className="flex flex-col gap-1.5">
+                {data.wins.slice(0, 3).map((w: PlayerWin) => {
                   const isEquipped = data.equipped?.season_id === w.season_id;
                   return (
                     <button

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/lib/hooks/useUser";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useMyGroups, useLeaderboard, useProfileStats } from "@/lib/hooks/useGroups";
@@ -10,7 +11,7 @@ import { useRouter } from "next/navigation";
 import {
   LogOut, ChevronRight, ChevronLeft, Bell, BellOff, X,
   Trophy, Flame, Zap, Users, Copy, Check,
-  ShieldCheck, Pencil, Crown, Sparkles, Medal,
+  ShieldCheck, Pencil, Crown, Sparkles, Medal, SlidersHorizontal,
 } from "lucide-react";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { ThemeSwitch } from "@/components/ui/ThemeSwitch";
@@ -86,6 +87,85 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+// ── PreferencesDrawer ──────────────────────────────────────────────────────
+
+type GenderOption = "male" | "female" | "other";
+
+function PreferencesDrawer({
+  open,
+  currentGender,
+  onSave,
+  onClose,
+}: {
+  open: boolean;
+  currentGender: string | null;
+  onSave: (gender: GenderOption) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [gender, setGender] = useState<GenderOption>(
+    (currentGender as GenderOption) ?? "male"
+  );
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    await onSave(gender);
+    setSaving(false);
+    onClose();
+  }
+
+  const options: { value: GenderOption; label: string }[] = [
+    { value: "male",   label: "Masculino" },
+    { value: "female", label: "Femenino" },
+    { value: "other",  label: "Otro" },
+  ];
+
+  return (
+    <Drawer open={open} onClose={onClose}>
+      <div className="px-5 pb-10 pt-2">
+        <h2 className="font-display font-medium text-[17px] mb-1">Preferencias</h2>
+        <p className="text-[12px] text-[var(--color-muted)] mb-5">
+          Estas preferencias afectan cómo se muestran tus títulos y estadísticas.
+        </p>
+
+        <p className="text-[13px] font-medium mb-2.5">Género</p>
+        <div className="flex flex-col gap-2 mb-6">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setGender(opt.value)}
+              className="flex items-center gap-3 rounded-[14px] px-4 py-3 text-left transition-colors"
+              style={{
+                background: gender === opt.value ? "rgba(239,200,139,0.12)" : "var(--color-surface)",
+                border: `1px solid ${gender === opt.value ? "rgba(239,200,139,0.5)" : "var(--color-border)"}`,
+              }}
+            >
+              <div
+                className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center"
+                style={{
+                  border: `2px solid ${gender === opt.value ? "#EFC88B" : "var(--color-muted)"}`,
+                  background: gender === opt.value ? "#EFC88B" : "transparent",
+                }}
+              >
+                {gender === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-bg)]" />}
+              </div>
+              <span className="text-[14px]">{opt.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full bg-warm text-[#1a0f08] rounded-full py-3 text-[14px] font-medium disabled:opacity-50"
+        >
+          {saving ? "Guardando…" : "Guardar cambios"}
+        </button>
+      </div>
+    </Drawer>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function PerfilPage() {
@@ -96,6 +176,7 @@ export default function PerfilPage() {
   const { data: stats } = useProfileStats();
   const { data: myTitles = [] } = useMyTitles();
   const equip = useEquipTitle();
+  const qc = useQueryClient();
 
   // For position subtitle: use owned group leaderboard
   const ownedGroup = groups.find((g) => g.owner_id === user?.id) ?? groups[0] ?? null;
@@ -106,6 +187,7 @@ export default function PerfilPage() {
   const { state: pushState, loading: pushLoading, error: pushError, success: pushSuccess, subscribe } = usePushNotifications(groupId);
   const [showNotifHelp, setShowNotifHelp] = useState(false);
   const [showEditName, setShowEditName] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
   const [titleToast, setTitleToast] = useState(false);
 
   // Título equipado (para mostrarlo bajo el nombre)
@@ -122,6 +204,19 @@ export default function PerfilPage() {
         setTimeout(() => setTitleToast(false), 2000);
       },
     });
+  }
+
+  async function savePreferences(gender: "male" | "female" | "other") {
+    if (!user) return;
+    const supabase = createClient();
+    await supabase
+      .from("profiles")
+      .update({ gender } as never)
+      .eq("id", user.id);
+    await refetchProfile();
+    // Invalidar caches para que los títulos reflejen el género actualizado
+    qc.invalidateQueries({ queryKey: ["playerCard"] });
+    qc.invalidateQueries({ queryKey: ["myTitles"] });
   }
 
   async function saveName(name: string) {
@@ -357,6 +452,14 @@ export default function PerfilPage() {
               )}
             </div>
           )}
+          <button
+            onClick={() => setShowPreferences(true)}
+            className="w-full flex items-center gap-3 py-3 text-left"
+          >
+            <SlidersHorizontal size={17} strokeWidth={1.5} className="text-warm" />
+            <span className="text-[13px] flex-1">Preferencias</span>
+            <ChevronRight size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+          </button>
           <div className="flex items-center gap-3 py-3">
             <span className="text-[13px] flex-1">Idioma</span>
             <span className="text-[12px] text-[var(--color-muted)]">Español</span>
@@ -395,6 +498,14 @@ export default function PerfilPage() {
         current={displayName}
         onSave={saveName}
         onClose={() => setShowEditName(false)}
+      />
+
+      {/* Preferences drawer */}
+      <PreferencesDrawer
+        open={showPreferences}
+        currentGender={profile?.gender ?? null}
+        onSave={savePreferences}
+        onClose={() => setShowPreferences(false)}
       />
 
       {/* Notif help modal */}
