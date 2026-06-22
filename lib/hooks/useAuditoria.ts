@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
 import { notifyUser } from "@/lib/notify";
-import { fetchAuditableWindows } from "./useSeasons";
 
 export interface PendingCheck {
   id: string;
@@ -54,26 +53,18 @@ export function usePendingChecks(groupIds: string[]) {
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
       type GoalRow = { title: string };
 
-      // Ventana auditable por grupo (fase actual + fase anterior en gracia).
-      // Solo grupos con temporada en curso tienen ventana.
-      const windows = await fetchAuditableWindows(groupIds);
-      const auditableGroupIds = Object.keys(windows);
-      if (!auditableGroupIds.length) return [];
-
-      // Pending checks de esos grupos, excluyendo los propios.
+      // Las evidencias son independientes de si hay temporada o no:
+      // se muestran todos los checks pendientes de los grupos dados,
+      // excluyendo los propios del usuario.
       const { data: rawChecks } = await supabase
         .from("daily_checks")
         .select("id, user_id, kind, check_date, evidence_path, goal_id, group_id")
-        .in("group_id", auditableGroupIds)
+        .in("group_id", groupIds)
         .eq("status", "pending")
         .neq("user_id", user!.id)
         .order("check_date", { ascending: false }) as unknown as { data: CheckRow[] | null };
 
-      // Filtrar por la ventana de su propio grupo (cada temporada tiene fases distintas)
-      const checks = (rawChecks ?? []).filter((c) => {
-        const w = windows[c.group_id];
-        return w && c.check_date >= w.from && c.check_date <= w.to;
-      });
+      const checks = rawChecks ?? [];
 
       if (!checks.length) return [];
 

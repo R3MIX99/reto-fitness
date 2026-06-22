@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
-import { fetchAuditableWindows } from "./useSeasons";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -283,24 +282,16 @@ export function usePendingAudits(groupIds: string[]) {
       if (!groupIds.length || !user) return 0;
       const supabase = createClient();
 
-      // Solo cuentan los checks dentro de la ventana auditable de cada
-      // temporada en curso (fase actual + fase anterior en gracia).
-      const windows = await fetchAuditableWindows(groupIds);
-      const auditableGroupIds = Object.keys(windows);
-      if (!auditableGroupIds.length) return 0;
-
-      type Row = { group_id: string; check_date: string };
+      // Las evidencias son independientes de temporadas: se cuentan todos
+      // los checks pendientes del grupo, excluyendo los propios.
       const { data } = await supabase
         .from("daily_checks")
-        .select("group_id, check_date")
-        .in("group_id", auditableGroupIds)
+        .select("id")
+        .in("group_id", groupIds)
         .eq("status", "pending")
-        .neq("user_id", user.id) as unknown as { data: Row[] | null };
+        .neq("user_id", user.id) as unknown as { data: { id: string }[] | null };
 
-      return (data ?? []).filter((c) => {
-        const w = windows[c.group_id];
-        return w && c.check_date >= w.from && c.check_date <= w.to;
-      }).length;
+      return (data ?? []).length;
     },
   });
 }
