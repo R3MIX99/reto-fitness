@@ -14,10 +14,16 @@ export default function LoginPage() {
     setError(null);
     const supabase = createClient();
 
+    // Conserva el destino original (p. ej. la invitación a un grupo) a través
+    // del flujo de OAuth, para volver ahí en vez de al dashboard.
+    const next = new URLSearchParams(window.location.search).get("next");
+    const callbackUrl = new URL(`${location.origin}/auth/callback`);
+    if (next) callbackUrl.searchParams.set("next", next);
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${location.origin}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
       },
     });
 

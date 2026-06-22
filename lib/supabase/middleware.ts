@@ -35,7 +35,14 @@ export async function updateSession(request: NextRequest) {
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
+    // Preserva la ruta destino (p. ej. /grupo/unirse?code=XXX) para volver
+    // ahí después de iniciar sesión con Google.
+    const nextPath = request.nextUrl.pathname + request.nextUrl.search;
     url.pathname = "/login";
+    url.search = "";
+    if (nextPath && nextPath !== "/" && !nextPath.startsWith("/login")) {
+      url.searchParams.set("next", nextPath);
+    }
     return NextResponse.redirect(url);
   }
 
