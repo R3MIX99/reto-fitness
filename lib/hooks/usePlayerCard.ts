@@ -95,13 +95,10 @@ export async function fetchPlayerCard(userId: string, groupId: string): Promise<
           });
 
         // La victoria que cruzó el umbral legendario (3.ª victoria de campeonato)
-        // Ordenar asc por end_date; si hay empate usar season_number como desempate
+        // season_number es la fuente de verdad del orden cronológico dentro del grupo
         const champAsc = rawWins
           .filter((w) => w.rank === 1)
-          .sort((a, b) => {
-            const d = a.end_date.localeCompare(b.end_date);
-            return d !== 0 ? d : a.season_number - b.season_number;
-          });
+          .sort((a, b) => a.season_number - b.season_number);
         const legendUnlockId = champAsc.length >= 3 ? champAsc[2].season_id : null;
 
         wins = rawWins.map((w) => ({ ...w, is_legend_unlock: w.season_id === legendUnlockId }));
@@ -229,16 +226,14 @@ export function useMyTitles() {
         : { data: null };
       const groupNames = new Map((groups ?? []).map((g) => [g.id, g.name]));
 
-      const sorted = seasonList.sort((a, b) => b.end_date.localeCompare(a.end_date));
+      // Mostrar más recientes primero por season_number (fuente de verdad del orden)
+      const sorted = seasonList.sort((a, b) => b.season_number - a.season_number);
 
-      // La 3.ª victoria de campeonato (a nivel global) desbloquea el nivel legendario
-      // Desempate por season_number para que sea determinístico cuando end_date es igual
-      const champAscGlobal = sorted
+      // La 3.ª victoria de campeonato desbloquea el nivel legendario
+      // Usar season_number ascendente: es el orden cronológico definitivo
+      const champAscGlobal = [...seasonList]
         .filter((s) => rankBySeason.get(s.id) === 1)
-        .sort((a, b) => {
-          const d = a.end_date.localeCompare(b.end_date);
-          return d !== 0 ? d : a.season_number - b.season_number;
-        });
+        .sort((a, b) => a.season_number - b.season_number);
       const legendUnlockId = champAscGlobal.length >= 3 ? champAscGlobal[2].id : null;
 
       return sorted.map((s) => {
