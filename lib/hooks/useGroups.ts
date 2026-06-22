@@ -538,6 +538,114 @@ export function useGlobalLeaderboard(groupIds: string[]) {
   });
 }
 
+// ── Global leaderboard para los miembros de un grupo (sin temporada activa) ──
+// Toma los IDs de los miembros, suma sus puntos en TODOS sus grupos y deduplica
+// por fecha (el mejor score del día cuenta una sola vez).
+export function useGroupMembersGlobalLeaderboard(memberIds: string[]) {
+  const key = memberIds.slice().sort().join(",");
+  return useQuery({
+    queryKey: ["groupMembersGlobalLeaderboard", key],
+    enabled: memberIds.length > 0,
+    queryFn: async (): Promise<LeaderboardEntry[]> => {
+      if (!memberIds.length) return [];
+      const supabase = createClient();
+      type ScoreRow = { user_id: string; score_date: string; total_points: number | null };
+      type ProfileRow = { full_name: string | null; avatar_url: string | null };
+
+      const { data } = await supabase
+        .from("daily_scores")
+        .select("user_id, score_date, total_points")
+        .in("user_id", memberIds) as unknown as { data: ScoreRow[] | null };
+
+      // Deduplicar por (usuario, fecha) → tomar el máximo entre grupos
+      const perUserPerDate: Record<string, Record<string, number>> = {};
+      for (const row of data ?? []) {
+        const uid = row.user_id;
+        const date = row.score_date;
+        const pts = row.total_points ?? 0;
+        if (!perUserPerDate[uid]) perUserPerDate[uid] = {};
+        perUserPerDate[uid][date] = Math.max(perUserPerDate[uid][date] ?? 0, pts);
+      }
+
+      const totals: Record<string, number> = {};
+      for (const [uid, dates] of Object.entries(perUserPerDate)) {
+        totals[uid] = Object.values(dates).reduce((a, b) => a + b, 0);
+      }
+
+      const profiles = await Promise.all(
+        memberIds.map(async (uid) => {
+          const { data: p } = await supabase
+            .from("profiles")
+            .select("full_name, avatar_url")
+            .eq("id", uid)
+            .single() as unknown as { data: ProfileRow | null };
+          return { user_id: uid, full_name: p?.full_name ?? null, avatar_url: p?.avatar_url ?? null };
+        })
+      );
+
+      return profiles
+        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0 }))
+        .sort((a, b) => b.total_points - a.total_points)
+        .map((p, i) => ({ ...p, position: i + 1, is_leader: i === 0 }));
+    },
+  });
+}
+
+// ── Últimos 7 días globales para los miembros de un grupo (sin temporada) ────
+export function useGroupMembersGlobalLast7Days(memberIds: string[]) {
+  const key = memberIds.slice().sort().join(",");
+  return useQuery({
+    queryKey: ["groupMembersGlobalLast7Days", key],
+    enabled: memberIds.length > 0,
+    queryFn: async (): Promise<DailyScoreEntry[]> => {
+      if (!memberIds.length) return [];
+      const supabase = createClient();
+
+      const since = new Date();
+      since.setDate(since.getDate() - 6);
+      const sinceStr = since.toISOString().split("T")[0];
+
+      type ScoreRow = { user_id: string; score_date: string; total_points: number | null };
+
+      const { data } = await supabase
+        .from("daily_scores")
+        .select("user_id, score_date, total_points")
+        .in("user_id", memberIds)
+        .gte("score_date", sinceStr) as unknown as { data: ScoreRow[] | null };
+
+      // Deduplicar por (usuario, fecha)
+      const perUserPerDate: Record<string, Record<string, number>> = {};
+      for (const row of data ?? []) {
+        const uid = row.user_id;
+        const date = row.score_date;
+        const pts = row.total_points ?? 0;
+        if (!perUserPerDate[uid]) perUserPerDate[uid] = {};
+        perUserPerDate[uid][date] = Math.max(perUserPerDate[uid][date] ?? 0, pts);
+      }
+
+      const profiles: Record<string, string | null> = {};
+      await Promise.all(
+        memberIds.map(async (uid) => {
+          const { data: p } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", uid)
+            .single() as unknown as { data: { full_name: string | null } | null };
+          profiles[uid] = p?.full_name ?? null;
+        })
+      );
+
+      const rows: DailyScoreEntry[] = [];
+      for (const [uid, dates] of Object.entries(perUserPerDate)) {
+        for (const [date, pts] of Object.entries(dates)) {
+          rows.push({ user_id: uid, full_name: profiles[uid] ?? null, score_date: date, total_points: pts });
+        }
+      }
+      return rows.sort((a, b) => a.score_date.localeCompare(b.score_date));
+    },
+  });
+}
+
 export function useJoinGroup() {
   const qc = useQueryClient();
 

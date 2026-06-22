@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Users, Plus, Eye } from "lucide-react";
-import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits } from "@/lib/hooks/useGroups";
+import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits, useGroupMembersGlobalLeaderboard, useGroupMembersGlobalLast7Days } from "@/lib/hooks/useGroups";
 import { useUser } from "@/lib/hooks/useUser";
 import { GrupoCard } from "@/components/grupo/GrupoCard";
 import { EvidenciasCard } from "@/components/grupo/EvidenciasCard";
@@ -56,18 +56,24 @@ function GrupoPageInner() {
   const { data: leaderboard = [] } = useLeaderboard(activeGroup?.id ?? null);
   const { data: last7Raw = [] } = useLast7Days(activeGroup?.id ?? null);
   const groupIds = groups.map((g) => g.id);
+  const memberIds = (activeGroup?.members ?? []).map((m) => m.user_id);
   const { data: pending = 0 } = usePendingAudits(groupIds);
 
   // Temporada en curso del grupo activo
   const { data: season = null } = useActiveSeason(activeGroup?.id ?? null);
   const { data: seasonLeaderboard = [] } = useSeasonLeaderboard(season);
+
+  // Sin temporada → puntos globales de los miembros (todos sus grupos, deduplicado por fecha)
+  const { data: globalMemberLeaderboard = [] } = useGroupMembersGlobalLeaderboard(!season ? memberIds : []);
+  const { data: globalMemberLast7 = [] } = useGroupMembersGlobalLast7Days(!season ? memberIds : []);
   // Última temporada finalizada (podio) — solo se muestra si no hay una en curso
   const { data: finishedSeason = null } = useLatestFinishedSeason(activeGroup?.id ?? null);
 
-  // Ensure all members appear in the chart even with 0 scores
+  // Sin temporada: gráfica global; con temporada: datos del grupo
+  const last7Base = season ? last7Raw : globalMemberLast7;
   const last7 = (() => {
     const members = activeGroup?.members ?? [];
-    const usersInData = new Set(last7Raw.map((r) => r.user_id));
+    const usersInData = new Set(last7Base.map((r) => r.user_id));
     const synthetic = members
       .filter((m) => !usersInData.has(m.user_id))
       .map((m) => ({
@@ -76,10 +82,10 @@ function GrupoPageInner() {
         score_date: new Date().toISOString().split("T")[0],
         total_points: 0,
       }));
-    return [...last7Raw, ...synthetic];
+    return [...last7Base, ...synthetic];
   })();
 
-  // Merge real scores with all group members so everyone always appears
+  // Merge de scores del grupo con todos sus miembros (fallback cuando hay temporada sin inscritos)
   const effectiveLeaderboard = (() => {
     const members = activeGroup?.members ?? [];
     const scoreMap = Object.fromEntries(leaderboard.map((e) => [e.user_id, e.total_points]));
@@ -95,9 +101,10 @@ function GrupoPageInner() {
       .map((e, i) => ({ ...e, position: i + 1, is_leader: i === 0 }));
   })();
 
-  // Cuando hay temporada en curso, el leaderboard se filtra por ella.
-  // Si no, se muestra el acumulado histórico (comportamiento previo).
-  const displayLeaderboard = season ? seasonLeaderboard : effectiveLeaderboard;
+  // Sin temporada → global; con temporada y ya inscritos → por temporada; temporada programada → fallback
+  const displayLeaderboard = !season
+    ? (globalMemberLeaderboard.length > 0 ? globalMemberLeaderboard : effectiveLeaderboard)
+    : (seasonLeaderboard.length > 0 ? seasonLeaderboard : effectiveLeaderboard);
   const leaderEntry = displayLeaderboard[0];
 
   // Spectator: miembro del grupo pero NO inscrito en la temporada en curso
