@@ -51,6 +51,18 @@ const BADGE: Record<SeasonView, { label: string; color: string; bg: string }> = 
 export function SeasonHistory({ groupId }: { groupId: string }) {
   const { data: seasons = [] } = useSeasonHistory(groupId);
   const [open, setOpen] = useState(false);
+  // Acordeón: solo una temporada abierta a la vez
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  function toggleSeason(id: string) {
+    setExpandedId((prev) => (prev === id ? null : id));
+  }
+
+  // Cerrar acordeón al cerrar el drawer
+  function handleClose() {
+    setOpen(false);
+    setExpandedId(null);
+  }
 
   if (seasons.length === 0) return null;
 
@@ -69,12 +81,18 @@ export function SeasonHistory({ groupId }: { groupId: string }) {
         <ChevronRight size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
       </button>
 
-      <Drawer open={open} onClose={() => setOpen(false)}>
-        <div className="px-5 pb-8 pt-1">
-          <p className="font-display font-medium text-[18px] mb-4">Temporadas</p>
-          <div className="flex flex-col gap-2.5 max-h-[68dvh] overflow-y-auto no-scrollbar">
+      <Drawer open={open} onClose={handleClose}>
+        {/* El drawer ya tiene maxHeight 92dvh — este div hace el scroll */}
+        <div className="flex flex-col overflow-hidden" style={{ maxHeight: "calc(92dvh - 40px)" }}>
+          <p className="font-display font-medium text-[18px] px-5 pt-1 pb-4 flex-shrink-0">Temporadas</p>
+          <div className="flex flex-col gap-2.5 overflow-y-auto no-scrollbar px-5 pb-8">
             {seasons.map((s) => (
-              <SeasonRow key={s.id} season={s} />
+              <SeasonRow
+                key={s.id}
+                season={s}
+                expanded={expandedId === s.id}
+                onToggle={() => toggleSeason(s.id)}
+              />
             ))}
           </div>
         </div>
@@ -85,8 +103,7 @@ export function SeasonHistory({ groupId }: { groupId: string }) {
 
 // ── Fila de temporada (expandible) ────────────────────────────────────────────
 
-function SeasonRow({ season }: { season: Season }) {
-  const [expanded, setExpanded] = useState(false);
+function SeasonRow({ season, expanded, onToggle }: { season: Season; expanded: boolean; onToggle: () => void }) {
   const view = viewOf(season);
   const badge = BADGE[view];
   const expandable = view === "finished" || view === "cancelled";
@@ -94,7 +111,7 @@ function SeasonRow({ season }: { season: Season }) {
   return (
     <div className="rounded-[14px] border overflow-hidden" style={{ borderColor: "var(--color-border)" }}>
       <button
-        onClick={() => expandable && setExpanded((e) => !e)}
+        onClick={() => expandable && onToggle()}
         className="w-full flex items-center gap-3 px-3.5 py-3 text-left"
         disabled={!expandable}
       >
