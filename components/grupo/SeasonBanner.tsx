@@ -5,6 +5,7 @@ import { Trophy, Calendar, Clock, Flag, ChevronRight, Settings2, Pencil, Trash2,
 import { Drawer } from "@/components/ui/Drawer";
 import {
   useActiveSeason,
+  useSeasonHistory,
   useStartSeason,
   useUpdateScheduledSeason,
   useDeleteScheduledSeason,
@@ -14,6 +15,27 @@ import {
   DURATION_OPTIONS,
   type Season,
 } from "@/lib/hooks/useSeasons";
+
+// Número de display de una temporada: cuenta solo las no-canceladas en orden cronológico
+function useSeasonDisplayName(groupId: string, season: Season | null | undefined): string | null {
+  const { data: allSeasons = [] } = useSeasonHistory(groupId);
+  if (!season) return null;
+  if (season.status === "cancelled") return "Temporada cancelada";
+
+  let counter = 0;
+  const sorted = [...allSeasons].sort((a, b) => a.season_number - b.season_number);
+  for (const s of sorted) {
+    if (s.status !== "cancelled") {
+      counter++;
+      if (s.id === season.id) return `Temporada ${counter}`;
+    }
+  }
+  // Fallback si la temporada activa todavía no está en el historial (está en curso)
+  const cancelledBefore = sorted.filter(
+    (s) => s.status === "cancelled" && s.season_number < season.season_number
+  ).length;
+  return `Temporada ${season.season_number - cancelledBefore}`;
+}
 
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 function fmt(dateStr: string): string {
@@ -31,6 +53,7 @@ export function SeasonBanner({
   isOwner: boolean;
 }) {
   const { data: season, isLoading } = useActiveSeason(groupId);
+  const displayName = useSeasonDisplayName(groupId, season);
   const [startOpen, setStartOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
 
@@ -88,7 +111,7 @@ export function SeasonBanner({
             <Trophy size={17} strokeWidth={1.5} className="text-warm" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-medium truncate">{season.name}</p>
+            <p className="text-[14px] font-medium truncate">{displayName ?? season.name}</p>
             <p className="text-[12px] text-[var(--color-muted)] flex items-center gap-1.5">
               <Calendar size={11} strokeWidth={1.5} />
               {fmt(season.start_date)} – {fmt(season.end_date)}
@@ -148,6 +171,7 @@ export function SeasonBanner({
         <ManageSeasonDrawer
           open={manageOpen}
           season={season}
+          displayName={displayName ?? season.name}
           notStarted={notStarted}
           onClose={() => setManageOpen(false)}
         />
@@ -272,11 +296,13 @@ function StartSeasonDrawer({
 function ManageSeasonDrawer({
   open,
   season,
+  displayName,
   notStarted,
   onClose,
 }: {
   open: boolean;
   season: Season;
+  displayName: string;
   notStarted: boolean;
   onClose: () => void;
 }) {
@@ -344,7 +370,7 @@ function ManageSeasonDrawer({
     <Drawer open={open} onClose={close}>
       <div className="px-5 pb-8 pt-1">
         <p className="font-display font-medium text-[18px] mb-1">Gestionar temporada</p>
-        <p className="text-[12px] text-[var(--color-muted)] mb-4 truncate">{season.name}</p>
+        <p className="text-[12px] text-[var(--color-muted)] mb-4 truncate">{displayName}</p>
 
         {/* ── Temporada AÚN NO empieza: editar o cancelar programación ── */}
         {notStarted ? (
