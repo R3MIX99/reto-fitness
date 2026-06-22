@@ -166,7 +166,7 @@ export default function DashboardPage() {
     <div className="px-4 pt-2 pb-28 space-y-3">
 
       {/* Puntos del día */}
-      <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4">
+      <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4" data-tour="dash-points">
         <div className="flex justify-between items-baseline mb-1">
           <span className="text-[10.5px] text-[var(--color-muted)]">Puntos de hoy</span>
           <span className="text-[10.5px]" style={{ color: season ? "var(--color-warm)" : "var(--color-muted)" }}>

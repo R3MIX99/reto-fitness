@@ -57,6 +57,7 @@ export function BottomNav() {
               key={href}
               href={href}
               aria-label={label}
+              data-tour={href === "/mis-auditorias" ? "nav-audit" : undefined}
               className="relative flex flex-col items-center justify-center w-11 h-11 rounded-full transition-transform"
               style={{ transform: active ? "translateY(-4px)" : "none" }}
             >

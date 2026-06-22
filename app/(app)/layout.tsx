@@ -2,6 +2,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { Header } from "@/components/layout/Header";
 import { WelcomeSplash } from "@/components/ui/WelcomeSplash";
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
+import { GuidedTour } from "@/components/tour/GuidedTour";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,6 +25,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       />
 
       <BottomNav />
+
+      <GuidedTour />
     </div>
   );
 }

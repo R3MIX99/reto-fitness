@@ -272,14 +272,16 @@ export default function ChecklistPage() {
     <>
       <div className="px-4 pt-2 pb-28">
         {/* Stats */}
-        <StatsSection
-          checks={monthChecks}
-          dietTotal={goals.filter((g) => g.kind === "diet").length}
-          goalsTotal={goals.filter((g) => g.kind === "goal").length}
-          view={view}
-          onViewChange={setView}
-          onDaySelect={(dateStr) => setSelectedDate(dateStr)}
-        />
+        <div data-tour="checklist-stats">
+          <StatsSection
+            checks={monthChecks}
+            dietTotal={goals.filter((g) => g.kind === "diet").length}
+            goalsTotal={goals.filter((g) => g.kind === "goal").length}
+            view={view}
+            onViewChange={setView}
+            onDaySelect={(dateStr) => setSelectedDate(dateStr)}
+          />
+        </div>
 
         {/* Divider */}
         <div className="h-px my-4" style={{ background: "var(--color-border)" }} />
@@ -290,15 +292,18 @@ export default function ChecklistPage() {
             <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-3">Hoy</p>
 
             {/* Gym */}
-            <GymSection
-              check={gymCheck}
-              onMark={(file) => handleMark(file, "gym")}
-              onResubmit={gymCheck ? (file) => handleResubmit(gymCheck, file) : undefined}
-              onDetail={() => gymCheck && openDetail(null, gymCheck)}
-              loading={markCheck.isPending}
-            />
+            <div data-tour="gym-section">
+              <GymSection
+                check={gymCheck}
+                onMark={(file) => handleMark(file, "gym")}
+                onResubmit={gymCheck ? (file) => handleResubmit(gymCheck, file) : undefined}
+                onDetail={() => gymCheck && openDetail(null, gymCheck)}
+                loading={markCheck.isPending}
+              />
+            </div>
 
-            {/* Diet */}
+            {/* Diet + Goals */}
+            <div data-tour="goals-section">
             <DietSection
               goals={goals}
               checks={todayChecks}
@@ -323,6 +328,7 @@ export default function ChecklistPage() {
               onReorder={(ids) => reorderGoals.mutate(ids)}
               loading={markCheck.isPending}
             />
+            </div>
           </>
         ) : (
           <>

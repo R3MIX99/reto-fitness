@@ -172,6 +172,7 @@ function GrupoPageInner() {
       <div className="px-4 pb-28 pt-2">
         {/* 1) Tarjeta del grupo */}
         <div
+          data-tour="group-card"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           style={{
@@ -223,10 +224,12 @@ function GrupoPageInner() {
         )}
 
         {/* Banner de temporada */}
-        <SeasonBanner
-          groupId={activeGroup.id}
-          isOwner={activeGroup.owner_id === user?.id}
-        />
+        <div data-tour="season-banner">
+          <SeasonBanner
+            groupId={activeGroup.id}
+            isOwner={activeGroup.owner_id === user?.id}
+          />
+        </div>
 
         {/* Podio de la última temporada finalizada (si no hay una en curso) */}
         {!season && finishedSeason && <SeasonPodium result={finishedSeason} />}
