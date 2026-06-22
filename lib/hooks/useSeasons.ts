@@ -127,8 +127,12 @@ export function auditableWindow(season: Season | null): { from: string; to: stri
   return { from: localDateStr(from), to: localDateStr(to) };
 }
 
-// Mapa group_id → ventana auditable, para los grupos con temporada en curso.
-// Los grupos sin temporada activa/reviewing no aparecen (no hay nada que auditar).
+// Mapa group_id → ventana auditable.
+// - Grupo con temporada YA INICIADA (active+empezada, o reviewing): ventana por
+//   fase (fase actual + fase anterior en gracia).
+// - Grupo SIN temporada iniciada (sin temporada, o con una programada que aún
+//   no arranca): ventana GLOBAL (todos los pendientes), para poder revisarlos
+//   igual. Al iniciar la temporada vuelve a aplicar la ventana por fase.
 export async function fetchAuditableWindows(
   groupIds: string[]
 ): Promise<Record<string, { from: string; to: string }>> {
@@ -141,10 +145,23 @@ export async function fetchAuditableWindows(
     .in("status", ["active", "reviewing"]) as unknown as { data: Season[] | null };
 
   const out: Record<string, { from: string; to: string }> = {};
+  const covered = new Set<string>();
   for (const s of data ?? []) {
-    const w = auditableWindow(s);
-    if (w) out[s.group_id] = w;
+    const w = auditableWindow(s); // null si la temporada aún no empieza
+    if (w) {
+      out[s.group_id] = w;
+      covered.add(s.group_id);
+    }
   }
+
+  // Grupos sin temporada iniciada → ventana global (revisar todos los pendientes)
+  const today = localDateStr(todayLocal());
+  for (const gid of groupIds) {
+    if (!covered.has(gid)) {
+      out[gid] = { from: "1970-01-01", to: today };
+    }
+  }
+
   return out;
 }
 
