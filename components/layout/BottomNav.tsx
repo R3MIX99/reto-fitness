@@ -9,8 +9,8 @@ import { EvidenciaSheet } from "@/components/ui/EvidenciaSheet";
 const NAV_LINKS = [
   { href: "/dashboard",       Icon: Home,          label: "Inicio"     },
   { href: "/checklist",       Icon: CheckSquare,   label: "Checklist"  },
-  { href: "/mis-auditorias",  Icon: ClipboardList, label: "Auditorías" },
   { href: "/grupo",           Icon: Users,         label: "Grupo"      },
+  { href: "/mis-auditorias",  Icon: ClipboardList, label: "Auditorías" },
 ] as const;
 
 const LEFT  = NAV_LINKS.slice(0, 2);
