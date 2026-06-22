@@ -179,7 +179,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
       </div>
 
       {uploadError && (
-        <p className="mt-2 text-[11px] text-red-400">Error al subir. Toca "Reintentar" para intentarlo de nuevo.</p>
+        <p className="mt-2 text-[11px] text-red-400">Error al subir. Toca Reintentar para intentarlo de nuevo.</p>
       )}
 
       <input
