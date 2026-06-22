@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import {
   LogOut, ChevronRight, ChevronLeft, Bell, BellOff, X,
   Trophy, Flame, Zap, Users, Copy, Check,
-  ShieldCheck, Pencil,
+  ShieldCheck, Pencil, Crown, Sparkles, Medal,
 } from "lucide-react";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { ThemeSwitch } from "@/components/ui/ThemeSwitch";
@@ -21,6 +21,7 @@ import { Drawer } from "@/components/ui/Drawer";
 
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 const MESES_LARGOS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const MEDAL_COLORS: Record<number, string> = { 1: "#EFC88B", 2: "#C0C0C0", 3: "#CD7F32" };
 
 function formatWeekRange(start: string, end: string) {
   const s = new Date(start + "T12:00:00");
@@ -105,6 +106,22 @@ export default function PerfilPage() {
   const { state: pushState, loading: pushLoading, error: pushError, success: pushSuccess, subscribe } = usePushNotifications(groupId);
   const [showNotifHelp, setShowNotifHelp] = useState(false);
   const [showEditName, setShowEditName] = useState(false);
+  const [titleToast, setTitleToast] = useState(false);
+
+  // Título equipado (para mostrarlo bajo el nombre)
+  const championships = myTitles.filter((t) => t.rank === 1).length;
+  const equippedTitle = myTitles.find((t) => t.season_id === profile?.equipped_season_id) ?? null;
+  const equippedIsLegend = championships >= 3 && equippedTitle?.rank === 1;
+
+  function changeTitle(seasonId: string | null) {
+    equip.mutate(seasonId, {
+      onSuccess: () => {
+        refetchProfile();
+        setTitleToast(true);
+        setTimeout(() => setTitleToast(false), 2000);
+      },
+    });
+  }
 
   async function saveName(name: string) {
     if (!user) return;
@@ -147,6 +164,21 @@ export default function PerfilPage() {
             onUpload={uploadAvatar}
           />
           <div className="font-display font-medium text-[20px] mt-3">{displayName}</div>
+
+          {/* Título equipado */}
+          {equippedTitle && (
+            <span
+              className={`inline-flex items-center gap-1.5 text-[12px] font-medium rounded-full px-3 py-1 mt-2 ${equippedIsLegend ? "glow-pink" : ""}`}
+              style={{
+                color: equippedIsLegend ? "#fff" : equippedTitle.rank === 3 ? "#fff" : "#1a0f08",
+                background: equippedIsLegend ? "linear-gradient(90deg,#F472B6,#A78BFA)" : MEDAL_COLORS[equippedTitle.rank] ?? "#EFC88B",
+              }}
+            >
+              {equippedIsLegend ? <Sparkles size={12} strokeWidth={2} /> : equippedTitle.rank === 1 ? <Crown size={12} strokeWidth={2} /> : <Medal size={12} strokeWidth={2} />}
+              {equippedTitle.title}
+            </span>
+          )}
+
           {ownedGroup && (
             <div className="flex items-center gap-1.5 text-[12px] text-[var(--color-muted)] mt-1">
               {ownedGroup.name}
@@ -237,7 +269,7 @@ export default function PerfilPage() {
                   <button
                     key={t.season_id}
                     disabled={equip.isPending}
-                    onClick={() => equip.mutate(isEquipped ? null : t.season_id)}
+                    onClick={() => changeTitle(isEquipped ? null : t.season_id)}
                     className="flex items-center gap-3 rounded-[12px] px-3.5 py-3 text-left"
                     style={{
                       background: isEquipped ? "rgba(239,200,139,0.12)" : "var(--color-bg-card)",
@@ -338,6 +370,16 @@ export default function PerfilPage() {
           </button>
         </div>
       </div>
+
+      {/* Toast: título actualizado */}
+      {titleToast && (
+        <div className="fixed bottom-[88px] left-4 right-4 z-[90] flex justify-center pointer-events-none">
+          <div className="flex items-center gap-2.5 rounded-full px-4 py-3 shadow-xl" style={{ background: "#14532d", border: "1px solid rgba(34,197,94,0.5)" }}>
+            <Check size={14} strokeWidth={2} style={{ color: "#22c55e" }} className="flex-shrink-0" />
+            <p className="text-[13px] text-[var(--color-fg)]">Título actualizado</p>
+          </div>
+        </div>
+      )}
 
       {/* Edit name drawer */}
       <EditNameDrawer

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Trophy, X, Calendar, Check, Crown, Sparkles, Medal } from "lucide-react";
-import { usePlayerCard, useEquipTitle, type PlayerTier, type PlayerWin } from "@/lib/hooks/usePlayerCard";
+import { usePlayerCard, useEquipTitle, type PlayerWin } from "@/lib/hooks/usePlayerCard";
 
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 function fmt(dateStr: string | null): string {
@@ -15,12 +15,6 @@ function getInitials(name: string | null): string {
   if (!name) return "?";
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
-
-const RING: Record<PlayerTier, string> = {
-  none: "var(--color-border)",
-  champion: "#EFC88B",
-  legend: "#F472B6",
-};
 
 const MEDAL: Record<number, string> = { 1: "#EFC88B", 2: "#C0C0C0", 3: "#CD7F32" };
 
@@ -40,6 +34,7 @@ export function PlayerCard({
   const { data, isLoading } = usePlayerCard(userId, groupId, placeholder);
   const equip = useEquipTitle();
   const [visible, setVisible] = useState(false);
+  const [toast, setToast] = useState(false);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -50,10 +45,24 @@ export function PlayerCard({
     setTimeout(onClose, 200);
   }
 
+  function equipTitle(seasonId: string) {
+    equip.mutate(seasonId, {
+      onSuccess: () => {
+        setToast(true);
+        setTimeout(() => setToast(false), 1800);
+      },
+    });
+  }
+
   const isOwn = userId === currentUserId;
-  const tier: PlayerTier = data?.tier ?? "none";
-  const ringColor = RING[tier];
-  const legend = tier === "legend";
+  // El estilo (aro/chip/glow) refleja el TÍTULO EQUIPADO, no el rango global:
+  // rosa solo si muestra un campeonato siendo legendario; si equipa otro título,
+  // el aro vuelve a su color de medalla (o normal si no tiene título).
+  const equippedRank = data?.equipped?.rank ?? 0;
+  const legend = data?.tier === "legend" && equippedRank === 1;
+  const ringColor = data?.equipped
+    ? (legend ? "#F472B6" : MEDAL[equippedRank] ?? "#EFC88B")
+    : "var(--color-border)";
 
   return (
     <div
@@ -80,14 +89,14 @@ export function PlayerCard({
           <X size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
         </button>
 
-        {/* Banda superior (color según nivel) */}
+        {/* Banda superior (color según el título equipado) */}
         <div
           className="h-[88px] w-full"
           style={{
             background: legend
               ? "linear-gradient(135deg, rgba(244,114,182,0.35), rgba(167,139,250,0.25))"
-              : tier === "champion"
-              ? "linear-gradient(135deg, rgba(239,200,139,0.35), rgba(207,92,54,0.18))"
+              : equippedRank
+              ? `linear-gradient(135deg, ${MEDAL[equippedRank]}55, ${MEDAL[equippedRank]}18)`
               : "linear-gradient(135deg, var(--color-surface), var(--color-bg-card2))",
           }}
         />
@@ -97,7 +106,7 @@ export function PlayerCard({
           <div className="flex justify-center mb-3">
             <div
               className="rounded-full p-[3px]"
-              style={{ background: ringColor, boxShadow: legend ? "0 0 18px rgba(244,114,182,0.6)" : tier === "champion" ? "0 0 14px rgba(239,200,139,0.5)" : "none" }}
+              style={{ background: ringColor, boxShadow: legend ? "0 0 18px rgba(244,114,182,0.6)" : equippedRank === 1 ? "0 0 14px rgba(239,200,139,0.5)" : "none" }}
             >
               <div className="w-[84px] h-[84px] rounded-full overflow-hidden flex items-center justify-center" style={{ background: "var(--color-surface)", border: "3px solid var(--color-bg-card)" }}>
                 {data?.avatar_url ? (
@@ -163,7 +172,7 @@ export function PlayerCard({
                     <button
                       key={w.season_id}
                       disabled={!isOwn || equip.isPending}
-                      onClick={() => isOwn && equip.mutate(w.season_id)}
+                      onClick={() => isOwn && equipTitle(w.season_id)}
                       className="flex items-center gap-2.5 rounded-[12px] px-3 py-2.5 text-left disabled:cursor-default"
                       style={{
                         background: isEquipped ? "rgba(239,200,139,0.12)" : "var(--color-surface)",
@@ -191,6 +200,14 @@ export function PlayerCard({
             )
           )}
         </div>
+
+        {/* Toast dentro de la tarjeta */}
+        {toast && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full px-3.5 py-2 shadow-xl whitespace-nowrap" style={{ background: "#14532d", border: "1px solid rgba(34,197,94,0.5)" }}>
+            <Check size={13} strokeWidth={2} style={{ color: "#22c55e" }} />
+            <span className="text-[12px] text-[var(--color-fg)]">Título cambiado</span>
+          </div>
+        )}
       </div>
     </div>
   );
