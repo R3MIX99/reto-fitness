@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/lib/hooks/useUser";
 import { useProfile } from "@/lib/hooks/useProfile";
@@ -11,7 +11,8 @@ import { useRouter } from "next/navigation";
 import {
   LogOut, ChevronRight, ChevronLeft, Bell, BellOff, X,
   Trophy, Flame, Zap, Users, Copy, Check,
-  ShieldCheck, Pencil, Crown, Sparkles, Medal, SlidersHorizontal,
+  Pencil, Crown, Sparkles, Medal, SlidersHorizontal,
+  Globe, AlertTriangle, Trash2,
 } from "lucide-react";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { ThemeSwitch } from "@/components/ui/ThemeSwitch";
@@ -38,6 +39,11 @@ function formatWeekRange(start: string, end: string) {
 function EditNameDrawer({ open, current, onSave, onClose }: { open: boolean; current: string; onSave: (n: string) => Promise<void>; onClose: () => void }) {
   const [value, setValue] = useState(current);
   const [saving, setSaving] = useState(false);
+
+  // Sincronizar el valor cada vez que el drawer se abre para que muestre el nombre real
+  useEffect(() => {
+    if (open) setValue(current);
+  }, [open, current]);
 
   async function handleSave() {
     if (!value.trim() || value === current) { onClose(); return; }
@@ -84,6 +90,128 @@ function CopyButton({ text }: { text: string }) {
     <button onClick={handleCopy} className="text-warm flex-shrink-0">
       {copied ? <Check size={15} strokeWidth={2} className="text-accent" /> : <Copy size={15} strokeWidth={1.5} />}
     </button>
+  );
+}
+
+// ── LanguageDrawer ─────────────────────────────────────────────────────────
+
+function LanguageDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Drawer open={open} onClose={onClose}>
+      <div className="px-5 pb-10 pt-2">
+        <h2 className="font-display font-medium text-[17px] mb-5">Idioma</h2>
+
+        <div
+          className="flex items-center gap-3 rounded-[14px] px-4 py-3 mb-4"
+          style={{ background: "rgba(239,200,139,0.1)", border: "1px solid rgba(239,200,139,0.4)" }}
+        >
+          <div
+            className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center"
+            style={{ border: "2px solid #EFC88B", background: "#EFC88B" }}
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-bg)]" />
+          </div>
+          <span className="text-[14px] flex-1">Español</span>
+          <Check size={15} strokeWidth={2} className="text-warm flex-shrink-0" />
+        </div>
+
+        <div
+          className="flex items-start gap-2.5 rounded-[12px] px-3.5 py-3"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+        >
+          <Globe size={14} strokeWidth={1.5} className="text-[var(--color-muted)] flex-shrink-0 mt-0.5" />
+          <p className="text-[12px] text-[var(--color-muted)]">
+            Estamos desarrollando más idiomas para ti. Próximamente podrás elegir entre más opciones.
+          </p>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+// ── DeleteAccountDrawer ────────────────────────────────────────────────────
+
+function DeleteAccountDrawer({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => Promise<void> }) {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const canDelete = input.trim().toUpperCase() === "ELIMINAR";
+
+  useEffect(() => {
+    if (!open) { setInput(""); setError(null); }
+  }, [open]);
+
+  async function handleDelete() {
+    if (!canDelete) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await onConfirm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al eliminar la cuenta");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Drawer open={open} onClose={loading ? () => {} : onClose}>
+      <div className="px-5 pb-10 pt-2">
+        <div className="flex items-center gap-2.5 mb-3">
+          <AlertTriangle size={18} strokeWidth={1.5} style={{ color: "#ef4444" }} />
+          <h2 className="font-display font-medium text-[17px]" style={{ color: "#ef4444" }}>Eliminar cuenta</h2>
+        </div>
+
+        <div
+          className="rounded-[14px] p-4 mb-5"
+          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}
+        >
+          <p className="text-[13px] leading-relaxed" style={{ color: "#fca5a5" }}>
+            Esta acción es <strong>permanente e irreversible</strong>. Se eliminarán:
+          </p>
+          <ul className="mt-2 space-y-1">
+            {["Tu perfil y foto", "Tu historial de checks y evidencias", "Tus metas personales", "Tu membresía en todos los grupos"].map((item) => (
+              <li key={item} className="flex items-center gap-2 text-[12px]" style={{ color: "#fca5a5" }}>
+                <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: "#ef4444" }} />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="text-[13px] text-[var(--color-fg)] mb-2">
+          Escribe <strong>ELIMINAR</strong> para confirmar:
+        </p>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          disabled={loading}
+          placeholder="ELIMINAR"
+          className="w-full rounded-[14px] px-4 py-3 text-[15px] outline-none mb-4 disabled:opacity-50"
+          style={{
+            background: "var(--color-surface)",
+            border: `1px solid ${canDelete ? "rgba(239,68,68,0.6)" : "var(--color-border)"}`,
+            color: "var(--color-fg)",
+          }}
+        />
+
+        {error && (
+          <p className="text-[12px] text-red-400 mb-3">{error}</p>
+        )}
+
+        <button
+          onClick={handleDelete}
+          disabled={!canDelete || loading}
+          className="w-full rounded-full py-3 text-[14px] font-medium transition-opacity disabled:opacity-40"
+          style={{
+            background: canDelete ? "rgba(239,68,68,0.9)" : "var(--color-surface)",
+            color: canDelete ? "#fff" : "var(--color-muted)",
+            border: canDelete ? "none" : "1px solid var(--color-border)",
+          }}
+        >
+          {loading ? "Eliminando…" : "Eliminar mi cuenta para siempre"}
+        </button>
+      </div>
+    </Drawer>
   );
 }
 
@@ -188,6 +316,8 @@ export default function PerfilPage() {
   const [showNotifHelp, setShowNotifHelp] = useState(false);
   const [showEditName, setShowEditName] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [showLanguage, setShowLanguage] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [titleToast, setTitleToast] = useState(false);
 
   // Título equipado (para mostrarlo bajo el nombre)
@@ -230,6 +360,17 @@ export default function PerfilPage() {
   }
 
   async function handleSignOut() {
+    await signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
+  async function handleDeleteAccount() {
+    const res = await fetch("/api/user/delete", { method: "DELETE" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error ?? "Error al eliminar la cuenta");
+    }
     await signOut();
     router.push("/login");
     router.refresh();
@@ -460,24 +601,53 @@ export default function PerfilPage() {
             <span className="text-[13px] flex-1">Preferencias</span>
             <ChevronRight size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
           </button>
-          <div className="flex items-center gap-3 py-3">
+          <button
+            onClick={() => setShowLanguage(true)}
+            className="w-full flex items-center gap-3 py-3 text-left"
+          >
+            <Globe size={17} strokeWidth={1.5} className="text-[var(--color-muted)]" />
             <span className="text-[13px] flex-1">Idioma</span>
-            <span className="text-[12px] text-[var(--color-muted)]">Español</span>
+            <span className="text-[12px] text-[var(--color-muted)] mr-1">Español</span>
             <ChevronRight size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
-          </div>
+          </button>
         </div>
 
         {/* Cuenta */}
         <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Cuenta</p>
-        <div className="bg-[var(--color-bg-card)] rounded-[16px] px-4 divide-border">
+        <div className="bg-[var(--color-bg-card)] rounded-[16px] px-4 divide-border mb-4">
           <div className="flex items-center gap-3 py-3">
-            <ShieldCheck size={17} strokeWidth={1.5} className="text-warm" />
-            <span className="text-[13px] flex-1">Seguridad y contraseña</span>
-            <ChevronRight size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+            <div className="w-[17px] h-[17px] flex-shrink-0 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px]">Cuenta de Google</p>
+              <p className="text-[11px] text-[var(--color-muted)] truncate">{user?.email}</p>
+            </div>
           </div>
           <button onClick={handleSignOut} className="w-full flex items-center gap-3 py-3 text-left">
             <LogOut size={17} strokeWidth={1.5} className="text-accent" />
             <span className="text-[13px] text-accent">Cerrar sesión</span>
+          </button>
+        </div>
+
+        {/* Zona de peligro */}
+        <p className="text-[13px] mb-2.5" style={{ color: "#ef4444" }}>Zona de peligro</p>
+        <div className="rounded-[16px] px-4 mb-8" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
+          <button
+            onClick={() => setShowDeleteAccount(true)}
+            className="w-full flex items-center gap-3 py-3.5 text-left"
+          >
+            <Trash2 size={17} strokeWidth={1.5} style={{ color: "#ef4444" }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px]" style={{ color: "#ef4444" }}>Eliminar cuenta</p>
+              <p className="text-[11px] text-[var(--color-muted)]">Borra todos tus datos permanentemente</p>
+            </div>
+            <ChevronRight size={16} strokeWidth={1.5} style={{ color: "#ef4444" }} />
           </button>
         </div>
       </div>
@@ -506,6 +676,19 @@ export default function PerfilPage() {
         currentGender={profile?.gender ?? null}
         onSave={savePreferences}
         onClose={() => setShowPreferences(false)}
+      />
+
+      {/* Language drawer */}
+      <LanguageDrawer
+        open={showLanguage}
+        onClose={() => setShowLanguage(false)}
+      />
+
+      {/* Delete account drawer */}
+      <DeleteAccountDrawer
+        open={showDeleteAccount}
+        onClose={() => setShowDeleteAccount(false)}
+        onConfirm={handleDeleteAccount}
       />
 
       {/* Notif help modal */}
