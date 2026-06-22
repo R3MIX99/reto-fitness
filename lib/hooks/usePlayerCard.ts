@@ -13,8 +13,9 @@ export interface PlayerWin {
   season_number: number;
   season_name: string;
   end_date: string;
-  rank: number;  // 1, 2 o 3
-  title: string; // p. ej. "El más fuerte · Temp 1", "Subcampeón · Temp 1"
+  rank: number;           // 1, 2 o 3
+  title: string;          // p. ej. "El más fuerte · Temp 1", "Subcampeón · Temp 1"
+  is_legend_unlock: boolean; // true SOLO en la victoria que cruzó el umbral de 3 campeonatos
 }
 
 export interface PlayerCardData {
@@ -79,7 +80,7 @@ export async function fetchPlayerCard(userId: string, groupId: string): Promise<
           .in("season_id", seasonIds) as unknown as { data: StandingRow[] | null };
 
         const rankBySeason = new Map((standings ?? []).map((s) => [s.season_id, s.rank]));
-        wins = seasonList
+        const rawWins = seasonList
           .filter((s) => rankBySeason.has(s.id))
           .map((s) => {
             const rank = rankBySeason.get(s.id)!;
@@ -92,6 +93,14 @@ export async function fetchPlayerCard(userId: string, groupId: string): Promise<
               title: `${seasonTitle(rank, gender)} · Temp ${s.season_number}`,
             };
           });
+
+        // La victoria que cruzó el umbral legendario (3.ª victoria de campeonato)
+        const champAsc = rawWins
+          .filter((w) => w.rank === 1)
+          .sort((a, b) => a.end_date.localeCompare(b.end_date));
+        const legendUnlockId = champAsc.length >= 3 ? champAsc[2].season_id : null;
+
+        wins = rawWins.map((w) => ({ ...w, is_legend_unlock: w.season_id === legendUnlockId }));
       }
 
       // El nivel (oro/legendario) y el conteo de "títulos ganados" cuentan solo
@@ -216,21 +225,28 @@ export function useMyTitles() {
         : { data: null };
       const groupNames = new Map((groups ?? []).map((g) => [g.id, g.name]));
 
-      return seasonList
-        .sort((a, b) => b.end_date.localeCompare(a.end_date))
-        .map((s) => {
-          const rank = rankBySeason.get(s.id)!;
-          return {
-            season_id: s.id,
-            season_number: s.season_number,
-            season_name: s.name,
-            end_date: s.end_date,
-            rank,
-            title: `${seasonTitle(rank, gender)} · Temp ${s.season_number}`,
-            group_id: s.group_id,
-            group_name: groupNames.get(s.group_id) ?? "Grupo",
-          };
-        });
+      const sorted = seasonList.sort((a, b) => b.end_date.localeCompare(a.end_date));
+
+      // La 3.ª victoria de campeonato (a nivel global) desbloquea el nivel legendario
+      const champAscGlobal = sorted
+        .filter((s) => rankBySeason.get(s.id) === 1)
+        .sort((a, b) => a.end_date.localeCompare(b.end_date));
+      const legendUnlockId = champAscGlobal.length >= 3 ? champAscGlobal[2].id : null;
+
+      return sorted.map((s) => {
+        const rank = rankBySeason.get(s.id)!;
+        return {
+          season_id: s.id,
+          season_number: s.season_number,
+          season_name: s.name,
+          end_date: s.end_date,
+          rank,
+          title: `${seasonTitle(rank, gender)} · Temp ${s.season_number}`,
+          group_id: s.group_id,
+          group_name: groupNames.get(s.group_id) ?? "Grupo",
+          is_legend_unlock: s.id === legendUnlockId,
+        };
+      });
     },
   });
 }

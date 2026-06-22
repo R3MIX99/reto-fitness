@@ -175,16 +175,23 @@ export function PlayerCard({
                       onClick={() => isOwn && equipTitle(w.season_id)}
                       className="flex items-center gap-2.5 rounded-[12px] px-3 py-2.5 text-left disabled:cursor-default"
                       style={{
-                        background: isEquipped ? "rgba(239,200,139,0.12)" : "var(--color-surface)",
-                        border: `1px solid ${isEquipped ? "rgba(239,200,139,0.4)" : "var(--color-border)"}`,
+                        background: isEquipped
+                          ? (w.is_legend_unlock ? "rgba(244,114,182,0.1)" : "rgba(239,200,139,0.12)")
+                          : "var(--color-surface)",
+                        border: `1px solid ${
+                          w.is_legend_unlock
+                            ? isEquipped ? "rgba(244,114,182,0.6)" : "rgba(244,114,182,0.4)"
+                            : isEquipped ? "rgba(239,200,139,0.4)" : "var(--color-border)"
+                        }`,
+                        boxShadow: w.is_legend_unlock ? "0 0 8px rgba(244,114,182,0.2)" : undefined,
                       }}
                     >
-                      <Trophy size={14} strokeWidth={1.5} className="flex-shrink-0" style={{ color: MEDAL[w.rank] ?? "var(--color-warm)" }} />
+                      <Trophy size={14} strokeWidth={1.5} className="flex-shrink-0" style={{ color: w.is_legend_unlock ? "#F472B6" : (MEDAL[w.rank] ?? "var(--color-warm)") }} />
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-medium truncate">{w.title}</p>
-                        <p className="text-[11px] text-[var(--color-muted)]">{w.season_name} · {fmt(w.end_date)}</p>
+                        <p className="text-[11px]" style={{ color: w.is_legend_unlock ? "#F472B6" : "var(--color-muted)" }}>{w.season_name} · {fmt(w.end_date)}</p>
                       </div>
-                      {isEquipped && <Check size={15} strokeWidth={2} className="text-warm flex-shrink-0" />}
+                      {isEquipped && <Check size={15} strokeWidth={2} className="flex-shrink-0" style={{ color: w.is_legend_unlock ? "#F472B6" : "var(--color-warm)" }} />}
                     </button>
                   );
                 })}

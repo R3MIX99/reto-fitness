@@ -272,16 +272,23 @@ export default function PerfilPage() {
                     onClick={() => changeTitle(isEquipped ? null : t.season_id)}
                     className="flex items-center gap-3 rounded-[12px] px-3.5 py-3 text-left"
                     style={{
-                      background: isEquipped ? "rgba(239,200,139,0.12)" : "var(--color-bg-card)",
-                      border: `1px solid ${isEquipped ? "rgba(239,200,139,0.4)" : "var(--color-border)"}`,
+                      background: isEquipped
+                        ? (t.is_legend_unlock ? "rgba(244,114,182,0.1)" : "rgba(239,200,139,0.12)")
+                        : "var(--color-bg-card)",
+                      border: `1px solid ${
+                        t.is_legend_unlock
+                          ? isEquipped ? "rgba(244,114,182,0.6)" : "rgba(244,114,182,0.4)"
+                          : isEquipped ? "rgba(239,200,139,0.4)" : "var(--color-border)"
+                      }`,
+                      boxShadow: t.is_legend_unlock ? "0 0 10px rgba(244,114,182,0.2)" : undefined,
                     }}
                   >
-                    <Trophy size={16} strokeWidth={1.5} className="flex-shrink-0" style={{ color: ({ 1: "#EFC88B", 2: "#C0C0C0", 3: "#CD7F32" } as Record<number, string>)[t.rank] ?? "var(--color-warm)" }} />
+                    <Trophy size={16} strokeWidth={1.5} className="flex-shrink-0" style={{ color: t.is_legend_unlock ? "#F472B6" : (MEDAL_COLORS[t.rank] ?? "var(--color-warm)") }} />
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-medium truncate">{t.title}</p>
-                      <p className="text-[11px] text-[var(--color-muted)] truncate">{t.group_name}</p>
+                      <p className="text-[11px] truncate" style={{ color: t.is_legend_unlock ? "#F472B6" : "var(--color-muted)" }}>{t.group_name}</p>
                     </div>
-                    {isEquipped && <Check size={15} strokeWidth={2} className="text-warm flex-shrink-0" />}
+                    {isEquipped && <Check size={15} strokeWidth={2} className="flex-shrink-0" style={{ color: t.is_legend_unlock ? "#F472B6" : "var(--color-warm)" }} />}
                   </button>
                 );
               })}
