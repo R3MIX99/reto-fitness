@@ -57,7 +57,9 @@ function GrupoPageInner() {
   const { data: last7Raw = [] } = useLast7Days(activeGroup?.id ?? null);
   const groupIds = groups.map((g) => g.id);
   const memberIds = (activeGroup?.members ?? []).map((m) => m.user_id);
-  const { data: pending = 0 } = usePendingAudits(groupIds);
+  // Las evidencias por revisar son SIEMPRE del grupo activo que se está viendo,
+  // nunca de otros grupos (cada grupo tiene su propia auditoría aislada).
+  const { data: pending = 0 } = usePendingAudits(activeGroup ? [activeGroup.id] : []);
 
   // Temporada en curso del grupo activo
   const { data: season = null } = useActiveSeason(activeGroup?.id ?? null);
@@ -271,7 +273,7 @@ function GrupoPageInner() {
         {/* 2) Evidencias por revisar */}
         <EvidenciasCard
           pending={pending}
-          onReview={() => router.push("/auditoria")}
+          onReview={() => router.push(`/auditoria?group=${activeGroup.id}`)}
           onViewHistory={() => router.push("/mis-auditorias")}
         />
 

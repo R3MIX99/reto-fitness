@@ -1,10 +1,8 @@
 "use client";
 
-"use client";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, X, Check, Dumbbell, UtensilsCrossed, Target, ImageIcon } from "lucide-react";
 import { Drawer as VaulDrawer } from "vaul";
 import { createClient } from "@/lib/supabase/client";
@@ -82,14 +80,28 @@ function EvidenceImage({ path }: { path: string }) {
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function AuditoriaPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuditoriaInner />
+    </Suspense>
+  );
+}
+
+function AuditoriaInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useUser();
   const { data: groups = [] } = useMyGroups();
-  const groupIds = groups.map((g) => g.id);
+  // Si llega ?group=<id> la auditoría se limita a ese grupo (cada grupo es aislado).
+  // Sin el parámetro, cae al comportamiento previo (todos los grupos del usuario).
+  const groupParam = searchParams.get("group");
+  const scopedGroupIds = groupParam
+    ? [groupParam]
+    : groups.map((g) => g.id);
 
-  const { data: checks = [], isLoading } = usePendingChecks(groupIds);
+  const { data: checks = [], isLoading } = usePendingChecks(scopedGroupIds);
   const audit = useAuditCheck();
-  const autoApprove = useAutoApproveOldChecks(groupIds);
+  const autoApprove = useAutoApproveOldChecks(scopedGroupIds);
 
   const [auditedIds, setAuditedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<"approved" | "rejected" | null>(null);
@@ -98,9 +110,9 @@ export default function AuditoriaPage() {
 
   // Auto-approve pending checks from previous weeks on page open
   useEffect(() => {
-    if (groupIds.length) autoApprove.mutate();
+    if (scopedGroupIds.length) autoApprove.mutate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupIds.join(",")]);
+  }, [scopedGroupIds.join(",")]);
 
   // Filter out already-audited checks immediately (don't wait for refetch)
   const remaining = checks.filter((c) => !auditedIds.has(c.id));
