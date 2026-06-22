@@ -6,18 +6,22 @@ import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp } from
 import { useUser } from "@/lib/hooks/useUser";
 import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
 import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
+import { useActiveSeason, computePhase, type Season } from "@/lib/hooks/useSeasons";
 
 const TOTAL_PTS = 13;
 const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
 
-const DIAS_CORTOS = ["dom","lun","mar","mié","jue","vie","sáb"];
-function getNextSunday(): string {
-  const d = new Date();
-  const diff = d.getDay() === 0 ? 7 : 7 - d.getDay();
-  d.setDate(d.getDate() + diff);
-  const dia = String(d.getDate()).padStart(2, "0");
-  const mes = String(d.getMonth() + 1).padStart(2, "0");
-  return `${DIAS_CORTOS[d.getDay()]} ${dia}/${mes}`;
+const MESES_CORTOS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+function fmtDate(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00");
+  return `${d.getDate()} ${MESES_CORTOS[d.getMonth()]}`;
+}
+// Texto del badge según haya o no temporada
+function seasonBadge(season: Season | null): string {
+  if (!season) return "Sin temporada activa";
+  const phase = computePhase(season);
+  if (!phase.hasStarted) return `empieza ${fmtDate(season.start_date)}`;
+  return `termina ${fmtDate(season.end_date)}`;
 }
 
 // ── Avatar ─────────────────────────────────────────────────────────────────
@@ -106,6 +110,7 @@ export default function DashboardPage() {
   const { data: todayPts = 0 } = useTodayScore(groupId);
   const { data: streak = 0 } = useStreak(groupId);
   const { data: leaderboard = [] } = useGlobalLeaderboard(groupIds);
+  const { data: season = null } = useActiveSeason(groupId);
 
   // If no one has scored yet, show all unique members from all groups at 0 pts
   const allMembers = groups.flatMap((g) => g.members);
@@ -164,7 +169,9 @@ export default function DashboardPage() {
       <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4">
         <div className="flex justify-between items-baseline mb-1">
           <span className="text-[10.5px] text-[var(--color-muted)]">Puntos de hoy</span>
-          <span className="text-[10.5px] text-warm">cierra el {getNextSunday()}</span>
+          <span className="text-[10.5px]" style={{ color: season ? "var(--color-warm)" : "var(--color-muted)" }}>
+            {seasonBadge(season)}
+          </span>
         </div>
         <div className="font-display font-medium text-[30px] mb-2.5">
           {todayPts}<span className="text-[var(--color-muted)] text-[18px]"> / {TOTAL_PTS}</span>

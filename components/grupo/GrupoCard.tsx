@@ -5,7 +5,14 @@ import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle } from 
 import Link from "next/link";
 import type { GroupWithMembers } from "@/lib/hooks/useGroups";
 import { getInitials, useLeaveGroup } from "@/lib/hooks/useGroups";
+import { computePhase, type Season } from "@/lib/hooks/useSeasons";
 import Image from "next/image";
+
+const MESES_CORTOS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+function fmtDate(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00");
+  return `${d.getDate()} ${MESES_CORTOS[d.getMonth()]}`;
+}
 
 // ── Dropdown con slide-down ────────────────────────────────────────────────
 
@@ -84,15 +91,14 @@ function SwitchToast({ name, onDone }: { name: string; onDone: () => void }) {
 interface GrupoCardProps {
   group: GroupWithMembers;
   allGroups: GroupWithMembers[];
-  weekNumber: number;
-  closeDate: string;
+  season: Season | null;
   currentUserId: string;
   onInvite: () => void;
   onSwitchGroup: (id: string) => void;
   onLeft: () => void;
 }
 
-export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUserId, onInvite, onSwitchGroup, onLeft }: GrupoCardProps) {
+export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, onSwitchGroup, onLeft }: GrupoCardProps) {
   const [open, setOpen] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leftGroup, setLeftGroup] = useState<string | null>(null);
@@ -225,14 +231,40 @@ export function GrupoCard({ group, allGroups, weekNumber, closeDate, currentUser
           </div>
         </SlideDown>
 
-        {/* Chips */}
+        {/* Chips de temporada */}
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-[11px] text-[var(--color-muted)] rounded-full px-3 py-1" style={{ border: "1px solid var(--color-border)" }}>
-            Semana {weekNumber}
-          </span>
-          <span className="text-[11px] text-warm border border-warm/50 rounded-full px-3 py-1">
-            Cierra {closeDate}
-          </span>
+          {(() => {
+            if (!season) {
+              return (
+                <span className="text-[11px] text-[var(--color-muted)] rounded-full px-3 py-1" style={{ border: "1px solid var(--color-border)" }}>
+                  Sin temporada activa
+                </span>
+              );
+            }
+            const phase = computePhase(season);
+            if (!phase.hasStarted) {
+              return (
+                <>
+                  <span className="text-[11px] text-[var(--color-muted)] rounded-full px-3 py-1" style={{ border: "1px solid var(--color-border)" }}>
+                    Programada
+                  </span>
+                  <span className="text-[11px] text-warm border border-warm/50 rounded-full px-3 py-1">
+                    Empieza {fmtDate(season.start_date)}
+                  </span>
+                </>
+              );
+            }
+            return (
+              <>
+                <span className="text-[11px] text-[var(--color-muted)] rounded-full px-3 py-1" style={{ border: "1px solid var(--color-border)" }}>
+                  {season.status === "reviewing" ? "En revisión" : `Fase ${phase.currentPhase}/${phase.totalPhases}`}
+                </span>
+                <span className="text-[11px] text-warm border border-warm/50 rounded-full px-3 py-1">
+                  Termina {fmtDate(season.end_date)}
+                </span>
+              </>
+            );
+          })()}
         </div>
 
         {/* Botón invitar */}

@@ -16,21 +16,6 @@ import { SeasonPodium } from "@/components/grupo/SeasonPodium";
 import { SeasonHistory } from "@/components/grupo/SeasonHistory";
 import { useActiveSeason, useSeasonLeaderboard, useLatestFinishedSeason } from "@/lib/hooks/useSeasons";
 
-function getWeekNumber(): number {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  return Math.ceil(((now.getTime() - start.getTime()) / 86400000 + start.getDay() + 1) / 7);
-}
-
-function getNextSunday(): string {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = day === 0 ? 7 : 7 - day;
-  d.setDate(d.getDate() + diff);
-  const days = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
-  return `${days[d.getDay()]} ${d.getDate()}`;
-}
-
 function GrupoPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -204,8 +189,7 @@ function GrupoPageInner() {
           <GrupoCard
             group={activeGroup}
             allGroups={groups}
-            weekNumber={getWeekNumber()}
-            closeDate={getNextSunday()}
+            season={season}
             currentUserId={user?.id ?? ""}
             onInvite={() => setShowInvite(true)}
             onSwitchGroup={(id) => {
