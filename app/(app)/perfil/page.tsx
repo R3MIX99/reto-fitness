@@ -220,9 +220,16 @@ export default function PerfilPage() {
         </div>
 
         {/* Tu título (selector) */}
-        {myTitles.length > 0 && (
+        <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Tu título</p>
+        {myTitles.length === 0 ? (
+          <div className="mb-5 rounded-[14px] p-4 flex items-start gap-3" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+            <Trophy size={17} strokeWidth={1.5} className="text-[var(--color-muted)] flex-shrink-0 mt-0.5" />
+            <p className="text-[12px] text-[var(--color-muted)]">
+              Aún no tienes títulos. Gana una temporada para equipar tu título de campeón y mostrarlo en tu tarjeta.
+            </p>
+          </div>
+        ) : (
           <>
-            <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Tu título</p>
             <div className="mb-5 flex flex-col gap-1.5">
               {myTitles.map((t) => {
                 const isEquipped = profile?.equipped_season_id === t.season_id;

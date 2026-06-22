@@ -108,6 +108,7 @@ export function PlayerCard({
           {/* Nombre */}
           <p className="text-center font-display font-semibold text-[19px] mb-1.5">
             {isLoading ? "…" : data?.full_name ?? "Jugador"}
+            {isOwn && <span className="text-[13px] text-[var(--color-muted)] font-body font-normal"> (tú)</span>}
           </p>
 
           {/* Título equipado */}
@@ -176,7 +177,9 @@ export function PlayerCard({
           ) : (
             !isLoading && (
               <p className="text-center text-[12px] text-[var(--color-muted)] py-2">
-                Aún sin títulos en este grupo. ¡La próxima temporada puede ser la suya!
+                {isOwn
+                  ? "Aún no tienes títulos en este grupo. ¡Gana la temporada para conseguir el tuyo!"
+                  : "Aún sin títulos en este grupo. ¡La próxima temporada puede ser la suya!"}
               </p>
             )
           )}
