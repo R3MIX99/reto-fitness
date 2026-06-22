@@ -244,7 +244,7 @@ export default function PerfilPage() {
                       border: `1px solid ${isEquipped ? "rgba(239,200,139,0.4)" : "var(--color-border)"}`,
                     }}
                   >
-                    <Trophy size={16} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+                    <Trophy size={16} strokeWidth={1.5} className="flex-shrink-0" style={{ color: ({ 1: "#EFC88B", 2: "#C0C0C0", 3: "#CD7F32" } as Record<number, string>)[t.rank] ?? "var(--color-warm)" }} />
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-medium truncate">{t.title}</p>
                       <p className="text-[11px] text-[var(--color-muted)] truncate">{t.group_name}</p>

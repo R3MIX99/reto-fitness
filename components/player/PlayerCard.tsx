@@ -22,6 +22,8 @@ const RING: Record<PlayerTier, string> = {
   legend: "#F472B6",
 };
 
+const MEDAL: Record<number, string> = { 1: "#EFC88B", 2: "#C0C0C0", 3: "#CD7F32" };
+
 export function PlayerCard({
   userId,
   groupId,
@@ -163,7 +165,7 @@ export function PlayerCard({
                         border: `1px solid ${isEquipped ? "rgba(239,200,139,0.4)" : "var(--color-border)"}`,
                       }}
                     >
-                      <Trophy size={14} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+                      <Trophy size={14} strokeWidth={1.5} className="flex-shrink-0" style={{ color: MEDAL[w.rank] ?? "var(--color-warm)" }} />
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-medium truncate">{w.title}</p>
                         <p className="text-[11px] text-[var(--color-muted)]">{w.season_name} · {fmt(w.end_date)}</p>

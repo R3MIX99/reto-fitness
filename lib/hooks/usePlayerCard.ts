@@ -12,7 +12,8 @@ export interface PlayerWin {
   season_number: number;
   season_name: string;
   end_date: string;
-  title: string; // p. ej. "El más fuerte · Temp 1"
+  rank: number;  // 1, 2 o 3
+  title: string; // p. ej. "El más fuerte · Temp 1", "Subcampeón · Temp 1"
 }
 
 export interface PlayerCardData {
@@ -69,32 +70,39 @@ export function usePlayerCard(userId: string | null, groupId: string | null) {
 
       let wins: PlayerWin[] = [];
       if (seasonIds.length) {
-        type StandingRow = { season_id: string };
+        type StandingRow = { season_id: string; rank: number };
         const { data: standings } = await supabase
           .from("season_standings")
-          .select("season_id")
+          .select("season_id, rank")
           .eq("user_id", userId)
-          .eq("rank", 1)
+          .lte("rank", 3)
           .in("season_id", seasonIds) as unknown as { data: StandingRow[] | null };
 
-        const wonIds = new Set((standings ?? []).map((s) => s.season_id));
+        const rankBySeason = new Map((standings ?? []).map((s) => [s.season_id, s.rank]));
         wins = seasonList
-          .filter((s) => wonIds.has(s.id))
-          .map((s) => ({
-            season_id: s.id,
-            season_number: s.season_number,
-            season_name: s.name,
-            end_date: s.end_date,
-            title: `${seasonTitle(1, gender)} · Temp ${s.season_number}`,
-          }));
+          .filter((s) => rankBySeason.has(s.id))
+          .map((s) => {
+            const rank = rankBySeason.get(s.id)!;
+            return {
+              season_id: s.id,
+              season_number: s.season_number,
+              season_name: s.name,
+              end_date: s.end_date,
+              rank,
+              title: `${seasonTitle(rank, gender)} · Temp ${s.season_number}`,
+            };
+          });
       }
 
+      // El nivel (oro/legendario) y el conteo de "títulos ganados" cuentan solo
+      // los campeonatos (1°). Subcampeón/3° son títulos equipables, no campeonatos.
+      const championships = wins.filter((w) => w.rank === 1).length;
+      const tier: PlayerTier = championships >= 3 ? "legend" : championships >= 1 ? "champion" : "none";
       const winsCount = wins.length;
-      const tier: PlayerTier = winsCount >= 3 ? "legend" : winsCount >= 1 ? "champion" : "none";
 
       // Último campeón: ganó la temporada finalizada más reciente del grupo
       const latestSeason = seasonList[0]; // ya ordenado desc
-      const isLatestChampion = !!latestSeason && wins.some((w) => w.season_id === latestSeason.id);
+      const isLatestChampion = !!latestSeason && wins.some((w) => w.season_id === latestSeason.id && w.rank === 1);
 
       // Título equipado: el elegido si es de este grupo, si no el más reciente de este grupo
       const equipped =
@@ -138,14 +146,15 @@ export function useMyTitles() {
         .single() as unknown as { data: ProfileRow | null };
       const gender = profile?.gender ?? "unspecified";
 
-      type StandingRow = { season_id: string };
+      type StandingRow = { season_id: string; rank: number };
       const { data: standings } = await supabase
         .from("season_standings")
-        .select("season_id")
+        .select("season_id, rank")
         .eq("user_id", user!.id)
-        .eq("rank", 1) as unknown as { data: StandingRow[] | null };
+        .lte("rank", 3) as unknown as { data: StandingRow[] | null };
 
-      const ids = (standings ?? []).map((s) => s.season_id);
+      const rankBySeason = new Map((standings ?? []).map((s) => [s.season_id, s.rank]));
+      const ids = Array.from(rankBySeason.keys());
       if (!ids.length) return [];
 
       type SeasonRow = { id: string; name: string; season_number: number; end_date: string; group_id: string; status: string };
@@ -165,15 +174,19 @@ export function useMyTitles() {
 
       return seasonList
         .sort((a, b) => b.end_date.localeCompare(a.end_date))
-        .map((s) => ({
-          season_id: s.id,
-          season_number: s.season_number,
-          season_name: s.name,
-          end_date: s.end_date,
-          title: `${seasonTitle(1, gender)} · Temp ${s.season_number}`,
-          group_id: s.group_id,
-          group_name: groupNames.get(s.group_id) ?? "Grupo",
-        }));
+        .map((s) => {
+          const rank = rankBySeason.get(s.id)!;
+          return {
+            season_id: s.id,
+            season_number: s.season_number,
+            season_name: s.name,
+            end_date: s.end_date,
+            rank,
+            title: `${seasonTitle(rank, gender)} · Temp ${s.season_number}`,
+            group_id: s.group_id,
+            group_name: groupNames.get(s.group_id) ?? "Grupo",
+          };
+        });
     },
   });
 }
