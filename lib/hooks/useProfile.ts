@@ -68,7 +68,39 @@ export function useProfile() {
     return urlWithBust;
   }
 
-  return { profile, avatarUrl, displayName, loading, uploadAvatar, refetch: fetchProfile };
+  // Guarda los datos del onboarding y lo marca como completado
+  async function completeOnboarding(data: { full_name: string; gender: string }): Promise<void> {
+    if (!user) throw new Error("Sin sesión");
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: data.full_name, gender: data.gender, onboarded: true } as unknown as never)
+      .eq("id", user.id) as unknown as { error: { message: string } | null };
+    if (error) throw new Error(error.message);
+    setProfile((prev) => prev ? { ...prev, ...data, onboarded: true } : prev);
+  }
+
+  // Marca la guía interactiva como completada (o saltada)
+  async function completeTour(): Promise<void> {
+    if (!user) return;
+    const supabase = createClient();
+    await supabase
+      .from("profiles")
+      .update({ tour_completed: true } as unknown as never)
+      .eq("id", user.id);
+    setProfile((prev) => prev ? { ...prev, tour_completed: true } : prev);
+  }
+
+  return {
+    profile,
+    avatarUrl,
+    displayName,
+    loading,
+    uploadAvatar,
+    completeOnboarding,
+    completeTour,
+    refetch: fetchProfile,
+  };
 }
 
 // Comprime la imagen a máximo `maxSize` px en el lado más largo
