@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useMyGroups, useLeaderboard, useProfileStats } from "@/lib/hooks/useGroups";
+import { useMyTitles, useEquipTitle } from "@/lib/hooks/usePlayerCard";
 import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
 import { useRouter } from "next/navigation";
 import {
@@ -89,9 +90,11 @@ function CopyButton({ text }: { text: string }) {
 export default function PerfilPage() {
   const router = useRouter();
   const { user, signOut } = useUser();
-  const { avatarUrl, displayName, uploadAvatar, refetch: refetchProfile } = useProfile();
+  const { profile, avatarUrl, displayName, uploadAvatar, refetch: refetchProfile } = useProfile();
   const { data: groups = [] } = useMyGroups();
   const { data: stats } = useProfileStats();
+  const { data: myTitles = [] } = useMyTitles();
+  const equip = useEquipTitle();
 
   // For position subtitle: use owned group leaderboard
   const ownedGroup = groups.find((g) => g.owner_id === user?.id) ?? groups[0] ?? null;
@@ -215,6 +218,40 @@ export default function PerfilPage() {
             );
           })}
         </div>
+
+        {/* Tu título (selector) */}
+        {myTitles.length > 0 && (
+          <>
+            <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Tu título</p>
+            <div className="mb-5 flex flex-col gap-1.5">
+              {myTitles.map((t) => {
+                const isEquipped = profile?.equipped_season_id === t.season_id;
+                return (
+                  <button
+                    key={t.season_id}
+                    disabled={equip.isPending}
+                    onClick={() => equip.mutate(isEquipped ? null : t.season_id)}
+                    className="flex items-center gap-3 rounded-[12px] px-3.5 py-3 text-left"
+                    style={{
+                      background: isEquipped ? "rgba(239,200,139,0.12)" : "var(--color-bg-card)",
+                      border: `1px solid ${isEquipped ? "rgba(239,200,139,0.4)" : "var(--color-border)"}`,
+                    }}
+                  >
+                    <Trophy size={16} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium truncate">{t.title}</p>
+                      <p className="text-[11px] text-[var(--color-muted)] truncate">{t.group_name}</p>
+                    </div>
+                    {isEquipped && <Check size={15} strokeWidth={2} className="text-warm flex-shrink-0" />}
+                  </button>
+                );
+              })}
+              <p className="text-[11px] text-[var(--color-muted)] mt-1">
+                Toca tu título para mostrarlo u ocultarlo en tu tarjeta.
+              </p>
+            </div>
+          </>
+        )}
 
         {/* Títulos ganados */}
         {(stats?.wonWeeks.length ?? 0) > 0 && (
