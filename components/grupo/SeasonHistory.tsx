@@ -116,7 +116,9 @@ function SeasonRow({ season, expanded, onToggle }: { season: Season; expanded: b
         disabled={!expandable}
       >
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-medium truncate">{season.name}</p>
+          <p className="text-[14px] font-medium truncate">
+            {view === "cancelled" ? "Temporada cancelada" : season.name}
+          </p>
           <p className="text-[12px] text-[var(--color-muted)]">
             {fmt(season.start_date)} – {fmt(season.end_date)} · {durationLabel(season.duration_weeks)}
           </p>
