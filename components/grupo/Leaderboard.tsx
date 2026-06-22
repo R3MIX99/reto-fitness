@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Flame, ChevronDown, Trophy } from "lucide-react";
+import { Flame, ChevronDown, Trophy, Crown } from "lucide-react";
 import Image from "next/image";
 import { getInitials } from "@/lib/hooks/useGroups";
 import type { LeaderboardEntry } from "@/lib/hooks/useGroups";
@@ -11,11 +11,13 @@ const POSITION_LABELS: Record<number, string> = { 1: "1ero", 2: "2do", 3: "3ero"
 interface LeaderboardProps {
   entries: LeaderboardEntry[];
   currentUserId: string;
+  championUserId?: string | null;
   onPlayerClick?: (userId: string) => void;
 }
 
-function PlayerRow({ entry, currentUserId, onPlayerClick }: { entry: LeaderboardEntry; currentUserId: string; onPlayerClick?: (userId: string) => void }) {
+function PlayerRow({ entry, currentUserId, championUserId, onPlayerClick }: { entry: LeaderboardEntry; currentUserId: string; championUserId?: string | null; onPlayerClick?: (userId: string) => void }) {
   const isMe = entry.user_id === currentUserId;
+  const isChampion = !!championUserId && entry.user_id === championUserId;
   const label = POSITION_LABELS[entry.position] ?? `${entry.position}to`;
   const isTop = entry.position === 1;
 
@@ -39,9 +41,10 @@ function PlayerRow({ entry, currentUserId, onPlayerClick }: { entry: Leaderboard
 
       {/* Name */}
       <div className="flex-1 flex items-center gap-1.5 min-w-0">
-        <span className={`text-[13px] truncate ${isMe ? "font-medium" : ""}`}>
+        <span className={`text-[13px] truncate ${isMe || isChampion ? "font-medium" : ""} ${isChampion ? "text-champion" : ""}`}>
           {entry.full_name ?? "Usuario"}
         </span>
+        {isChampion && <Crown size={13} strokeWidth={1.5} className="text-warm flex-shrink-0" fill="#EFC88B" />}
         {isTop && <Flame size={13} strokeWidth={1.5} className="text-accent flex-shrink-0" fill="#CF5C36" />}
       </div>
 
@@ -61,7 +64,7 @@ function PlayerRow({ entry, currentUserId, onPlayerClick }: { entry: Leaderboard
   );
 }
 
-export function Leaderboard({ entries, currentUserId, onPlayerClick }: LeaderboardProps) {
+export function Leaderboard({ entries, currentUserId, championUserId, onPlayerClick }: LeaderboardProps) {
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? entries : entries.slice(0, 3);
 
@@ -75,11 +78,11 @@ export function Leaderboard({ entries, currentUserId, onPlayerClick }: Leaderboa
       <div className="relative">
         <div style={{ maxHeight: expanded ? "none" : 172, overflow: "hidden" }}>
           {shown.map((e) => (
-            <PlayerRow key={e.user_id} entry={e} currentUserId={currentUserId} onPlayerClick={onPlayerClick} />
+            <PlayerRow key={e.user_id} entry={e} currentUserId={currentUserId} championUserId={championUserId} onPlayerClick={onPlayerClick} />
           ))}
           {/* 4th row peek when collapsed */}
           {!expanded && entries.length > 3 && (
-            <PlayerRow entry={entries[3]} currentUserId={currentUserId} onPlayerClick={onPlayerClick} />
+            <PlayerRow entry={entries[3]} currentUserId={currentUserId} championUserId={championUserId} onPlayerClick={onPlayerClick} />
           )}
         </div>
 

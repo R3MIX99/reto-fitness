@@ -130,6 +130,12 @@ body {
 }
 .glow-pink { animation: glow-pink 2s ease-in-out infinite; }
 
+/* Nombre del campeón actual: dorado con brillo */
+.text-champion {
+  color: #EFC88B;
+  text-shadow: 0 0 8px rgba(239,200,139,0.55);
+}
+
 /* Tarjeta ganadora: entrada (pop) + glow continuo en una sola declaración,
    para que el glow no pise la animación de entrada. El glow arranca tras el pop. */
 .animate-card-pop.glow-gold {

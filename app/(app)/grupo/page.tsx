@@ -107,6 +107,9 @@ function GrupoPageInner() {
     !!user &&
     !seasonLeaderboard.some((e) => e.user_id === user.id);
 
+  // Campeón actual = ganador de la última temporada finalizada del grupo
+  const championUserId = finishedSeason?.standings.find((s) => s.rank === 1)?.user_id ?? null;
+
   // No groups state
   if (!isLoading && groups.length === 0) {
     return (
@@ -259,7 +262,7 @@ function GrupoPageInner() {
         )}
 
         {/* 3) Tabla de jugadores */}
-        <Leaderboard entries={displayLeaderboard} currentUserId={user?.id ?? ""} onPlayerClick={setCardUserId} />
+        <Leaderboard entries={displayLeaderboard} currentUserId={user?.id ?? ""} championUserId={championUserId} onPlayerClick={setCardUserId} />
 
         {/* 4) Comparativa */}
         {last7.length > 0 && (
