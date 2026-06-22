@@ -317,36 +317,6 @@ export default function PerfilPage() {
           Editar perfil
         </button>
 
-        {/* Mis grupos */}
-        <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Mis grupos</p>
-        <div className="space-y-2.5 mb-5">
-          {groups.map((g) => {
-            const isOwner = g.owner_id === user?.id;
-            return (
-              <div key={g.id} className="bg-[var(--color-bg-card)] rounded-[16px] px-4 py-3.5">
-                <div className="flex items-center gap-3">
-                  <div className="w-[30px] h-[30px] rounded-[10px] bg-warm/20 flex items-center justify-center flex-shrink-0">
-                    <Users size={16} strokeWidth={1.5} className="text-warm" />
-                  </div>
-                  <div className="flex-1 leading-snug min-w-0">
-                    <p className="text-[13px] truncate">{g.name}</p>
-                    <p className="text-[11px] text-[var(--color-muted)]">{g.members.length} {g.members.length === 1 ? "miembro" : "miembros"}</p>
-                  </div>
-                  <span className="text-[10px] text-warm border border-warm/50 rounded-full px-2.5 py-0.5 flex-shrink-0">
-                    {isOwner ? "Dueño" : "Miembro"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
-                  <span className="text-[11px] text-[var(--color-muted)]">Código de invitación</span>
-                  <span className="flex-1" />
-                  <span className="text-[12px] font-medium tracking-wider">{g.invite_code.toUpperCase()}</span>
-                  <CopyButton text={g.invite_code} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
         {/* Tu título (selector) */}
         <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Tu título</p>
         {myTitles.length === 0 ? (
@@ -394,6 +364,36 @@ export default function PerfilPage() {
             </div>
           </>
         )}
+
+        {/* Mis grupos */}
+        <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Mis grupos</p>
+        <div className="space-y-2.5 mb-5">
+          {groups.map((g) => {
+            const isOwner = g.owner_id === user?.id;
+            return (
+              <div key={g.id} className="bg-[var(--color-bg-card)] rounded-[16px] px-4 py-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="w-[30px] h-[30px] rounded-[10px] bg-warm/20 flex items-center justify-center flex-shrink-0">
+                    <Users size={16} strokeWidth={1.5} className="text-warm" />
+                  </div>
+                  <div className="flex-1 leading-snug min-w-0">
+                    <p className="text-[13px] truncate">{g.name}</p>
+                    <p className="text-[11px] text-[var(--color-muted)]">{g.members.length} {g.members.length === 1 ? "miembro" : "miembros"}</p>
+                  </div>
+                  <span className="text-[10px] text-warm border border-warm/50 rounded-full px-2.5 py-0.5 flex-shrink-0">
+                    {isOwner ? "Dueño" : "Miembro"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
+                  <span className="text-[11px] text-[var(--color-muted)]">Código de invitación</span>
+                  <span className="flex-1" />
+                  <span className="text-[12px] font-medium tracking-wider">{g.invite_code.toUpperCase()}</span>
+                  <CopyButton text={g.invite_code} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
         {/* Títulos ganados */}
         {(stats?.wonWeeks.length ?? 0) > 0 && (
