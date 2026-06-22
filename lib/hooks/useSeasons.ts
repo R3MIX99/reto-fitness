@@ -339,11 +339,19 @@ export function useStartSeason() {
         p_name: name ?? null,
       });
       if (error) throw new Error(error.message);
-      return data as string;
+      const seasonId = data as string;
+      // Push a los miembros (best-effort); el in-app lo hace el RPC
+      fetch("/api/seasons/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seasonId, event: "start" }),
+      }).catch(() => {});
+      return seasonId;
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["activeSeason", vars.groupId] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
+      qc.invalidateQueries({ queryKey: ["seasonHistory", vars.groupId] });
     },
   });
 }
@@ -387,6 +395,12 @@ export function useDeleteScheduledSeason() {
   return useMutation({
     mutationFn: async ({ seasonId }: { seasonId: string; groupId: string }): Promise<void> => {
       const supabase = createClient();
+      // Push ANTES de borrar (después la temporada y sus miembros ya no existen)
+      await fetch("/api/seasons/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seasonId, event: "scheduled_cancelled" }),
+      }).catch(() => {});
       const { error } = await (supabase.rpc as Function)("delete_scheduled_season", {
         p_season_id: seasonId,
       });
@@ -394,6 +408,7 @@ export function useDeleteScheduledSeason() {
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["activeSeason", vars.groupId] });
+      qc.invalidateQueries({ queryKey: ["seasonHistory", vars.groupId] });
     },
   });
 }
@@ -417,11 +432,11 @@ export function useCancelSeason() {
         p_reason: reason,
       });
       if (error) throw new Error(error.message);
-      // Push (best-effort)
-      fetch("/api/seasons/cancel-push", {
+      // Push (best-effort); el in-app lo hace el RPC
+      fetch("/api/seasons/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seasonId }),
+        body: JSON.stringify({ seasonId, event: "cancelled" }),
       }).catch(() => {});
     },
     onSuccess: (_d, vars) => {
@@ -429,6 +444,7 @@ export function useCancelSeason() {
       qc.invalidateQueries({ queryKey: ["seasonLeaderboard"] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
       qc.invalidateQueries({ queryKey: ["finishedSeason", vars.groupId] });
+      qc.invalidateQueries({ queryKey: ["seasonHistory", vars.groupId] });
     },
   });
 }

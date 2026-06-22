@@ -374,7 +374,7 @@ function ManageSeasonDrawer({
               <div className="rounded-[12px] p-3.5 mb-4 flex items-start gap-2.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}>
                 <AlertTriangle size={16} strokeWidth={1.5} className="text-red-400 flex-shrink-0 mt-0.5" />
                 <p className="text-[12px] text-[var(--color-fg)]">
-                  Se eliminará la temporada programada. Como aún no empieza, nadie se entera. Podrás crear otra cuando quieras.
+                  Se eliminará la temporada programada y se avisará a los jugadores. Podrás crear otra cuando quieras.
                 </p>
               </div>
               {error && <p className="text-[12px] text-red-400 mb-3">{error}</p>}
