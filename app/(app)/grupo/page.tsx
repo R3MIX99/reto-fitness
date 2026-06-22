@@ -102,10 +102,11 @@ function GrupoPageInner() {
       .map((e, i) => ({ ...e, position: i + 1, is_leader: i === 0 }));
   })();
 
-  // Sin temporada → global; con temporada y ya inscritos → por temporada; temporada programada → fallback
-  const displayLeaderboard = !season
-    ? (globalMemberLeaderboard.length > 0 ? globalMemberLeaderboard : effectiveLeaderboard)
-    : (seasonLeaderboard.length > 0 ? seasonLeaderboard : effectiveLeaderboard);
+  // Con temporada en curso Y ya hay inscritos → por temporada.
+  // En cualquier otro caso (sin temporada o temporada aún no arrancada) → global.
+  const displayLeaderboard = (season && seasonLeaderboard.length > 0)
+    ? seasonLeaderboard
+    : (globalMemberLeaderboard.length > 0 ? globalMemberLeaderboard : effectiveLeaderboard);
   const leaderEntry = displayLeaderboard[0];
 
   // Spectator: miembro del grupo pero NO inscrito en la temporada en curso
