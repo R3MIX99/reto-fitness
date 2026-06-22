@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
+import { fetchAuditableWindows } from "./useSeasons";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -273,20 +274,6 @@ export function useStreak(groupId: string | null) {
   });
 }
 
-function weekStartStr(): string {
-  const d = new Date();
-  const day = d.getDay();
-  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function weekEndStr(): string {
-  const d = new Date();
-  const day = d.getDay();
-  d.setDate(d.getDate() + (day === 0 ? 0 : 7 - day));
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 export function usePendingAudits(groupIds: string[]) {
   const { user } = useUser();
   return useQuery({
@@ -295,15 +282,25 @@ export function usePendingAudits(groupIds: string[]) {
     queryFn: async () => {
       if (!groupIds.length || !user) return 0;
       const supabase = createClient();
-      const { count } = await supabase
+
+      // Solo cuentan los checks dentro de la ventana auditable de cada
+      // temporada en curso (fase actual + fase anterior en gracia).
+      const windows = await fetchAuditableWindows(groupIds);
+      const auditableGroupIds = Object.keys(windows);
+      if (!auditableGroupIds.length) return 0;
+
+      type Row = { group_id: string; check_date: string };
+      const { data } = await supabase
         .from("daily_checks")
-        .select("id", { count: "exact", head: true })
-        .in("group_id", groupIds)
+        .select("group_id, check_date")
+        .in("group_id", auditableGroupIds)
         .eq("status", "pending")
-        .neq("user_id", user.id)
-        .gte("check_date", weekStartStr())
-        .lte("check_date", weekEndStr()) as unknown as { count: number | null };
-      return count ?? 0;
+        .neq("user_id", user.id) as unknown as { data: Row[] | null };
+
+      return (data ?? []).filter((c) => {
+        const w = windows[c.group_id];
+        return w && c.check_date >= w.from && c.check_date <= w.to;
+      }).length;
     },
   });
 }

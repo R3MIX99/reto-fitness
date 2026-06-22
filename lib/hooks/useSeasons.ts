@@ -97,6 +97,57 @@ export function computePhase(season: Season): PhaseInfo {
   };
 }
 
+// ── Ventana de auditoría por fase ────────────────────────────────────────────
+// Devuelve el rango de fechas [from, to] de checks que TODAVÍA se pueden auditar:
+// la fase actual + (durante sus primeros `grace_days` días) la fase anterior.
+// null si no hay temporada o aún no empieza.
+export function auditableWindow(season: Season | null): { from: string; to: string } | null {
+  if (!season) return null;
+  const phase = computePhase(season);
+  if (!phase.hasStarted) return null;
+
+  const start = parseDate(season.start_date);
+  const end = parseDate(season.end_date);
+  const today = todayLocal();
+
+  const currentPhaseStart = parseDate(season.start_date);
+  currentPhaseStart.setDate(currentPhaseStart.getDate() + (phase.currentPhase - 1) * 7);
+  const daysIntoPhase = daysBetween(currentPhaseStart, today); // >= 0
+
+  let from = currentPhaseStart;
+  // Durante los primeros `grace_days` días de la fase, la fase anterior sigue auditable
+  if (phase.currentPhase >= 2 && daysIntoPhase <= season.grace_days - 1) {
+    const prevPhaseStart = parseDate(season.start_date);
+    prevPhaseStart.setDate(prevPhaseStart.getDate() + (phase.currentPhase - 2) * 7);
+    from = prevPhaseStart;
+  }
+  if (from < start) from = start;
+
+  const to = today < end ? today : end;
+  return { from: localDateStr(from), to: localDateStr(to) };
+}
+
+// Mapa group_id → ventana auditable, para los grupos con temporada en curso.
+// Los grupos sin temporada activa/reviewing no aparecen (no hay nada que auditar).
+export async function fetchAuditableWindows(
+  groupIds: string[]
+): Promise<Record<string, { from: string; to: string }>> {
+  if (!groupIds.length) return {};
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("seasons")
+    .select("*")
+    .in("group_id", groupIds)
+    .in("status", ["active", "reviewing"]) as unknown as { data: Season[] | null };
+
+  const out: Record<string, { from: string; to: string }> = {};
+  for (const s of data ?? []) {
+    const w = auditableWindow(s);
+    if (w) out[s.group_id] = w;
+  }
+  return out;
+}
+
 // ── Queries ────────────────────────────────────────────────────────────────
 
 // Temporada en curso (active o reviewing) del grupo, o null si no hay.

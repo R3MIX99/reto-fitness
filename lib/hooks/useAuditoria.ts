@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
 import { notifyUser } from "@/lib/notify";
+import { fetchAuditableWindows } from "./useSeasons";
 
 export interface PendingCheck {
   id: string;
@@ -21,24 +22,6 @@ function getWeekNumber(): number {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 1);
   return Math.ceil(((now.getTime() - start.getTime()) / 86400000 + start.getDay() + 1) / 7);
-}
-
-function localDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function weekStart(): string {
-  const d = new Date();
-  const day = d.getDay();
-  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  return localDateStr(d);
-}
-
-function weekEnd(): string {
-  const d = new Date();
-  const day = d.getDay();
-  d.setDate(d.getDate() + (day === 0 ? 0 : 7 - day));
-  return localDateStr(d);
 }
 
 function kindLabel(kind: string, goalTitle: string | null): string {
@@ -71,18 +54,28 @@ export function usePendingChecks(groupIds: string[]) {
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
       type GoalRow = { title: string };
 
-      // All pending checks this week across all groups, excluding own checks
-      const { data: checks } = await supabase
+      // Ventana auditable por grupo (fase actual + fase anterior en gracia).
+      // Solo grupos con temporada en curso tienen ventana.
+      const windows = await fetchAuditableWindows(groupIds);
+      const auditableGroupIds = Object.keys(windows);
+      if (!auditableGroupIds.length) return [];
+
+      // Pending checks de esos grupos, excluyendo los propios.
+      const { data: rawChecks } = await supabase
         .from("daily_checks")
         .select("id, user_id, kind, check_date, evidence_path, goal_id, group_id")
-        .in("group_id", groupIds)
+        .in("group_id", auditableGroupIds)
         .eq("status", "pending")
         .neq("user_id", user!.id)
-        .gte("check_date", weekStart())
-        .lte("check_date", weekEnd())
         .order("check_date", { ascending: false }) as unknown as { data: CheckRow[] | null };
 
-      if (!checks?.length) return [];
+      // Filtrar por la ventana de su propio grupo (cada temporada tiene fases distintas)
+      const checks = (rawChecks ?? []).filter((c) => {
+        const w = windows[c.group_id];
+        return w && c.check_date >= w.from && c.check_date <= w.to;
+      });
+
+      if (!checks.length) return [];
 
       return Promise.all(
         checks.map(async (c) => {
@@ -119,22 +112,22 @@ export function usePendingChecks(groupIds: string[]) {
   });
 }
 
-export function useAutoApproveOldChecks(groupIds: string[]) {
+// Dispara el motor de temporadas (respeta la gracia por fase y los cierres).
+// Es el mismo que corre por pg_cron; lo llamamos al abrir auditoría para
+// procesamiento inmediato. Idempotente.
+export function useAutoApproveOldChecks(_groupIds: string[]) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      if (!groupIds.length) return;
       const supabase = createClient();
-      await Promise.all(
-        groupIds.map((id) =>
-          (supabase.rpc as Function)("auto_approve_old_checks", { p_group_id: id })
-        )
-      );
+      await (supabase.rpc as Function)("process_seasons");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pendingChecks"] });
       qc.invalidateQueries({ queryKey: ["pendingAudits"] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
+      qc.invalidateQueries({ queryKey: ["seasonLeaderboard"] });
+      qc.invalidateQueries({ queryKey: ["activeSeason"] });
     },
   });
 }
