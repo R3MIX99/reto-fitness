@@ -49,6 +49,7 @@ function LoginInner() {
         token: credential,
       });
       if (authErr) {
+        console.error("[GSI] signInWithIdToken error:", authErr.message, authErr);
         setError("No se pudo iniciar sesión. Intenta de nuevo.");
         setLoading(false);
       } else {
