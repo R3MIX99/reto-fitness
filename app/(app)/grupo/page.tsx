@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, Eye } from "lucide-react";
 import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits } from "@/lib/hooks/useGroups";
 import { useUser } from "@/lib/hooks/useUser";
 import { GrupoCard } from "@/components/grupo/GrupoCard";
@@ -12,6 +12,7 @@ import { Leaderboard } from "@/components/grupo/Leaderboard";
 import { ComparativaChart } from "@/components/grupo/ComparativaChart";
 import { InviteSheet } from "@/components/grupo/InviteSheet";
 import { SeasonBanner } from "@/components/grupo/SeasonBanner";
+import { useActiveSeason, useSeasonLeaderboard } from "@/lib/hooks/useSeasons";
 
 function getWeekNumber(): number {
   const now = new Date();
@@ -67,6 +68,10 @@ function GrupoPageInner() {
   const groupIds = groups.map((g) => g.id);
   const { data: pending = 0 } = usePendingAudits(groupIds);
 
+  // Temporada en curso del grupo activo
+  const { data: season = null } = useActiveSeason(activeGroup?.id ?? null);
+  const { data: seasonLeaderboard = [] } = useSeasonLeaderboard(season);
+
   // Ensure all members appear in the chart even with 0 scores
   const last7 = (() => {
     const members = activeGroup?.members ?? [];
@@ -98,7 +103,18 @@ function GrupoPageInner() {
       .map((e, i) => ({ ...e, position: i + 1, is_leader: i === 0 }));
   })();
 
-  const leaderEntry = effectiveLeaderboard[0];
+  // Cuando hay temporada en curso, el leaderboard se filtra por ella.
+  // Si no, se muestra el acumulado histórico (comportamiento previo).
+  const displayLeaderboard = season ? seasonLeaderboard : effectiveLeaderboard;
+  const leaderEntry = displayLeaderboard[0];
+
+  // Spectator: miembro del grupo pero NO inscrito en la temporada en curso
+  // (se unió después de que arrancó). Sigue haciendo checks, pero no compite.
+  const isSpectator =
+    !!season &&
+    seasonLeaderboard.length > 0 &&
+    !!user &&
+    !seasonLeaderboard.some((e) => e.user_id === user.id);
 
   // No groups state
   if (!isLoading && groups.length === 0) {
@@ -231,8 +247,23 @@ function GrupoPageInner() {
           onViewHistory={() => router.push("/mis-auditorias")}
         />
 
+        {/* Aviso spectator: se unió a mitad de temporada */}
+        {isSpectator && (
+          <div className="bg-[var(--color-bg-card)] rounded-[16px] p-3.5 mb-3 border flex items-start gap-3" style={{ borderColor: "rgba(207,92,54,0.35)" }}>
+            <div className="w-[30px] h-[30px] rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(207,92,54,0.15)" }}>
+              <Eye size={15} strokeWidth={1.5} className="text-accent" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium">Temporada en curso</p>
+              <p className="text-[12px] text-[var(--color-muted)]">
+                Te uniste después de que arrancó. Tus checks siguen contando para tu progreso, pero competirás desde la próxima temporada.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* 3) Tabla de jugadores */}
-        <Leaderboard entries={effectiveLeaderboard} currentUserId={user?.id ?? ""} />
+        <Leaderboard entries={displayLeaderboard} currentUserId={user?.id ?? ""} />
 
         {/* 4) Comparativa */}
         {last7.length > 0 && (

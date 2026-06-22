@@ -120,6 +120,75 @@ export function useActiveSeason(groupId: string | null) {
   });
 }
 
+export interface SeasonLeaderboardEntry {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  total_points: number;
+  position: number;
+  is_leader: boolean;
+}
+
+// Leaderboard de la temporada: SOLO miembros inscritos (season_members) y
+// SOLO puntos cuya score_date cae dentro del rango de la temporada.
+// Incluye a todos los miembros aunque tengan 0 puntos.
+export function useSeasonLeaderboard(season: Season | null) {
+  return useQuery({
+    queryKey: ["seasonLeaderboard", season?.id],
+    enabled: !!season,
+    queryFn: async (): Promise<SeasonLeaderboardEntry[]> => {
+      if (!season) return [];
+      const supabase = createClient();
+
+      type MemberRow = { user_id: string };
+      type ScoreRow = { user_id: string; total_points: number | null };
+      type ProfileRow = { full_name: string | null; avatar_url: string | null };
+
+      const { data: members } = await supabase
+        .from("season_members")
+        .select("user_id")
+        .eq("season_id", season.id) as unknown as { data: MemberRow[] | null };
+
+      const memberIds = (members ?? []).map((m) => m.user_id);
+      if (!memberIds.length) return [];
+
+      const { data: scores } = await supabase
+        .from("daily_scores")
+        .select("user_id, total_points")
+        .eq("group_id", season.group_id)
+        .gte("score_date", season.start_date)
+        .lte("score_date", season.end_date)
+        .in("user_id", memberIds) as unknown as { data: ScoreRow[] | null };
+
+      const totals: Record<string, number> = {};
+      for (const id of memberIds) totals[id] = 0;
+      for (const r of scores ?? []) {
+        totals[r.user_id] = (totals[r.user_id] ?? 0) + (r.total_points ?? 0);
+      }
+
+      const profiles = await Promise.all(
+        memberIds.map(async (uid) => {
+          const { data: p } = await supabase
+            .from("profiles")
+            .select("full_name, avatar_url")
+            .eq("id", uid)
+            .single() as unknown as { data: ProfileRow | null };
+          return {
+            user_id: uid,
+            full_name: p?.full_name ?? null,
+            avatar_url: p?.avatar_url ?? null,
+          };
+        })
+      );
+
+      return profiles
+        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0 }))
+        .sort((a, b) => b.total_points - a.total_points)
+        .map((p, i) => ({ ...p, position: i + 1, is_leader: i === 0 }));
+    },
+  });
+}
+
 // ── Mutations ────────────────────────────────────────────────────────────────
 
 export function useStartSeason() {
