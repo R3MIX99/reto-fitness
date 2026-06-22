@@ -69,9 +69,14 @@ function GrupoPageInner() {
   // Última temporada finalizada (podio) — solo se muestra si no hay una en curso
   const { data: finishedSeason = null } = useLatestFinishedSeason(activeGroup?.id ?? null);
 
-  // Gráfica global cuando no hay temporada o la temporada aún no arrancó (sin inscritos).
-  // Con temporada en curso (season_members ya poblados) → datos del grupo.
-  const last7Base = (season && seasonLeaderboard.length > 0) ? last7Raw : globalMemberLast7;
+  // Regla de scope:
+  //  • SIN temporada (ni programada)        → datos GLOBALES (todos los grupos).
+  //  • CON temporada (programada o activa)   → datos de la TEMPORADA (filtrados por su rango).
+  //    Una temporada programada tiene status 'active' con start_date futuro, por lo que
+  //    sus puntos dentro del rango son 0 hasta que arranque.
+  const last7Base = season
+    ? last7Raw.filter((r) => r.score_date >= season.start_date)
+    : globalMemberLast7;
   const last7 = (() => {
     const members = activeGroup?.members ?? [];
     const usersInData = new Set(last7Base.map((r) => r.user_id));
@@ -102,10 +107,12 @@ function GrupoPageInner() {
       .map((e, i) => ({ ...e, position: i + 1, is_leader: i === 0 }));
   })();
 
-  // Con temporada en curso Y ya hay inscritos → por temporada.
-  // En cualquier otro caso (sin temporada o temporada aún no arrancada) → global.
-  const displayLeaderboard = (season && seasonLeaderboard.length > 0)
-    ? seasonLeaderboard
+  // Mismo scope que la gráfica:
+  //  • CON temporada → leaderboard de la temporada (incluye miembros con 0 pts).
+  //    Si por algún motivo aún no hay inscritos, fallback a miembros del grupo en 0.
+  //  • SIN temporada → leaderboard GLOBAL de los miembros.
+  const displayLeaderboard = season
+    ? (seasonLeaderboard.length > 0 ? seasonLeaderboard : effectiveLeaderboard)
     : (globalMemberLeaderboard.length > 0 ? globalMemberLeaderboard : effectiveLeaderboard);
   const leaderEntry = displayLeaderboard[0];
 
