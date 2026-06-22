@@ -15,6 +15,7 @@ import { SeasonBanner } from "@/components/grupo/SeasonBanner";
 import { SeasonPodium } from "@/components/grupo/SeasonPodium";
 import { SeasonHistory } from "@/components/grupo/SeasonHistory";
 import { PlayerCard } from "@/components/player/PlayerCard";
+import { usePrefetchPlayerCards } from "@/lib/hooks/usePlayerCard";
 import { useActiveSeason, useSeasonLeaderboard, useLatestFinishedSeason } from "@/lib/hooks/useSeasons";
 
 function GrupoPageInner() {
@@ -109,6 +110,18 @@ function GrupoPageInner() {
 
   // Campeón actual = ganador de la última temporada finalizada del grupo
   const championUserId = finishedSeason?.standings.find((s) => s.rank === 1)?.user_id ?? null;
+
+  // Precarga las tarjetas de los jugadores visibles → se abren al instante
+  usePrefetchPlayerCards(displayLeaderboard.map((e) => e.user_id), activeGroup?.id ?? null);
+
+  // Nombre/foto que ya conocemos, para mostrar la tarjeta sin "?" mientras carga
+  const cardPlaceholder = (() => {
+    const fromLb = displayLeaderboard.find((e) => e.user_id === cardUserId);
+    if (fromLb) return { full_name: fromLb.full_name, avatar_url: fromLb.avatar_url };
+    const fromPodium = finishedSeason?.standings.find((s) => s.user_id === cardUserId);
+    if (fromPodium) return { full_name: fromPodium.full_name, avatar_url: fromPodium.avatar_url };
+    return undefined;
+  })();
 
   // No groups state
   if (!isLoading && groups.length === 0) {
@@ -289,6 +302,7 @@ function GrupoPageInner() {
           userId={cardUserId}
           groupId={activeGroup.id}
           currentUserId={user?.id ?? ""}
+          placeholder={cardPlaceholder}
           onClose={() => setCardUserId(null)}
         />
       )}

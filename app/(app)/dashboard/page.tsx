@@ -8,6 +8,7 @@ import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitial
 import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
 import { useActiveSeason, computePhase, type Season } from "@/lib/hooks/useSeasons";
 import { PlayerCard } from "@/components/player/PlayerCard";
+import { usePrefetchPlayerCards } from "@/lib/hooks/usePlayerCard";
 
 const TOTAL_PTS = 13;
 const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
@@ -133,6 +134,13 @@ export default function DashboardPage() {
 
   const visibleLeaderboard = showAll ? effectiveLeaderboard : effectiveLeaderboard.slice(0, PREVIEW_COUNT);
   const hasMore = effectiveLeaderboard.length > PREVIEW_COUNT;
+
+  // Precarga tarjetas para abrir al instante
+  usePrefetchPlayerCards(effectiveLeaderboard.map((e) => e.user_id), groupId);
+  const cardPlaceholderEntry = effectiveLeaderboard.find((e) => e.user_id === cardUserId);
+  const cardPlaceholder = cardPlaceholderEntry
+    ? { full_name: cardPlaceholderEntry.full_name, avatar_url: cardPlaceholderEntry.avatar_url }
+    : undefined;
 
   const { data: goals = [] } = useGoals();
   const { data: todayChecks = [] } = useTodayChecks(groupId);
@@ -288,6 +296,7 @@ export default function DashboardPage() {
           userId={cardUserId}
           groupId={groupId}
           currentUserId={user?.id ?? ""}
+          placeholder={cardPlaceholder}
           onClose={() => setCardUserId(null)}
         />
       )}

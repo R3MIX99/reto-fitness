@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Trophy, X, Calendar, Check, Crown, Sparkles } from "lucide-react";
+import { Trophy, X, Calendar, Check, Crown, Sparkles, Medal } from "lucide-react";
 import { usePlayerCard, useEquipTitle, type PlayerTier, type PlayerWin } from "@/lib/hooks/usePlayerCard";
 
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -28,14 +28,16 @@ export function PlayerCard({
   userId,
   groupId,
   currentUserId,
+  placeholder,
   onClose,
 }: {
   userId: string;
   groupId: string;
   currentUserId: string;
+  placeholder?: { full_name: string | null; avatar_url: string | null };
   onClose: () => void;
 }) {
-  const { data, isLoading } = usePlayerCard(userId, groupId);
+  const { data, isLoading } = usePlayerCard(userId, groupId, placeholder);
   const equip = useEquipTitle();
   const [visible, setVisible] = useState(false);
 
@@ -115,18 +117,21 @@ export function PlayerCard({
 
           {/* Título equipado */}
           <div className="flex justify-center mb-4">
-            {data?.equipped ? (
-              <span
-                className={`inline-flex items-center gap-1.5 text-[12px] font-medium rounded-full px-3 py-1 ${legend ? "glow-pink" : ""}`}
-                style={{
-                  color: legend ? "#fff" : "#1a0f08",
-                  background: legend ? "linear-gradient(90deg,#F472B6,#A78BFA)" : "#EFC88B",
-                }}
-              >
-                {legend ? <Sparkles size={12} strokeWidth={2} /> : <Crown size={12} strokeWidth={2} />}
-                {data.equipped.title}
-              </span>
-            ) : (
+            {data?.equipped ? (() => {
+              const r = data.equipped.rank;
+              const bg = legend ? "linear-gradient(90deg,#F472B6,#A78BFA)" : MEDAL[r] ?? "#EFC88B";
+              const fg = legend ? "#fff" : r === 3 ? "#fff" : "#1a0f08";
+              const Icon = legend ? Sparkles : r === 1 ? Crown : Medal;
+              return (
+                <span
+                  className={`inline-flex items-center gap-1.5 text-[12px] font-medium rounded-full px-3 py-1 ${legend ? "glow-pink" : ""}`}
+                  style={{ color: fg, background: bg }}
+                >
+                  <Icon size={12} strokeWidth={2} />
+                  {data.equipped.title}
+                </span>
+              );
+            })() : (
               <span className="text-[12px] text-[var(--color-muted)] rounded-full px-3 py-1" style={{ border: "1px solid var(--color-border)" }}>
                 Retador
               </span>

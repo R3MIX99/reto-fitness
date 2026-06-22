@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
@@ -29,14 +30,13 @@ export interface PlayerCardData {
   equipped: PlayerWin | null;
 }
 
-// Datos de la tarjeta de un jugador, dentro del contexto de un grupo.
-// Logros = temporadas finalizadas de ESE grupo donde el jugador quedó 1°.
-export function usePlayerCard(userId: string | null, groupId: string | null) {
-  return useQuery({
-    queryKey: ["playerCard", userId, groupId],
-    enabled: !!userId && !!groupId,
-    queryFn: async (): Promise<PlayerCardData | null> => {
-      if (!userId || !groupId) return null;
+export function playerCardKey(userId: string, groupId: string) {
+  return ["playerCard", userId, groupId] as const;
+}
+
+// Trae los datos de la tarjeta. Reutilizable para prefetch.
+export async function fetchPlayerCard(userId: string, groupId: string): Promise<PlayerCardData | null> {
+  {
       const supabase = createClient();
 
       type ProfileRow = { full_name: string | null; avatar_url: string | null; gender: string | null; equipped_season_id: string | null };
@@ -120,8 +120,52 @@ export function usePlayerCard(userId: string | null, groupId: string | null) {
         is_latest_champion: isLatestChampion,
         equipped,
       };
-    },
+  }
+}
+
+// Datos de la tarjeta de un jugador, dentro del contexto de un grupo.
+// `placeholder` (nombre/foto que ya conocemos del leaderboard) evita el "?"
+// mientras carga; con prefetch, normalmente ya está en caché y abre al instante.
+export function usePlayerCard(
+  userId: string | null,
+  groupId: string | null,
+  placeholder?: { full_name: string | null; avatar_url: string | null }
+) {
+  return useQuery({
+    queryKey: ["playerCard", userId, groupId],
+    enabled: !!userId && !!groupId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: () => fetchPlayerCard(userId!, groupId!),
+    placeholderData: placeholder
+      ? {
+          user_id: userId ?? "",
+          full_name: placeholder.full_name,
+          avatar_url: placeholder.avatar_url,
+          gender: "unspecified",
+          joined_at: null,
+          wins: [],
+          wins_count: 0,
+          tier: "none",
+          is_latest_champion: false,
+          equipped: null,
+        }
+      : undefined,
   });
+}
+
+// Precarga las tarjetas de varios jugadores (para abrir al instante).
+export function usePrefetchPlayerCards(userIds: string[], groupId: string | null) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!groupId || userIds.length === 0) return;
+    for (const uid of userIds) {
+      qc.prefetchQuery({
+        queryKey: ["playerCard", uid, groupId],
+        queryFn: () => fetchPlayerCard(uid, groupId),
+        staleTime: 5 * 60 * 1000,
+      });
+    }
+  }, [qc, groupId, userIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 // Todas las victorias del usuario actual (cualquier grupo) para el selector de perfil.
