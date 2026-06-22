@@ -275,3 +275,154 @@ export function useStartSeason() {
     },
   });
 }
+
+// Editar una temporada programada (aún no empieza)
+export function useUpdateScheduledSeason() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      seasonId,
+      groupId,
+      durationWeeks,
+      startDate,
+      name,
+    }: {
+      seasonId: string;
+      groupId: string;
+      durationWeeks: number;
+      startDate: string;
+      name?: string;
+    }): Promise<void> => {
+      const supabase = createClient();
+      const { error } = await (supabase.rpc as Function)("update_scheduled_season", {
+        p_season_id: seasonId,
+        p_duration_weeks: durationWeeks,
+        p_start_date: startDate,
+        p_name: name ?? null,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["activeSeason", vars.groupId] });
+      qc.invalidateQueries({ queryKey: ["seasonLeaderboard"] });
+    },
+  });
+}
+
+// Cancelar (eliminar) una temporada programada que aún no empieza
+export function useDeleteScheduledSeason() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ seasonId }: { seasonId: string; groupId: string }): Promise<void> => {
+      const supabase = createClient();
+      const { error } = await (supabase.rpc as Function)("delete_scheduled_season", {
+        p_season_id: seasonId,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["activeSeason", vars.groupId] });
+    },
+  });
+}
+
+// Terminar una temporada en curso anticipadamente (sin títulos).
+// Pide razón → cambia estado + notifica in-app (RPC) y envía push (API route).
+export function useCancelSeason() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      seasonId,
+      reason,
+    }: {
+      seasonId: string;
+      groupId: string;
+      reason: string;
+    }): Promise<void> => {
+      const supabase = createClient();
+      const { error } = await (supabase.rpc as Function)("cancel_season", {
+        p_season_id: seasonId,
+        p_reason: reason,
+      });
+      if (error) throw new Error(error.message);
+      // Push (best-effort)
+      fetch("/api/seasons/cancel-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seasonId }),
+      }).catch(() => {});
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["activeSeason", vars.groupId] });
+      qc.invalidateQueries({ queryKey: ["seasonLeaderboard"] });
+      qc.invalidateQueries({ queryKey: ["leaderboard"] });
+      qc.invalidateQueries({ queryKey: ["finishedSeason", vars.groupId] });
+    },
+  });
+}
+
+// ── Temporada finalizada (para el podio) ──────────────────────────────────────
+
+export interface PodiumEntry {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  rank: number;
+  total_points: number;
+}
+
+export interface FinishedSeasonResult {
+  season: Season;
+  standings: PodiumEntry[];
+}
+
+// Última temporada FINALIZADA del grupo (status 'finished') con su podio.
+// Las canceladas no cuentan (no entregan títulos).
+export function useLatestFinishedSeason(groupId: string | null) {
+  return useQuery({
+    queryKey: ["finishedSeason", groupId],
+    enabled: !!groupId,
+    queryFn: async (): Promise<FinishedSeasonResult | null> => {
+      if (!groupId) return null;
+      const supabase = createClient();
+
+      const { data: season } = await supabase
+        .from("seasons")
+        .select("*")
+        .eq("group_id", groupId)
+        .eq("status", "finished")
+        .order("season_number", { ascending: false })
+        .limit(1)
+        .maybeSingle() as unknown as { data: Season | null };
+
+      if (!season) return null;
+
+      type StandingRow = { user_id: string; rank: number; total_points: number };
+      const { data: rows } = await supabase
+        .from("season_standings")
+        .select("user_id, rank, total_points")
+        .eq("season_id", season.id)
+        .order("rank", { ascending: true }) as unknown as { data: StandingRow[] | null };
+
+      type ProfileRow = { full_name: string | null; avatar_url: string | null };
+      const standings: PodiumEntry[] = await Promise.all(
+        (rows ?? []).map(async (r) => {
+          const { data: p } = await supabase
+            .from("profiles")
+            .select("full_name, avatar_url")
+            .eq("id", r.user_id)
+            .single() as unknown as { data: ProfileRow | null };
+          return {
+            user_id: r.user_id,
+            full_name: p?.full_name ?? null,
+            avatar_url: p?.avatar_url ?? null,
+            rank: r.rank,
+            total_points: r.total_points,
+          };
+        })
+      );
+
+      return { season, standings };
+    },
+  });
+}

@@ -12,7 +12,8 @@ import { Leaderboard } from "@/components/grupo/Leaderboard";
 import { ComparativaChart } from "@/components/grupo/ComparativaChart";
 import { InviteSheet } from "@/components/grupo/InviteSheet";
 import { SeasonBanner } from "@/components/grupo/SeasonBanner";
-import { useActiveSeason, useSeasonLeaderboard } from "@/lib/hooks/useSeasons";
+import { SeasonPodium } from "@/components/grupo/SeasonPodium";
+import { useActiveSeason, useSeasonLeaderboard, useLatestFinishedSeason } from "@/lib/hooks/useSeasons";
 
 function getWeekNumber(): number {
   const now = new Date();
@@ -71,6 +72,8 @@ function GrupoPageInner() {
   // Temporada en curso del grupo activo
   const { data: season = null } = useActiveSeason(activeGroup?.id ?? null);
   const { data: seasonLeaderboard = [] } = useSeasonLeaderboard(season);
+  // Última temporada finalizada (podio) — solo se muestra si no hay una en curso
+  const { data: finishedSeason = null } = useLatestFinishedSeason(activeGroup?.id ?? null);
 
   // Ensure all members appear in the chart even with 0 scores
   const last7 = (() => {
@@ -239,6 +242,9 @@ function GrupoPageInner() {
           groupId={activeGroup.id}
           isOwner={activeGroup.owner_id === user?.id}
         />
+
+        {/* Podio de la última temporada finalizada (si no hay una en curso) */}
+        {!season && finishedSeason && <SeasonPodium result={finishedSeason} />}
 
         {/* 2) Evidencias por revisar */}
         <EvidenciasCard
