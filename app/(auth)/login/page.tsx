@@ -63,7 +63,7 @@ function LoginInner() {
           !next.startsWith("/dashboard") &&
           !next.startsWith("/login");
         // replace para que el login no quede en el historial del navegador.
-        router.replace(validNext ? next : "/grupo");
+        router.replace(validNext ? next : "/dashboard");
       }
     };
 
