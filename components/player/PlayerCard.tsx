@@ -59,7 +59,8 @@ export function PlayerCard({
   // rosa solo si muestra un campeonato siendo legendario; si equipa otro título,
   // el aro vuelve a su color de medalla (o normal si no tiene título).
   const equippedRank = data?.equipped?.rank ?? 0;
-  const legend = data?.tier === "legend" && equippedRank === 1;
+  // Rosa SOLO si el título equipado es precisamente el que desbloqueó el nivel legendario
+  const legend = data?.equipped?.is_legend_unlock === true;
   const ringColor = data?.equipped
     ? (legend ? "#F472B6" : MEDAL[equippedRank] ?? "#EFC88B")
     : "var(--color-border)";

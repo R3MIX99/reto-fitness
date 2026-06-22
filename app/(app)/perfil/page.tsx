@@ -111,7 +111,8 @@ export default function PerfilPage() {
   // Título equipado (para mostrarlo bajo el nombre)
   const championships = myTitles.filter((t) => t.rank === 1).length;
   const equippedTitle = myTitles.find((t) => t.season_id === profile?.equipped_season_id) ?? null;
-  const equippedIsLegend = championships >= 3 && equippedTitle?.rank === 1;
+  // Rosa SOLO si el título equipado es el que cruzó el umbral legendario
+  const equippedIsLegend = equippedTitle?.is_legend_unlock === true;
 
   function changeTitle(seasonId: string | null) {
     equip.mutate(seasonId, {
