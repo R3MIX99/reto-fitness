@@ -18,7 +18,6 @@ declare global {
         };
       };
     };
-    __gsiCallback?: (r: { credential: string }) => void;
   }
 }
 
@@ -41,7 +40,7 @@ function LoginInner() {
     }
 
     // Callback que GSI llama con el ID token tras elegir cuenta.
-    window.__gsiCallback = async ({ credential }: { credential: string }) => {
+    const handleCredential = async ({ credential }: { credential: string }) => {
       setLoading(true);
       setError(null);
       const supabase = createClient();
@@ -68,7 +67,7 @@ function LoginInner() {
     script.onload = () => {
       window.google?.accounts.id.initialize({
         client_id: clientId,
-        callback: "__gsiCallback",
+        callback: handleCredential,
         use_fedcm_for_prompt: true,
         itp_support: true,
       });
@@ -90,7 +89,6 @@ function LoginInner() {
 
     return () => {
       window.google?.accounts.id.cancel();
-      delete window.__gsiCallback;
       if (document.head.contains(script)) document.head.removeChild(script);
     };
   }, [next, router]);
