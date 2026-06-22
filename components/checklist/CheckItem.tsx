@@ -70,7 +70,11 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
     : { background: "var(--color-surface)", border: "1.5px solid var(--color-border)" };
 
   return (
-    <div className="flex items-center gap-3 py-2.5">
+    <div className="py-2.5">
+    {error && (
+      <p className="text-[11px] text-red-400 mb-1 pl-11">Error al subir: {error}. Toca la cámara para reintentar.</p>
+    )}
+    <div className="flex items-center gap-3">
       {/* Status circle */}
       {!reordering && (
         <button
@@ -190,6 +194,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
         className="hidden"
         onChange={handleResubmitChange}
       />
+    </div>
     </div>
   );
 }

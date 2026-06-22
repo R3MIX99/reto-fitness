@@ -298,7 +298,6 @@ export default function ChecklistPage() {
                 onMark={(file) => handleMark(file, "gym")}
                 onResubmit={gymCheck ? (file) => handleResubmit(gymCheck, file) : undefined}
                 onDetail={() => gymCheck && openDetail(null, gymCheck)}
-                loading={markCheck.isPending}
               />
             </div>
 
@@ -313,7 +312,6 @@ export default function ChecklistPage() {
               onEdit={openEdit}
               onDetail={openDetail}
               onReorder={(ids) => reorderGoals.mutate(ids)}
-              loading={markCheck.isPending}
             />
 
             {/* Goals */}
@@ -326,7 +324,6 @@ export default function ChecklistPage() {
               onEdit={openEdit}
               onDetail={openDetail}
               onReorder={(ids) => reorderGoals.mutate(ids)}
-              loading={markCheck.isPending}
             />
             </div>
           </>

@@ -72,7 +72,7 @@ function SortableCheckItem({
 
 interface GymSectionProps {
   check?: DailyCheck;
-  onMark: (file: File) => void;
+  onMark: (file: File) => Promise<void>;
   onResubmit?: (file: File) => Promise<void>;
   onDetail?: () => void;
   loading?: boolean;
@@ -81,6 +81,8 @@ interface GymSectionProps {
 export function GymSection({ check, onMark, onResubmit, onDetail, loading }: GymSectionProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const resubmitRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
   const [resubmitError, setResubmitError] = useState(false);
   const isDone = !!check;
@@ -102,8 +104,8 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
     <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4 mb-3">
       <div className="flex items-center gap-3">
         <button
-          onClick={() => !isDone && inputRef.current?.click()}
-          disabled={isDone || loading}
+          onClick={() => !isDone && !uploading && inputRef.current?.click()}
+          disabled={isDone || loading || uploading}
           className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all"
           style={circleStyle}
         >
@@ -113,6 +115,8 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
             <Check size={20} strokeWidth={2} style={{ color: "#22c55e" }} />
           ) : isPending ? (
             <Clock size={18} strokeWidth={1.5} style={{ color: "#EFC88B" }} />
+          ) : uploading ? (
+            <Clock size={18} strokeWidth={1.5} className="animate-spin text-[var(--color-muted)]" />
           ) : (
             <Camera size={18} strokeWidth={1.5} className="text-[var(--color-muted)]" />
           )}
@@ -164,15 +168,19 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
         )}
         {!isDone && (
           <button
-            onClick={() => inputRef.current?.click()}
-            disabled={loading}
+            onClick={() => { setUploadError(false); inputRef.current?.click(); }}
+            disabled={loading || uploading}
             className="flex-shrink-0 flex items-center gap-1.5 bg-accent text-white text-[12px] font-medium rounded-full px-3.5 py-2 transition-opacity disabled:opacity-50"
           >
             <Camera size={12} strokeWidth={1.5} />
-            Subir
+            {uploading ? "Subiendo…" : uploadError ? "Reintentar" : "Subir"}
           </button>
         )}
       </div>
+
+      {uploadError && (
+        <p className="mt-2 text-[11px] text-red-400">Error al subir. Toca "Reintentar" para intentarlo de nuevo.</p>
+      )}
 
       <input
         ref={resubmitRef}
@@ -201,9 +209,19 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => {
+        onChange={async (e) => {
           const file = e.target.files?.[0];
-          if (file) { onMark(file); e.target.value = ""; }
+          if (!file) return;
+          e.target.value = "";
+          setUploadError(false);
+          setUploading(true);
+          try {
+            await onMark(file);
+          } catch {
+            setUploadError(true);
+          } finally {
+            setUploading(false);
+          }
         }}
       />
     </div>

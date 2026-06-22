@@ -154,6 +154,35 @@ export function useMarkCheck(groupId: string | null) {
   const qc = useQueryClient();
 
   return useMutation({
+    // Optimistic update: muestra el check como "pending" al instante, antes de que
+    // el servidor responda. Si falla, revierte al estado anterior.
+    onMutate: async ({ kind, goalId }: { file: File; kind: GoalKind; goalId?: string }) => {
+      if (!user || !groupId) return;
+      const queryKey = ["todayChecks", user.id, groupId] as const;
+      await qc.cancelQueries({ queryKey });
+      const prev = qc.getQueryData<DailyCheck[]>(queryKey);
+
+      const optimistic: DailyCheck = {
+        id: `opt-${Date.now()}`,
+        goal_id: goalId ?? null,
+        kind,
+        check_date: todayStr(),
+        status: "pending",
+        evidence_path: "",
+        group_id: groupId,
+        created_at: new Date().toISOString(),
+      };
+
+      qc.setQueryData<DailyCheck[]>(queryKey, (old) => [
+        ...(old ?? []).filter(
+          (c) => !(c.kind === kind && c.goal_id === (goalId ?? null))
+        ),
+        optimistic,
+      ]);
+
+      return { prev, queryKey };
+    },
+
     mutationFn: async ({ file, kind, goalId }: { file: File; kind: GoalKind; goalId?: string }) => {
       if (!user || !groupId) throw new Error("Sin sesión o grupo");
 
@@ -168,7 +197,7 @@ export function useMarkCheck(groupId: string | null) {
 
       if (uploadError) throw uploadError;
 
-      // Delete any existing check for this slot first (handles re-uploads cleanly)
+      // Borrar check previo del mismo slot (maneja re-subidas)
       const deleteQuery = supabase
         .from("daily_checks")
         .delete()
@@ -178,9 +207,11 @@ export function useMarkCheck(groupId: string | null) {
         .eq("kind", kind);
 
       if (goalId) {
-        await (deleteQuery.eq("goal_id", goalId) as unknown as Promise<unknown>);
+        const { error: delErr } = await (deleteQuery.eq("goal_id", goalId) as unknown as Promise<{ error: unknown }>);
+        if (delErr) console.warn("delete check warning:", delErr);
       } else {
-        await (deleteQuery.is("goal_id", null) as unknown as Promise<unknown>);
+        const { error: delErr } = await (deleteQuery.is("goal_id", null) as unknown as Promise<{ error: unknown }>);
+        if (delErr) console.warn("delete check warning:", delErr);
       }
 
       const { error: insertError } = await supabase
@@ -197,14 +228,23 @@ export function useMarkCheck(groupId: string | null) {
 
       if (insertError) throw new Error((insertError as { message: string }).message);
 
-      // Recalculate day score so leaderboard updates immediately
+      // Recalcular puntos del día para que el leaderboard se actualice al momento
       await (supabase.rpc as Function)("recalc_day_score", {
         p_user_id: user.id,
         p_group_id: groupId,
         p_date: todayStr(),
       });
     },
-    onSuccess: () => {
+
+    onError: (_err, _vars, context) => {
+      // Revertir al estado previo si el upload falló
+      if (context?.prev !== undefined) {
+        qc.setQueryData(context.queryKey, context.prev);
+      }
+    },
+
+    // Tanto en éxito como en error: sincronizar con el servidor
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["todayChecks"] });
       qc.invalidateQueries({ queryKey: ["monthChecks"] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
