@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Flame, ChevronDown, Trophy, Crown } from "lucide-react";
+import { Flame, ChevronDown, ChevronUp, Trophy, Crown } from "lucide-react";
 import Image from "next/image";
 import { getInitials } from "@/lib/hooks/useGroups";
 import type { LeaderboardEntry } from "@/lib/hooks/useGroups";
@@ -100,6 +100,16 @@ export function Leaderboard({ entries, currentUserId, championUserId, onPlayerCl
           </button>
         )}
       </div>
+
+      {/* Mostrar menos */}
+      {expanded && entries.length > 3 && (
+        <button
+          onClick={() => setExpanded(false)}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 text-[12px] text-[var(--color-muted)] font-medium py-1"
+        >
+          Mostrar menos <ChevronUp size={14} strokeWidth={1.5} />
+        </button>
+      )}
     </div>
   );
 }
