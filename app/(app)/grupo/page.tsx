@@ -13,6 +13,7 @@ import { ComparativaChart } from "@/components/grupo/ComparativaChart";
 import { InviteSheet } from "@/components/grupo/InviteSheet";
 import { SeasonBanner } from "@/components/grupo/SeasonBanner";
 import { SeasonPodium } from "@/components/grupo/SeasonPodium";
+import { SeasonHistory } from "@/components/grupo/SeasonHistory";
 import { useActiveSeason, useSeasonLeaderboard, useLatestFinishedSeason } from "@/lib/hooks/useSeasons";
 
 function getWeekNumber(): number {
@@ -275,6 +276,11 @@ function GrupoPageInner() {
         {last7.length > 0 && (
           <ComparativaChart data={last7} leaderUserId={leaderEntry?.user_id} />
         )}
+
+        {/* 5) Historial de temporadas */}
+        <div className="mt-3">
+          <SeasonHistory groupId={activeGroup.id} />
+        </div>
       </div>
 
       {/* Invite sheet */}

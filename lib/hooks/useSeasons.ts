@@ -240,6 +240,61 @@ export function useSeasonLeaderboard(season: Season | null) {
   });
 }
 
+// Todas las temporadas del grupo (cualquier estado), más recientes primero.
+export function useSeasonHistory(groupId: string | null) {
+  return useQuery({
+    queryKey: ["seasonHistory", groupId],
+    enabled: !!groupId,
+    queryFn: async (): Promise<Season[]> => {
+      if (!groupId) return [];
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("seasons")
+        .select("*")
+        .eq("group_id", groupId)
+        .order("season_number", { ascending: false }) as unknown as { data: Season[] | null };
+      return data ?? [];
+    },
+  });
+}
+
+// Tabla final (podio) de una temporada concreta. Vacío si no tiene snapshot.
+export function useSeasonStandings(seasonId: string | null) {
+  return useQuery({
+    queryKey: ["seasonStandings", seasonId],
+    enabled: !!seasonId,
+    queryFn: async (): Promise<PodiumEntry[]> => {
+      if (!seasonId) return [];
+      const supabase = createClient();
+
+      type StandingRow = { user_id: string; rank: number; total_points: number };
+      const { data: rows } = await supabase
+        .from("season_standings")
+        .select("user_id, rank, total_points")
+        .eq("season_id", seasonId)
+        .order("rank", { ascending: true }) as unknown as { data: StandingRow[] | null };
+
+      type ProfileRow = { full_name: string | null; avatar_url: string | null };
+      return Promise.all(
+        (rows ?? []).map(async (r) => {
+          const { data: p } = await supabase
+            .from("profiles")
+            .select("full_name, avatar_url")
+            .eq("id", r.user_id)
+            .single() as unknown as { data: ProfileRow | null };
+          return {
+            user_id: r.user_id,
+            full_name: p?.full_name ?? null,
+            avatar_url: p?.avatar_url ?? null,
+            rank: r.rank,
+            total_points: r.total_points,
+          };
+        })
+      );
+    },
+  });
+}
+
 // ── Mutations ────────────────────────────────────────────────────────────────
 
 export function useStartSeason() {
