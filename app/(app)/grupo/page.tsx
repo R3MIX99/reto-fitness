@@ -14,6 +14,7 @@ import { InviteSheet } from "@/components/grupo/InviteSheet";
 import { SeasonBanner } from "@/components/grupo/SeasonBanner";
 import { SeasonPodium } from "@/components/grupo/SeasonPodium";
 import { SeasonHistory } from "@/components/grupo/SeasonHistory";
+import { PlayerCard } from "@/components/player/PlayerCard";
 import { useActiveSeason, useSeasonLeaderboard, useLatestFinishedSeason } from "@/lib/hooks/useSeasons";
 
 function GrupoPageInner() {
@@ -23,6 +24,7 @@ function GrupoPageInner() {
   const { data: groups = [], isLoading } = useMyGroups();
   const [activeGroupIdx, setActiveGroupIdx] = useState(0);
   const [showInvite, setShowInvite] = useState(false);
+  const [cardUserId, setCardUserId] = useState<string | null>(null);
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
   const initializedRef = useRef(false);
   const swipeRef = useRef<{ startY: number; startX: number } | null>(null);
@@ -232,7 +234,7 @@ function GrupoPageInner() {
         </div>
 
         {/* Podio de la última temporada finalizada (si no hay una en curso) */}
-        {!season && finishedSeason && <SeasonPodium result={finishedSeason} />}
+        {!season && finishedSeason && <SeasonPodium result={finishedSeason} onPlayerClick={setCardUserId} />}
 
         {/* 2) Evidencias por revisar */}
         <EvidenciasCard
@@ -257,7 +259,7 @@ function GrupoPageInner() {
         )}
 
         {/* 3) Tabla de jugadores */}
-        <Leaderboard entries={displayLeaderboard} currentUserId={user?.id ?? ""} />
+        <Leaderboard entries={displayLeaderboard} currentUserId={user?.id ?? ""} onPlayerClick={setCardUserId} />
 
         {/* 4) Comparativa */}
         {last7.length > 0 && (
@@ -277,6 +279,16 @@ function GrupoPageInner() {
         groupName={activeGroup.name}
         onClose={() => setShowInvite(false)}
       />
+
+      {/* Tarjeta de jugador */}
+      {cardUserId && (
+        <PlayerCard
+          userId={cardUserId}
+          groupId={activeGroup.id}
+          currentUserId={user?.id ?? ""}
+          onClose={() => setCardUserId(null)}
+        />
+      )}
     </>
   );
 }

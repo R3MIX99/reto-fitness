@@ -11,15 +11,20 @@ const POSITION_LABELS: Record<number, string> = { 1: "1ero", 2: "2do", 3: "3ero"
 interface LeaderboardProps {
   entries: LeaderboardEntry[];
   currentUserId: string;
+  onPlayerClick?: (userId: string) => void;
 }
 
-function PlayerRow({ entry, currentUserId }: { entry: LeaderboardEntry; currentUserId: string }) {
+function PlayerRow({ entry, currentUserId, onPlayerClick }: { entry: LeaderboardEntry; currentUserId: string; onPlayerClick?: (userId: string) => void }) {
   const isMe = entry.user_id === currentUserId;
   const label = POSITION_LABELS[entry.position] ?? `${entry.position}to`;
   const isTop = entry.position === 1;
 
   return (
-    <div className="flex items-center gap-2.5 py-2.5 border-b last:border-0" style={{ borderColor: "var(--color-border)" }}>
+    <div
+      onClick={() => onPlayerClick?.(entry.user_id)}
+      className={`flex items-center gap-2.5 py-2.5 border-b last:border-0 ${onPlayerClick ? "cursor-pointer" : ""}`}
+      style={{ borderColor: "var(--color-border)" }}
+    >
       {/* Avatar */}
       <div className="relative flex-shrink-0">
         {entry.avatar_url ? (
@@ -56,7 +61,7 @@ function PlayerRow({ entry, currentUserId }: { entry: LeaderboardEntry; currentU
   );
 }
 
-export function Leaderboard({ entries, currentUserId }: LeaderboardProps) {
+export function Leaderboard({ entries, currentUserId, onPlayerClick }: LeaderboardProps) {
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? entries : entries.slice(0, 3);
 
@@ -70,11 +75,11 @@ export function Leaderboard({ entries, currentUserId }: LeaderboardProps) {
       <div className="relative">
         <div style={{ maxHeight: expanded ? "none" : 172, overflow: "hidden" }}>
           {shown.map((e) => (
-            <PlayerRow key={e.user_id} entry={e} currentUserId={currentUserId} />
+            <PlayerRow key={e.user_id} entry={e} currentUserId={currentUserId} onPlayerClick={onPlayerClick} />
           ))}
           {/* 4th row peek when collapsed */}
           {!expanded && entries.length > 3 && (
-            <PlayerRow entry={entries[3]} currentUserId={currentUserId} />
+            <PlayerRow entry={entries[3]} currentUserId={currentUserId} onPlayerClick={onPlayerClick} />
           )}
         </div>
 

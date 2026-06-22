@@ -38,7 +38,7 @@ function Avatar({ entry, size }: { entry: PodiumEntry; size: number }) {
   );
 }
 
-export function SeasonPodium({ result }: { result: FinishedSeasonResult }) {
+export function SeasonPodium({ result, onPlayerClick }: { result: FinishedSeasonResult; onPlayerClick?: (userId: string) => void }) {
   const { season, standings } = result;
   const top3 = standings.filter((s) => s.rank <= 3);
   const first = top3.find((s) => s.rank === 1);
@@ -67,7 +67,11 @@ export function SeasonPodium({ result }: { result: FinishedSeasonResult }) {
           if (!entry) return <div key={i} className="flex-1 max-w-[96px]" />;
           const rank = entry.rank;
           return (
-            <div key={entry.user_id} className="flex-1 max-w-[96px] flex flex-col items-center">
+            <div
+              key={entry.user_id}
+              onClick={() => onPlayerClick?.(entry.user_id)}
+              className={`flex-1 max-w-[96px] flex flex-col items-center ${onPlayerClick ? "cursor-pointer" : ""}`}
+            >
               <div className="relative mb-1.5">
                 <Avatar entry={entry} size={avatarSizes[i]} />
                 <div
@@ -100,7 +104,11 @@ export function SeasonPodium({ result }: { result: FinishedSeasonResult }) {
       {rest.length > 0 && (
         <div className="mt-3 divide-border">
           {rest.map((entry) => (
-            <div key={entry.user_id} className="flex items-center gap-3 py-2">
+            <div
+              key={entry.user_id}
+              onClick={() => onPlayerClick?.(entry.user_id)}
+              className={`flex items-center gap-3 py-2 ${onPlayerClick ? "cursor-pointer" : ""}`}
+            >
               <span className="text-[12px] text-[var(--color-muted)] w-5 text-center flex-shrink-0">{entry.rank}</span>
               <Avatar entry={entry} size={28} />
               <span className="text-[13px] flex-1 truncate">{entry.full_name ?? "Jugador"}</span>

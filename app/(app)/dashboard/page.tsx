@@ -7,6 +7,7 @@ import { useUser } from "@/lib/hooks/useUser";
 import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
 import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
 import { useActiveSeason, computePhase, type Season } from "@/lib/hooks/useSeasons";
+import { PlayerCard } from "@/components/player/PlayerCard";
 
 const TOTAL_PTS = 13;
 const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
@@ -53,6 +54,7 @@ function PlayerRow({
   total_points,
   isCurrent,
   isLast,
+  onClick,
 }: {
   position: number;
   full_name: string | null;
@@ -60,6 +62,7 @@ function PlayerRow({
   total_points: number;
   isCurrent: boolean;
   isLast: boolean;
+  onClick?: () => void;
 }) {
   const initials = getInitials(full_name);
   const ordinal = ORDINALS[position - 1] ?? `${position}°`;
@@ -67,7 +70,8 @@ function PlayerRow({
 
   return (
     <div
-      className="flex items-center gap-2.5 py-2.5"
+      onClick={onClick}
+      className={`flex items-center gap-2.5 py-2.5 ${onClick ? "cursor-pointer" : ""}`}
       style={{ borderBottom: isLast ? "none" : "0.5px solid var(--color-border)" }}
     >
       <Avatar url={avatar_url} initials={initials} size={28} />
@@ -106,6 +110,7 @@ export default function DashboardPage() {
   const groupId = groups[0]?.id ?? null;
   const groupIds = groups.map((g) => g.id);
   const [showAll, setShowAll] = useState(false);
+  const [cardUserId, setCardUserId] = useState<string | null>(null);
 
   const { data: todayPts = 0 } = useTodayScore(groupId);
   const { data: streak = 0 } = useStreak(groupId);
@@ -251,6 +256,7 @@ export default function DashboardPage() {
                 total_points={entry.total_points}
                 isCurrent={entry.user_id === user?.id}
                 isLast={i === visibleLeaderboard.length - 1 && !hasMore}
+                onClick={groupId ? () => setCardUserId(entry.user_id) : undefined}
               />
             ))}
           </div>
@@ -274,6 +280,16 @@ export default function DashboardPage() {
         <p className="text-[13px] text-[var(--color-muted)] text-center pt-4">
           Únete a un grupo para ver el ranking.
         </p>
+      )}
+
+      {/* Tarjeta de jugador */}
+      {cardUserId && groupId && (
+        <PlayerCard
+          userId={cardUserId}
+          groupId={groupId}
+          currentUserId={user?.id ?? ""}
+          onClose={() => setCardUserId(null)}
+        />
       )}
     </div>
   );
