@@ -53,11 +53,17 @@ function LoginInner() {
         setError("No se pudo iniciar sesión. Intenta de nuevo.");
         setLoading(false);
       } else {
-        const destination =
-          next && next.startsWith("/") && !next.startsWith("//")
-            ? next
-            : "/grupo";
-        router.push(destination);
+        // Solo honrar ?next para flujos de invitación (/grupo/unirse).
+        // Rutas de perfil/dashboard no son destinos válidos post-login.
+        const validNext =
+          next &&
+          next.startsWith("/") &&
+          !next.startsWith("//") &&
+          !next.startsWith("/perfil") &&
+          !next.startsWith("/dashboard") &&
+          !next.startsWith("/login");
+        // replace para que el login no quede en el historial del navegador.
+        router.replace(validNext ? next : "/grupo");
       }
     };
 
