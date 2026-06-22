@@ -291,18 +291,19 @@ export function useSeasonStandings(seasonId: string | null) {
         .eq("season_id", seasonId)
         .order("rank", { ascending: true }) as unknown as { data: StandingRow[] | null };
 
-      type ProfileRow = { full_name: string | null; avatar_url: string | null };
+      type ProfileRow = { full_name: string | null; avatar_url: string | null; gender: string | null };
       return Promise.all(
         (rows ?? []).map(async (r) => {
           const { data: p } = await supabase
             .from("profiles")
-            .select("full_name, avatar_url")
+            .select("full_name, avatar_url, gender")
             .eq("id", r.user_id)
             .single() as unknown as { data: ProfileRow | null };
           return {
             user_id: r.user_id,
             full_name: p?.full_name ?? null,
             avatar_url: p?.avatar_url ?? null,
+            gender: p?.gender ?? "unspecified",
             rank: r.rank,
             total_points: r.total_points,
           };
@@ -455,6 +456,7 @@ export interface PodiumEntry {
   user_id: string;
   full_name: string | null;
   avatar_url: string | null;
+  gender: string;
   rank: number;
   total_points: number;
 }
@@ -462,6 +464,14 @@ export interface PodiumEntry {
 export interface FinishedSeasonResult {
   season: Season;
   standings: PodiumEntry[];
+}
+
+// Título del podio según posición y género
+export function seasonTitle(rank: number, gender: string): string {
+  if (rank === 1) return gender === "female" ? "La más fuerte" : "El más fuerte";
+  if (rank === 2) return gender === "female" ? "Subcampeona" : "Subcampeón";
+  if (rank === 3) return "Tercer lugar";
+  return "";
 }
 
 // Última temporada FINALIZADA del grupo (status 'finished') con su podio.
@@ -492,18 +502,19 @@ export function useLatestFinishedSeason(groupId: string | null) {
         .eq("season_id", season.id)
         .order("rank", { ascending: true }) as unknown as { data: StandingRow[] | null };
 
-      type ProfileRow = { full_name: string | null; avatar_url: string | null };
+      type ProfileRow = { full_name: string | null; avatar_url: string | null; gender: string | null };
       const standings: PodiumEntry[] = await Promise.all(
         (rows ?? []).map(async (r) => {
           const { data: p } = await supabase
             .from("profiles")
-            .select("full_name, avatar_url")
+            .select("full_name, avatar_url, gender")
             .eq("id", r.user_id)
             .single() as unknown as { data: ProfileRow | null };
           return {
             user_id: r.user_id,
             full_name: p?.full_name ?? null,
             avatar_url: p?.avatar_url ?? null,
+            gender: p?.gender ?? "unspecified",
             rank: r.rank,
             total_points: r.total_points,
           };

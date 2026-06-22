@@ -8,6 +8,7 @@ import {
   useSeasonHistory,
   useSeasonStandings,
   computePhase,
+  seasonTitle,
   type Season,
   type PodiumEntry,
 } from "@/lib/hooks/useSeasons";
@@ -27,7 +28,6 @@ function durationLabel(weeks: number): string {
 }
 
 const MEDAL: Record<number, string> = { 1: "#EFC88B", 2: "#C0C0C0", 3: "#CD7F32" };
-const TITLES: Record<number, string> = { 1: "El más fuerte", 2: "Subcampeón", 3: "Tercer lugar" };
 
 type SeasonView = "active" | "reviewing" | "finished" | "cancelled" | "scheduled";
 
@@ -156,8 +156,8 @@ function FinishedStandings({ seasonId }: { seasonId: string }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[13px] truncate">{e.full_name ?? "Jugador"}</p>
-            {TITLES[e.rank] && (
-              <p className="text-[10px]" style={{ color: MEDAL[e.rank] }}>{TITLES[e.rank]}</p>
+            {seasonTitle(e.rank, e.gender) && (
+              <p className="text-[10px]" style={{ color: MEDAL[e.rank] }}>{seasonTitle(e.rank, e.gender)}</p>
             )}
           </div>
           {e.rank === 1 && <Trophy size={13} strokeWidth={1.5} className="text-warm flex-shrink-0" />}

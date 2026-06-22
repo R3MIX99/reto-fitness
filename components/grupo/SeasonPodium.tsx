@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { Trophy, Medal } from "lucide-react";
-import type { FinishedSeasonResult, PodiumEntry } from "@/lib/hooks/useSeasons";
+import { Trophy } from "lucide-react";
+import { seasonTitle, type FinishedSeasonResult, type PodiumEntry } from "@/lib/hooks/useSeasons";
 
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 function fmt(dateStr: string): string {
@@ -14,12 +14,6 @@ function getInitials(name: string | null): string {
   if (!name) return "?";
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
-
-const TITLES: Record<number, string> = {
-  1: "El más fuerte",
-  2: "Subcampeón",
-  3: "Tercer lugar",
-};
 
 const MEDAL_COLORS: Record<number, string> = {
   1: "#EFC88B", // oro
@@ -87,7 +81,7 @@ export function SeasonPodium({ result }: { result: FinishedSeasonResult }) {
                 {entry.full_name ?? "Jugador"}
               </p>
               <p className="text-[10px] text-center mb-1.5" style={{ color: MEDAL_COLORS[rank] }}>
-                {TITLES[rank]}
+                {seasonTitle(rank, entry.gender)}
               </p>
               <div
                 className="w-full rounded-t-[10px] flex items-start justify-center pt-1.5"
