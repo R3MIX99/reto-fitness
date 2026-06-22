@@ -69,8 +69,9 @@ function GrupoPageInner() {
   // Última temporada finalizada (podio) — solo se muestra si no hay una en curso
   const { data: finishedSeason = null } = useLatestFinishedSeason(activeGroup?.id ?? null);
 
-  // Sin temporada: gráfica global; con temporada: datos del grupo
-  const last7Base = season ? last7Raw : globalMemberLast7;
+  // Gráfica global cuando no hay temporada o la temporada aún no arrancó (sin inscritos).
+  // Con temporada en curso (season_members ya poblados) → datos del grupo.
+  const last7Base = (season && seasonLeaderboard.length > 0) ? last7Raw : globalMemberLast7;
   const last7 = (() => {
     const members = activeGroup?.members ?? [];
     const usersInData = new Set(last7Base.map((r) => r.user_id));
