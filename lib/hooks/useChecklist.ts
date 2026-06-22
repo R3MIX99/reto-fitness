@@ -186,6 +186,8 @@ export function useMarkCheck(groupId: string | null) {
     mutationFn: async ({ file, kind, goalId }: { file: File; kind: GoalKind; goalId?: string }) => {
       if (!user || !groupId) throw new Error("Sin sesión o grupo");
 
+      // La evidencia es UNA sola foto, compartida por todos los grupos del usuario:
+      // la ruta no incluye group_id, así que el archivo nunca se duplica.
       const compressed = await compressImage(file, 1080);
       const ext = "jpg";
       const path = `${user.id}/${todayStr()}/${kind}${goalId ? `-${goalId}` : ""}.${ext}`;
@@ -197,43 +199,58 @@ export function useMarkCheck(groupId: string | null) {
 
       if (uploadError) throw uploadError;
 
-      // Borrar check previo del mismo slot (maneja re-subidas)
-      const deleteQuery = supabase
-        .from("daily_checks")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("group_id", groupId)
-        .eq("check_date", todayStr())
-        .eq("kind", kind);
+      // Un check es personal: aplica a TODOS los grupos del usuario. Creamos una
+      // fila por grupo (mismo archivo) para que cada grupo lo revise y puntúe por
+      // separado, sin duplicar la evidencia.
+      type MembershipRow = { group_id: string };
+      const { data: memberships } = await supabase
+        .from("group_members")
+        .select("group_id")
+        .eq("user_id", user.id) as unknown as { data: MembershipRow[] | null };
 
-      if (goalId) {
-        const { error: delErr } = await (deleteQuery.eq("goal_id", goalId) as unknown as Promise<{ error: unknown }>);
-        if (delErr) console.warn("delete check warning:", delErr);
-      } else {
-        const { error: delErr } = await (deleteQuery.is("goal_id", null) as unknown as Promise<{ error: unknown }>);
-        if (delErr) console.warn("delete check warning:", delErr);
+      const groupIds = (memberships ?? []).map((m) => m.group_id);
+      // Garantizar que el grupo activo siempre esté incluido aunque haya lag de lectura
+      if (!groupIds.includes(groupId)) groupIds.push(groupId);
+
+      for (const gid of groupIds) {
+        // Borrar check previo del mismo slot en este grupo (maneja re-subidas)
+        const deleteQuery = supabase
+          .from("daily_checks")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("group_id", gid)
+          .eq("check_date", todayStr())
+          .eq("kind", kind);
+
+        if (goalId) {
+          const { error: delErr } = await (deleteQuery.eq("goal_id", goalId) as unknown as Promise<{ error: unknown }>);
+          if (delErr) console.warn("delete check warning:", delErr);
+        } else {
+          const { error: delErr } = await (deleteQuery.is("goal_id", null) as unknown as Promise<{ error: unknown }>);
+          if (delErr) console.warn("delete check warning:", delErr);
+        }
+
+        const { error: insertError } = await supabase
+          .from("daily_checks")
+          .insert({
+            user_id: user.id,
+            group_id: gid,
+            kind,
+            goal_id: goalId ?? null,
+            evidence_path: path,
+            check_date: todayStr(),
+            status: "pending",
+          } as never) as unknown as { error: { message: string } | null };
+
+        if (insertError) throw new Error((insertError as { message: string }).message);
+
+        // Recalcular puntos del día en cada grupo para que su leaderboard se actualice
+        await (supabase.rpc as Function)("recalc_day_score", {
+          p_user_id: user.id,
+          p_group_id: gid,
+          p_date: todayStr(),
+        });
       }
-
-      const { error: insertError } = await supabase
-        .from("daily_checks")
-        .insert({
-          user_id: user.id,
-          group_id: groupId,
-          kind,
-          goal_id: goalId ?? null,
-          evidence_path: path,
-          check_date: todayStr(),
-          status: "pending",
-        } as never) as unknown as { error: { message: string } | null };
-
-      if (insertError) throw new Error((insertError as { message: string }).message);
-
-      // Recalcular puntos del día para que el leaderboard se actualice al momento
-      await (supabase.rpc as Function)("recalc_day_score", {
-        p_user_id: user.id,
-        p_group_id: groupId,
-        p_date: todayStr(),
-      });
     },
 
     onError: (_err, _vars, context) => {
