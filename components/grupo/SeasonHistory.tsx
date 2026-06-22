@@ -66,6 +66,18 @@ export function SeasonHistory({ groupId }: { groupId: string }) {
 
   if (seasons.length === 0) return null;
 
+  // Número de display: solo cuentan las temporadas no-canceladas, en orden cronológico
+  const displayNumbers = new Map<string, number>();
+  let counter = 0;
+  [...seasons]
+    .sort((a, b) => a.season_number - b.season_number)
+    .forEach((s) => {
+      if (s.status !== "cancelled") {
+        counter++;
+        displayNumbers.set(s.id, counter);
+      }
+    });
+
   return (
     <>
       <button
@@ -90,6 +102,7 @@ export function SeasonHistory({ groupId }: { groupId: string }) {
               <SeasonRow
                 key={s.id}
                 season={s}
+                displayNumber={displayNumbers.get(s.id) ?? null}
                 expanded={expandedId === s.id}
                 onToggle={() => toggleSeason(s.id)}
               />
@@ -103,7 +116,7 @@ export function SeasonHistory({ groupId }: { groupId: string }) {
 
 // ── Fila de temporada (expandible) ────────────────────────────────────────────
 
-function SeasonRow({ season, expanded, onToggle }: { season: Season; expanded: boolean; onToggle: () => void }) {
+function SeasonRow({ season, displayNumber, expanded, onToggle }: { season: Season; displayNumber: number | null; expanded: boolean; onToggle: () => void }) {
   const view = viewOf(season);
   const badge = BADGE[view];
   const expandable = view === "finished" || view === "cancelled";
@@ -117,7 +130,11 @@ function SeasonRow({ season, expanded, onToggle }: { season: Season; expanded: b
       >
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-medium truncate">
-            {view === "cancelled" ? "Temporada cancelada" : season.name}
+            {view === "cancelled"
+              ? "Temporada cancelada"
+              : displayNumber
+              ? `Temporada ${displayNumber}`
+              : season.name}
           </p>
           <p className="text-[12px] text-[var(--color-muted)]">
             {fmt(season.start_date)} – {fmt(season.end_date)} · {durationLabel(season.duration_weeks)}
