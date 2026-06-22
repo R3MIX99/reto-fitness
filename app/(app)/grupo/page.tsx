@@ -11,6 +11,7 @@ import { EvidenciasCard } from "@/components/grupo/EvidenciasCard";
 import { Leaderboard } from "@/components/grupo/Leaderboard";
 import { ComparativaChart } from "@/components/grupo/ComparativaChart";
 import { InviteSheet } from "@/components/grupo/InviteSheet";
+import { SeasonBanner } from "@/components/grupo/SeasonBanner";
 
 function getWeekNumber(): number {
   const now = new Date();
@@ -216,6 +217,12 @@ function GrupoPageInner() {
             ))}
           </div>
         )}
+
+        {/* Banner de temporada */}
+        <SeasonBanner
+          groupId={activeGroup.id}
+          isOwner={activeGroup.owner_id === user?.id}
+        />
 
         {/* 2) Evidencias por revisar */}
         <EvidenciasCard
