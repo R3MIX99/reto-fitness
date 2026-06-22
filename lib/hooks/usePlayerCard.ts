@@ -1,0 +1,200 @@
+"use client";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
+import { useUser } from "./useUser";
+import { seasonTitle } from "./useSeasons";
+
+export type PlayerTier = "none" | "champion" | "legend";
+
+export interface PlayerWin {
+  season_id: string;
+  season_number: number;
+  season_name: string;
+  end_date: string;
+  title: string; // p. ej. "El más fuerte · Temp 1"
+}
+
+export interface PlayerCardData {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  gender: string;
+  joined_at: string | null;
+  wins: PlayerWin[];
+  wins_count: number;
+  tier: PlayerTier;
+  is_latest_champion: boolean;
+  equipped: PlayerWin | null;
+}
+
+// Datos de la tarjeta de un jugador, dentro del contexto de un grupo.
+// Logros = temporadas finalizadas de ESE grupo donde el jugador quedó 1°.
+export function usePlayerCard(userId: string | null, groupId: string | null) {
+  return useQuery({
+    queryKey: ["playerCard", userId, groupId],
+    enabled: !!userId && !!groupId,
+    queryFn: async (): Promise<PlayerCardData | null> => {
+      if (!userId || !groupId) return null;
+      const supabase = createClient();
+
+      type ProfileRow = { full_name: string | null; avatar_url: string | null; gender: string | null; equipped_season_id: string | null };
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url, gender, equipped_season_id")
+        .eq("id", userId)
+        .single() as unknown as { data: ProfileRow | null };
+
+      const gender = profile?.gender ?? "unspecified";
+
+      type MemberRow = { joined_at: string | null };
+      const { data: membership } = await supabase
+        .from("group_members")
+        .select("joined_at")
+        .eq("group_id", groupId)
+        .eq("user_id", userId)
+        .maybeSingle() as unknown as { data: MemberRow | null };
+
+      // Temporadas finalizadas del grupo
+      type SeasonRow = { id: string; name: string; season_number: number; end_date: string };
+      const { data: seasons } = await supabase
+        .from("seasons")
+        .select("id, name, season_number, end_date")
+        .eq("group_id", groupId)
+        .eq("status", "finished")
+        .order("season_number", { ascending: false }) as unknown as { data: SeasonRow[] | null };
+
+      const seasonList = seasons ?? [];
+      const seasonIds = seasonList.map((s) => s.id);
+
+      let wins: PlayerWin[] = [];
+      if (seasonIds.length) {
+        type StandingRow = { season_id: string };
+        const { data: standings } = await supabase
+          .from("season_standings")
+          .select("season_id")
+          .eq("user_id", userId)
+          .eq("rank", 1)
+          .in("season_id", seasonIds) as unknown as { data: StandingRow[] | null };
+
+        const wonIds = new Set((standings ?? []).map((s) => s.season_id));
+        wins = seasonList
+          .filter((s) => wonIds.has(s.id))
+          .map((s) => ({
+            season_id: s.id,
+            season_number: s.season_number,
+            season_name: s.name,
+            end_date: s.end_date,
+            title: `${seasonTitle(1, gender)} · Temp ${s.season_number}`,
+          }));
+      }
+
+      const winsCount = wins.length;
+      const tier: PlayerTier = winsCount >= 3 ? "legend" : winsCount >= 1 ? "champion" : "none";
+
+      // Último campeón: ganó la temporada finalizada más reciente del grupo
+      const latestSeason = seasonList[0]; // ya ordenado desc
+      const isLatestChampion = !!latestSeason && wins.some((w) => w.season_id === latestSeason.id);
+
+      // Título equipado: el elegido si es de este grupo, si no el más reciente de este grupo
+      const equipped =
+        wins.find((w) => w.season_id === profile?.equipped_season_id) ?? wins[0] ?? null;
+
+      return {
+        user_id: userId,
+        full_name: profile?.full_name ?? null,
+        avatar_url: profile?.avatar_url ?? null,
+        gender,
+        joined_at: membership?.joined_at ?? null,
+        wins,
+        wins_count: winsCount,
+        tier,
+        is_latest_champion: isLatestChampion,
+        equipped,
+      };
+    },
+  });
+}
+
+// Todas las victorias del usuario actual (cualquier grupo) para el selector de perfil.
+export interface MyTitle extends PlayerWin {
+  group_id: string;
+  group_name: string;
+}
+
+export function useMyTitles() {
+  const { user } = useUser();
+  return useQuery({
+    queryKey: ["myTitles", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<MyTitle[]> => {
+      const supabase = createClient();
+
+      type ProfileRow = { gender: string | null };
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("gender")
+        .eq("id", user!.id)
+        .single() as unknown as { data: ProfileRow | null };
+      const gender = profile?.gender ?? "unspecified";
+
+      type StandingRow = { season_id: string };
+      const { data: standings } = await supabase
+        .from("season_standings")
+        .select("season_id")
+        .eq("user_id", user!.id)
+        .eq("rank", 1) as unknown as { data: StandingRow[] | null };
+
+      const ids = (standings ?? []).map((s) => s.season_id);
+      if (!ids.length) return [];
+
+      type SeasonRow = { id: string; name: string; season_number: number; end_date: string; group_id: string; status: string };
+      const { data: seasons } = await supabase
+        .from("seasons")
+        .select("id, name, season_number, end_date, group_id, status")
+        .in("id", ids)
+        .eq("status", "finished") as unknown as { data: SeasonRow[] | null };
+
+      const seasonList = seasons ?? [];
+      const groupIds = Array.from(new Set(seasonList.map((s) => s.group_id)));
+      type GroupRow = { id: string; name: string };
+      const { data: groups } = groupIds.length
+        ? await supabase.from("groups").select("id, name").in("id", groupIds) as unknown as { data: GroupRow[] | null }
+        : { data: null };
+      const groupNames = new Map((groups ?? []).map((g) => [g.id, g.name]));
+
+      return seasonList
+        .sort((a, b) => b.end_date.localeCompare(a.end_date))
+        .map((s) => ({
+          season_id: s.id,
+          season_number: s.season_number,
+          season_name: s.name,
+          end_date: s.end_date,
+          title: `${seasonTitle(1, gender)} · Temp ${s.season_number}`,
+          group_id: s.group_id,
+          group_name: groupNames.get(s.group_id) ?? "Grupo",
+        }));
+    },
+  });
+}
+
+// Equipar (o quitar) un título
+export function useEquipTitle() {
+  const { user } = useUser();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (seasonId: string | null): Promise<void> => {
+      if (!user) throw new Error("Sin sesión");
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("profiles")
+        .update({ equipped_season_id: seasonId } as unknown as never)
+        .eq("id", user.id) as unknown as { error: { message: string } | null };
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["playerCard"] });
+      qc.invalidateQueries({ queryKey: ["myTitles"] });
+    },
+  });
+}

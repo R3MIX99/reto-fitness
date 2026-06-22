@@ -418,6 +418,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          equipped_season_id: string | null
           full_name: string | null
           gender: string
           id: string
@@ -429,6 +430,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          equipped_season_id?: string | null
           full_name?: string | null
           gender?: string
           id: string
@@ -440,6 +442,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          equipped_season_id?: string | null
           full_name?: string | null
           gender?: string
           id?: string
