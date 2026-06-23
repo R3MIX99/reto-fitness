@@ -55,6 +55,7 @@ function PlayerRow({
   total_points,
   isCurrent,
   isLast,
+  streak_day,
   onClick,
 }: {
   position: number;
@@ -63,6 +64,7 @@ function PlayerRow({
   total_points: number;
   isCurrent: boolean;
   isLast: boolean;
+  streak_day?: number;
   onClick?: () => void;
 }) {
   const initials = getInitials(full_name);
@@ -79,6 +81,7 @@ function PlayerRow({
 
       <div className="flex-1 flex items-center gap-1.5 min-w-0">
         <span className="text-[13px] truncate">{full_name ?? "—"}</span>
+        {(streak_day ?? 0) >= 3 && <Flame size={13} strokeWidth={1.5} className="text-accent flex-shrink-0" fill="#CF5C36" />}
         {isCurrent && (
           <span className="text-[10px] text-warm">(tú)</span>
         )}
@@ -130,6 +133,7 @@ export default function DashboardPage() {
         total_points: 0,
         position: i + 1,
         is_leader: i === 0,
+        streak_day: 0,
       }));
 
   const visibleLeaderboard = showAll ? effectiveLeaderboard : effectiveLeaderboard.slice(0, PREVIEW_COUNT);
@@ -264,6 +268,7 @@ export default function DashboardPage() {
                 total_points={entry.total_points}
                 isCurrent={entry.user_id === user?.id}
                 isLast={i === visibleLeaderboard.length - 1 && !hasMore}
+                streak_day={entry.streak_day}
                 onClick={groupId ? () => setCardUserId(entry.user_id) : undefined}
               />
             ))}

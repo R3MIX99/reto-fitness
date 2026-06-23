@@ -250,6 +250,10 @@ export function useMarkCheck(groupId: string | null) {
           p_group_id: gid,
           p_date: todayStr(),
         });
+        await (supabase.rpc as Function)("compute_user_streak", {
+          p_user_id: user.id,
+          p_group_id: gid,
+        });
       }
     },
 
@@ -266,6 +270,7 @@ export function useMarkCheck(groupId: string | null) {
       qc.invalidateQueries({ queryKey: ["monthChecks"] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
       qc.invalidateQueries({ queryKey: ["todayScore"] });
+      qc.invalidateQueries({ queryKey: ["streak"] });
     },
   });
 }

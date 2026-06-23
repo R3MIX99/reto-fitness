@@ -28,6 +28,7 @@ export interface LeaderboardEntry {
   total_points: number;
   position: number;
   is_leader: boolean;
+  streak_day: number;
 }
 
 export interface DailyScoreEntry {
@@ -117,21 +118,27 @@ export function useLeaderboard(groupId: string | null) {
       if (!groupId) return [];
       const supabase = createClient();
 
-      type ScoreRow = { user_id: string; total_points: number | null };
+      type ScoreRow = { user_id: string; total_points: number | null; streak_bonus: number | null; streak_day: number | null; score_date: string };
       type ProfileRow2 = { full_name: string | null; avatar_url: string | null };
 
-      // Sum total_points per user in this group
+      const _ld = new Date();
+      const todayLd = `${_ld.getFullYear()}-${String(_ld.getMonth()+1).padStart(2,"0")}-${String(_ld.getDate()).padStart(2,"0")}`;
+
+      // Sum (total_points + streak_bonus) per user in this group
       const { data } = await supabase
         .from("daily_scores")
-        .select("user_id, total_points")
+        .select("user_id, total_points, streak_bonus, streak_day, score_date")
         .eq("group_id", groupId) as unknown as { data: ScoreRow[] | null };
 
       if (!data) return [];
 
-      // Aggregate
+      // Aggregate effective points; track today's streak_day per user
       const totals: Record<string, number> = {};
+      const streakDaysLb: Record<string, number> = {};
       for (const row of data) {
-        totals[row.user_id] = (totals[row.user_id] ?? 0) + (row.total_points ?? 0);
+        const effective = (row.total_points ?? 0) + (row.streak_bonus ?? 0);
+        totals[row.user_id] = (totals[row.user_id] ?? 0) + effective;
+        if (row.score_date === todayLd) streakDaysLb[row.user_id] = row.streak_day ?? 0;
       }
 
       const userIds = Object.keys(totals);
@@ -149,7 +156,7 @@ export function useLeaderboard(groupId: string | null) {
       );
 
       const entries = profiles
-        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0 }))
+        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0, streak_day: streakDaysLb[p.user_id] ?? 0 }))
         .sort((a, b) => b.total_points - a.total_points)
         .map((p, i) => ({ ...p, position: i + 1, is_leader: i === 0 }));
 
@@ -246,29 +253,19 @@ export function useStreak(groupId: string | null) {
     queryKey: ["streak", user?.id, groupId],
     enabled: !!user && !!groupId,
     queryFn: async (): Promise<number> => {
-      if (!groupId) return 0;
+      if (!groupId || !user) return 0;
       const supabase = createClient();
-      type CheckRow = { check_date: string };
+      const _d = new Date();
+      const todayStr = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
+      type Row = { streak_day: number | null };
       const { data } = await supabase
-        .from("daily_checks")
-        .select("check_date")
-        .eq("user_id", user!.id)
+        .from("daily_scores")
+        .select("streak_day")
+        .eq("user_id", user.id)
         .eq("group_id", groupId)
-        .order("check_date", { ascending: false }) as unknown as { data: CheckRow[] | null };
-
-      if (!data?.length) return 0;
-
-      const days = Array.from(new Set(data.map((r) => r.check_date))).sort().reverse();
-      let streak = 0;
-      const today = new Date();
-      for (let i = 0; i < days.length; i++) {
-        const expected = new Date(today);
-        expected.setDate(today.getDate() - i);
-        const expectedStr = `${expected.getFullYear()}-${String(expected.getMonth()+1).padStart(2,"0")}-${String(expected.getDate()).padStart(2,"0")}`;
-        if (days[i] === expectedStr) streak++;
-        else break;
-      }
-      return streak;
+        .eq("score_date", todayStr)
+        .single() as unknown as { data: Row | null };
+      return data?.streak_day ?? 0;
     },
   });
 }
@@ -470,25 +467,32 @@ export function useGlobalLeaderboard(groupIds: string[]) {
       if (!groupIds.length) return [];
       const supabase = createClient();
 
-      type ScoreRow = { user_id: string; score_date: string; total_points: number | null };
+      type ScoreRow = { user_id: string; score_date: string; total_points: number | null; streak_bonus: number | null; streak_day: number | null };
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
+
+      const _gd = new Date();
+      const todayGd = `${_gd.getFullYear()}-${String(_gd.getMonth()+1).padStart(2,"0")}-${String(_gd.getDate()).padStart(2,"0")}`;
 
       // Fetch all scores for all groups this user belongs to
       const { data } = await supabase
         .from("daily_scores")
-        .select("user_id, score_date, total_points")
+        .select("user_id, score_date, total_points, streak_bonus, streak_day")
         .in("group_id", groupIds) as unknown as { data: ScoreRow[] | null };
 
       if (!data?.length) return [];
 
-      // For each user, deduplicate by date (take max across groups for that date)
+      // For each user, deduplicate by date (take max effective across groups for that date)
       const perUserPerDate: Record<string, Record<string, number>> = {};
+      const streakDaysGl: Record<string, number> = {};
       for (const row of data) {
         const uid = row.user_id;
         const date = row.score_date;
-        const pts = row.total_points ?? 0;
+        const effective = (row.total_points ?? 0) + (row.streak_bonus ?? 0);
         if (!perUserPerDate[uid]) perUserPerDate[uid] = {};
-        perUserPerDate[uid][date] = Math.max(perUserPerDate[uid][date] ?? 0, pts);
+        perUserPerDate[uid][date] = Math.max(perUserPerDate[uid][date] ?? 0, effective);
+        if (date === todayGd && (row.streak_day ?? 0) > (streakDaysGl[uid] ?? 0)) {
+          streakDaysGl[uid] = row.streak_day ?? 0;
+        }
       }
 
       // Sum deduplicated points per user
@@ -520,7 +524,7 @@ export function useGlobalLeaderboard(groupIds: string[]) {
       );
 
       const entries = profiles
-        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0 }))
+        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0, streak_day: streakDaysGl[p.user_id] ?? 0 }))
         .sort((a, b) => b.total_points - a.total_points)
         .map((p, i) => ({ ...p, position: i + 1, is_leader: i === 0 }));
 
@@ -540,22 +544,29 @@ export function useGroupMembersGlobalLeaderboard(memberIds: string[]) {
     queryFn: async (): Promise<LeaderboardEntry[]> => {
       if (!memberIds.length) return [];
       const supabase = createClient();
-      type ScoreRow = { user_id: string; score_date: string; total_points: number | null };
+      type ScoreRow = { user_id: string; score_date: string; total_points: number | null; streak_bonus: number | null; streak_day: number | null };
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
+
+      const _md = new Date();
+      const todayMd = `${_md.getFullYear()}-${String(_md.getMonth()+1).padStart(2,"0")}-${String(_md.getDate()).padStart(2,"0")}`;
 
       const { data } = await supabase
         .from("daily_scores")
-        .select("user_id, score_date, total_points")
+        .select("user_id, score_date, total_points, streak_bonus, streak_day")
         .in("user_id", memberIds) as unknown as { data: ScoreRow[] | null };
 
       // Deduplicar por (usuario, fecha) → tomar el máximo entre grupos
       const perUserPerDate: Record<string, Record<string, number>> = {};
+      const streakDaysMb: Record<string, number> = {};
       for (const row of data ?? []) {
         const uid = row.user_id;
         const date = row.score_date;
-        const pts = row.total_points ?? 0;
+        const effective = (row.total_points ?? 0) + (row.streak_bonus ?? 0);
         if (!perUserPerDate[uid]) perUserPerDate[uid] = {};
-        perUserPerDate[uid][date] = Math.max(perUserPerDate[uid][date] ?? 0, pts);
+        perUserPerDate[uid][date] = Math.max(perUserPerDate[uid][date] ?? 0, effective);
+        if (date === todayMd && (row.streak_day ?? 0) > (streakDaysMb[uid] ?? 0)) {
+          streakDaysMb[uid] = row.streak_day ?? 0;
+        }
       }
 
       const totals: Record<string, number> = {};
@@ -575,7 +586,7 @@ export function useGroupMembersGlobalLeaderboard(memberIds: string[]) {
       );
 
       return profiles
-        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0 }))
+        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0, streak_day: streakDaysMb[p.user_id] ?? 0 }))
         .sort((a, b) => b.total_points - a.total_points)
         .map((p, i) => ({ ...p, position: i + 1, is_leader: i === 0 }));
     },

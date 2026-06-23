@@ -45,7 +45,7 @@ function PlayerRow({ entry, currentUserId, championUserId, onPlayerClick }: { en
           {entry.full_name ?? "Usuario"}
         </span>
         {isChampion && <Crown size={13} strokeWidth={1.5} className="text-warm flex-shrink-0" fill="#EFC88B" />}
-        {isTop && <Flame size={13} strokeWidth={1.5} className="text-accent flex-shrink-0" fill="#CF5C36" />}
+        {(entry.streak_day ?? 0) >= 3 && <Flame size={13} strokeWidth={1.5} className="text-accent flex-shrink-0" fill="#CF5C36" />}
       </div>
 
       {/* Position chip */}

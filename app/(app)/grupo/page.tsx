@@ -98,12 +98,14 @@ function GrupoPageInner() {
     const members = activeGroup?.members ?? [];
     const scoreMap = Object.fromEntries(leaderboard.map((e) => [e.user_id, e.total_points]));
     const avatarMap = Object.fromEntries(leaderboard.map((e) => [e.user_id, { full_name: e.full_name, avatar_url: e.avatar_url }]));
+    const streakMap = Object.fromEntries(leaderboard.map((e) => [e.user_id, e.streak_day]));
     return members
       .map((m) => ({
         user_id: m.user_id,
         full_name: avatarMap[m.user_id]?.full_name ?? m.full_name,
         avatar_url: avatarMap[m.user_id]?.avatar_url ?? m.avatar_url,
         total_points: scoreMap[m.user_id] ?? 0,
+        streak_day: streakMap[m.user_id] ?? 0,
       }))
       .sort((a, b) => b.total_points - a.total_points)
       .map((e, i) => ({ ...e, position: i + 1, is_leader: i === 0 }));

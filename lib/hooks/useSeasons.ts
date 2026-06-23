@@ -195,6 +195,7 @@ export interface SeasonLeaderboardEntry {
   total_points: number;
   position: number;
   is_leader: boolean;
+  streak_day: number;
 }
 
 // Leaderboard de la temporada: SOLO miembros inscritos (season_members) y
@@ -209,8 +210,11 @@ export function useSeasonLeaderboard(season: Season | null) {
       const supabase = createClient();
 
       type MemberRow = { user_id: string };
-      type ScoreRow = { user_id: string; total_points: number | null };
+      type ScoreRow = { user_id: string; total_points: number | null; streak_bonus: number | null; streak_day: number | null; score_date: string };
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
+
+      const _ssd = new Date();
+      const todaySsd = `${_ssd.getFullYear()}-${String(_ssd.getMonth()+1).padStart(2,"0")}-${String(_ssd.getDate()).padStart(2,"0")}`;
 
       const { data: members } = await supabase
         .from("season_members")
@@ -222,16 +226,18 @@ export function useSeasonLeaderboard(season: Season | null) {
 
       const { data: scores } = await supabase
         .from("daily_scores")
-        .select("user_id, total_points")
+        .select("user_id, total_points, streak_bonus, streak_day, score_date")
         .eq("group_id", season.group_id)
         .gte("score_date", season.start_date)
         .lte("score_date", season.end_date)
         .in("user_id", memberIds) as unknown as { data: ScoreRow[] | null };
 
       const totals: Record<string, number> = {};
+      const streakDaysSs: Record<string, number> = {};
       for (const id of memberIds) totals[id] = 0;
       for (const r of scores ?? []) {
-        totals[r.user_id] = (totals[r.user_id] ?? 0) + (r.total_points ?? 0);
+        totals[r.user_id] = (totals[r.user_id] ?? 0) + (r.total_points ?? 0) + (r.streak_bonus ?? 0);
+        if (r.score_date === todaySsd) streakDaysSs[r.user_id] = r.streak_day ?? 0;
       }
 
       const profiles = await Promise.all(
@@ -250,7 +256,7 @@ export function useSeasonLeaderboard(season: Season | null) {
       );
 
       return profiles
-        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0 }))
+        .map((p) => ({ ...p, total_points: totals[p.user_id] ?? 0, streak_day: streakDaysSs[p.user_id] ?? 0 }))
         .sort((a, b) => b.total_points - a.total_points)
         .map((p, i) => ({ ...p, position: i + 1, is_leader: i === 0 }));
     },

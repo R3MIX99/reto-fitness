@@ -188,6 +188,10 @@ export function useAuditCheck() {
         p_group_id: checkGroupId,
         p_date: checkDate,
       });
+      await (supabase.rpc as Function)("compute_user_streak", {
+        p_user_id: checkUserId,
+        p_group_id: checkGroupId,
+      });
 
       // ── Fire notifications (best-effort, don't await sequentially) ──────
 
@@ -254,6 +258,7 @@ export function useAuditCheck() {
       qc.invalidateQueries({ queryKey: ["pendingAudits"] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
       qc.invalidateQueries({ queryKey: ["myAudits"] });
+      qc.invalidateQueries({ queryKey: ["streak"] });
     },
   });
 }
