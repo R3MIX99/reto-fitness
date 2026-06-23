@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -131,13 +132,8 @@ function LoginInner() {
       <div className="relative w-full max-w-sm space-y-10">
         {/* Logo / nombre */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-[20px] bg-accent mb-3">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#EEE5E9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6.5 6.5a6 6 0 1 0 8.49 8.49" />
-              <path d="M17.5 3.5 12 9l-2-2" />
-              <path d="m19 9-2 2" />
-              <path d="M3 21l4-4" />
-            </svg>
+          <div className="inline-flex items-center justify-center mb-3">
+            <Image src="/icons/logo.png" alt="Olympo" width={80} height={80} priority />
           </div>
           <h1 className="font-display font-semibold text-[32px] text-[var(--color-fg)] leading-none">
             Olympo
