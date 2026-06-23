@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown, X, RefreshCw } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown, X, RotateCcw } from "lucide-react";
+import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
+import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
 import {
   DndContext,
   closestCenter,
@@ -80,11 +82,13 @@ interface GymSectionProps {
 
 export function GymSection({ check, onMark, onResubmit, onDetail, loading }: GymSectionProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const resubmitRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(false);
-  const [resubmitting, setResubmitting] = useState(false);
-  const [resubmitError, setResubmitError] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [isResubmit, setIsResubmit] = useState(false);
+
   const isDone = !!check;
   const isPending = check?.status === "pending";
   const isApproved = check?.status === "approved";
@@ -98,133 +102,166 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
     ? { background: "rgba(239,200,139,0.12)", border: "2px solid rgba(239,200,139,0.4)" }
     : { background: "var(--color-surface)", border: "2px solid var(--color-border)" };
 
-  const statusLabel = isRejected ? "Rechazado" : isApproved ? "Aprobado" : isPending ? "En revisión" : "Sube una foto del entrenamiento";
+  const statusLabel = isRejected
+    ? "Rechazado"
+    : isApproved
+    ? "Aprobado"
+    : isPending
+    ? "En revisión"
+    : "Sube una foto del entrenamiento";
+
+  function handleFileSelect(file: File, resubmit: boolean) {
+    setIsResubmit(resubmit);
+    setPendingFile(file);
+    setSourceOpen(false);
+    setPreviewOpen(true);
+  }
+
+  async function handleConfirm() {
+    if (!pendingFile) return;
+    setUploadError(false);
+    setUploading(true);
+    setPreviewOpen(false);
+    try {
+      if (isResubmit && onResubmit) {
+        await onResubmit(pendingFile);
+      } else {
+        await onMark(pendingFile);
+      }
+    } catch {
+      setUploadError(true);
+    } finally {
+      setUploading(false);
+      setPendingFile(null);
+    }
+  }
+
+  function handleRetake() {
+    setPreviewOpen(false);
+    setPendingFile(null);
+    if (isResubmit) {
+      setSourceOpen(true);
+    } else {
+      if (inputRef.current) {
+        inputRef.current.value = "";
+        inputRef.current.click();
+      }
+    }
+  }
 
   return (
-    <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4 mb-3">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => !isDone && !uploading && inputRef.current?.click()}
-          disabled={isDone || loading || uploading}
-          className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all"
-          style={circleStyle}
-        >
-          {isRejected ? (
-            <X size={20} strokeWidth={2} style={{ color: "#ef4444" }} />
-          ) : isApproved ? (
-            <Check size={20} strokeWidth={2} style={{ color: "#22c55e" }} />
-          ) : isPending ? (
-            <Clock size={18} strokeWidth={1.5} style={{ color: "#EFC88B" }} />
-          ) : uploading ? (
-            <Clock size={18} strokeWidth={1.5} className="animate-spin text-[var(--color-muted)]" />
-          ) : (
-            <Camera size={18} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+    <>
+      <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4 mb-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => !isDone && !uploading && (setUploadError(false), inputRef.current?.click())}
+            disabled={isDone || loading || uploading}
+            className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all"
+            style={circleStyle}
+          >
+            {isRejected ? (
+              <X size={20} strokeWidth={2} style={{ color: "#ef4444" }} />
+            ) : isApproved ? (
+              <Check size={20} strokeWidth={2} style={{ color: "#22c55e" }} />
+            ) : isPending ? (
+              <Clock size={18} strokeWidth={1.5} style={{ color: "#EFC88B" }} />
+            ) : (
+              <Camera size={18} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+            )}
+          </button>
+
+          <button
+            className="flex-1 min-w-0 text-left"
+            onClick={() => isDone && onDetail?.()}
+            disabled={!isDone}
+          >
+            <p className="text-[15px] font-medium" style={{ color: isRejected ? "#ef4444" : undefined }}>
+              Ejercicio de hoy
+            </p>
+            <p className="text-[12px] text-[var(--color-muted)]">{statusLabel}</p>
+          </button>
+
+          {isPending && (
+            <span className="flex items-center gap-1 text-[10px] text-[#EFC88B] bg-[rgba(239,200,139,0.12)] rounded-full px-2.5 py-1">
+              <Clock size={9} strokeWidth={1.5} />
+              revisión
+            </span>
           )}
-        </button>
+          {isApproved && (
+            <span className="flex items-center gap-1 text-[10px] text-green-400 bg-[rgba(34,197,94,0.1)] rounded-full px-2.5 py-1">
+              <Check size={9} strokeWidth={2} />
+              aprobado
+            </span>
+          )}
+          {isRejected && !onResubmit && (
+            <span className="flex items-center gap-1 text-[10px] text-red-400 bg-[rgba(239,68,68,0.1)] rounded-full px-2.5 py-1">
+              <X size={9} strokeWidth={2} />
+              rechazado
+            </span>
+          )}
+          {/* Icon-only resubmit button */}
+          {isRejected && onResubmit && (
+            <button
+              onClick={() => setSourceOpen(true)}
+              disabled={uploading}
+              className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-50"
+              style={{
+                background: "rgba(239,200,139,0.1)",
+                border: "1px solid rgba(239,200,139,0.3)",
+              }}
+              title="Volver a subir"
+            >
+              <RotateCcw size={13} strokeWidth={1.5} style={{ color: "var(--color-warm)" }} />
+            </button>
+          )}
+          {!isDone && (
+            <button
+              onClick={() => { setUploadError(false); inputRef.current?.click(); }}
+              disabled={loading || uploading}
+              className="flex-shrink-0 flex items-center gap-1.5 bg-accent text-white text-[12px] font-medium rounded-full px-3.5 py-2 transition-opacity disabled:opacity-50"
+            >
+              <Camera size={12} strokeWidth={1.5} />
+              {uploading ? "Subiendo…" : uploadError ? "Reintentar" : "Subir"}
+            </button>
+          )}
+        </div>
 
-        <button
-          className="flex-1 min-w-0 text-left"
-          onClick={() => isDone && onDetail?.()}
-          disabled={!isDone}
-        >
-          <p className="text-[15px] font-medium" style={{ color: isRejected ? "#ef4444" : undefined }}>
-            Ejercicio de hoy
-          </p>
-          <p className="text-[12px] text-[var(--color-muted)]">{statusLabel}</p>
-        </button>
+        {uploadError && (
+          <p className="mt-2 text-[11px] text-red-400">Error al subir. Intenta de nuevo.</p>
+        )}
 
-        {isPending && (
-          <span className="flex items-center gap-1 text-[10px] text-[#EFC88B] bg-[rgba(239,200,139,0.12)] rounded-full px-2.5 py-1">
-            <Clock size={9} strokeWidth={1.5} />
-            revisión
-          </span>
-        )}
-        {isApproved && (
-          <span className="flex items-center gap-1 text-[10px] text-green-400 bg-[rgba(34,197,94,0.1)] rounded-full px-2.5 py-1">
-            <Check size={9} strokeWidth={2} />
-            aprobado
-          </span>
-        )}
-        {isRejected && !onResubmit && (
-          <span className="flex items-center gap-1 text-[10px] text-red-400 bg-[rgba(239,68,68,0.1)] rounded-full px-2.5 py-1">
-            <X size={9} strokeWidth={2} />
-            rechazado
-          </span>
-        )}
-        {isRejected && onResubmit && (
-          <button
-            onClick={() => { setResubmitError(false); resubmitRef.current?.click(); }}
-            disabled={resubmitting}
-            className="flex-shrink-0 flex items-center gap-1.5 text-[12px] font-medium rounded-full px-3.5 py-2 transition-opacity disabled:opacity-50"
-            style={{
-              color: resubmitError ? "#ef4444" : "var(--color-warm)",
-              background: resubmitError ? "rgba(239,68,68,0.1)" : "rgba(239,200,139,0.1)",
-              border: resubmitError ? "1px solid rgba(239,68,68,0.3)" : "1px solid rgba(239,200,139,0.3)",
-            }}
-          >
-            <RefreshCw size={12} strokeWidth={1.5} />
-            {resubmitting ? "Subiendo…" : resubmitError ? "Error, reintentar" : "Volver a subir"}
-          </button>
-        )}
-        {!isDone && (
-          <button
-            onClick={() => { setUploadError(false); inputRef.current?.click(); }}
-            disabled={loading || uploading}
-            className="flex-shrink-0 flex items-center gap-1.5 bg-accent text-white text-[12px] font-medium rounded-full px-3.5 py-2 transition-opacity disabled:opacity-50"
-          >
-            <Camera size={12} strokeWidth={1.5} />
-            {uploading ? "Subiendo…" : uploadError ? "Reintentar" : "Subir"}
-          </button>
-        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            e.target.value = "";
+            handleFileSelect(file, false);
+          }}
+        />
       </div>
 
-      {uploadError && (
-        <p className="mt-2 text-[11px] text-red-400">Error al subir. Toca Reintentar para intentarlo de nuevo.</p>
-      )}
+      <EvidencePreviewDrawer
+        file={pendingFile}
+        open={previewOpen}
+        uploading={uploading}
+        onConfirm={handleConfirm}
+        onRetake={handleRetake}
+        onClose={() => { setPreviewOpen(false); setPendingFile(null); }}
+      />
 
-      <input
-        ref={resubmitRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (!file || !onResubmit) return;
-          e.target.value = "";
-          setResubmitting(true);
-          try {
-            await onResubmit(file);
-            setResubmitError(false);
-          } catch {
-            setResubmitError(true);
-          } finally {
-            setResubmitting(false);
-          }
-        }}
-      />
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          e.target.value = "";
-          setUploadError(false);
-          setUploading(true);
-          try {
-            await onMark(file);
-          } catch {
-            setUploadError(true);
-          } finally {
-            setUploading(false);
-          }
-        }}
-      />
-    </div>
+      {onResubmit && (
+        <PhotoSourceDrawer
+          open={sourceOpen}
+          onClose={() => setSourceOpen(false)}
+          onFileSelected={(file) => handleFileSelect(file, true)}
+        />
+      )}
+    </>
   );
 }
 

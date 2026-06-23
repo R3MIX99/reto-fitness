@@ -137,18 +137,18 @@ export function useResubmitCheck() {
       kind,
       goalId,
       file,
+      oldEvidencePath,
     }: {
       checkId: string;
       checkDate: string;
       kind: string;
       goalId?: string | null;
       file: File;
+      oldEvidencePath?: string | null;
     }) => {
       if (!user) throw new Error("Sin sesión");
 
       const compressed = await compressImage(file, 1080);
-      // Use a unique path (timestamp) so it's always a new INSERT,
-      // avoiding the need for a storage UPDATE policy on existing files.
       const path = `${user.id}/${checkDate}/${kind}${goalId ? `-${goalId}` : ""}_${Date.now()}.jpg`;
 
       const supabase = createClient();
@@ -161,7 +161,7 @@ export function useResubmitCheck() {
       const res = await fetch("/api/checks/resubmit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ checkId, evidencePath: path }),
+        body: JSON.stringify({ checkId, evidencePath: path, oldEvidencePath: oldEvidencePath ?? null }),
       });
 
       if (!res.ok) throw new Error("Error al reenviar evidencia");

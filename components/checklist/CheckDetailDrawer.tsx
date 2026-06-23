@@ -1,11 +1,13 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Drawer as VaulDrawer } from "vaul";
-import { Camera, Clock, CheckCircle2, RefreshCw, X, Expand, XCircle } from "lucide-react";
+import { Clock, CheckCircle2, X, Expand, XCircle } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
+import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
+import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
 
 // ── Signed URL hook ────────────────────────────────────────────────────────
 
@@ -77,37 +79,56 @@ interface CheckDetailDrawerProps {
   check: DailyCheck | null;
   onClose: () => void;
   onReplace: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
+  onResubmit?: (file: File) => Promise<void>;
 }
 
-export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: CheckDetailDrawerProps) {
-  const fileRef = useRef<HTMLInputElement>(null);
+export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onResubmit }: CheckDetailDrawerProps) {
   const [replacing, setReplacing] = useState(false);
-  // photoUrl persists even after drawer closes so the modal can still show it
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
+
   const signedUrl = useSignedUrl(check?.evidence_path ?? null);
 
   useEffect(() => {
     if (signedUrl) setPhotoUrl(signedUrl);
   }, [signedUrl]);
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !check) return;
-    e.target.value = "";
+  function expandPhoto() {
+    if (!photoUrl) return;
+    onClose();
+    setPhotoOpen(true);
+  }
+
+  function handleFileSelected(file: File) {
+    setPendingFile(file);
+    setSourceOpen(false);
+    setPreviewOpen(true);
+  }
+
+  function handleRetake() {
+    setPreviewOpen(false);
+    setPendingFile(null);
+    setSourceOpen(true);
+  }
+
+  async function handleConfirm() {
+    if (!pendingFile || !check) return;
     setReplacing(true);
+    setPreviewOpen(false);
     try {
-      await onReplace(file, check.kind as GoalKind, check.goal_id ?? undefined);
+      if (isRejected && onResubmit) {
+        await onResubmit(pendingFile);
+      } else {
+        await onReplace(pendingFile, check.kind as GoalKind, check.goal_id ?? undefined);
+      }
       onClose();
     } finally {
       setReplacing(false);
+      setPendingFile(null);
     }
-  }
-
-  function expandPhoto() {
-    if (!photoUrl) return;
-    onClose();       // close the drawer
-    setPhotoOpen(true);
   }
 
   const title = kindLabel(check?.kind ?? "", goal);
@@ -118,14 +139,13 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
 
   return (
     <>
-      <VaulDrawer.Root
-        open={open}
-        onOpenChange={(o) => !o && onClose()}
-      >
+      <VaulDrawer.Root open={open} onOpenChange={(o) => !o && onClose()}>
         <VaulDrawer.Portal>
           <VaulDrawer.Overlay className="fixed inset-0 z-[70]" style={{ background: "var(--color-overlay)" }} />
-          <VaulDrawer.Content className="fixed bottom-0 left-0 right-0 z-[80] rounded-t-[26px] outline-none flex flex-col" style={{ background: "var(--color-bg-card)" }}>
-
+          <VaulDrawer.Content
+            className="fixed bottom-0 left-0 right-0 z-[80] rounded-t-[26px] outline-none flex flex-col"
+            style={{ background: "var(--color-bg-card)" }}
+          >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
               <div className="w-10 h-1 rounded-full" style={{ background: "var(--color-border)" }} />
@@ -163,7 +183,11 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
                     Rechazado
                   </span>
                 )}
-                <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "var(--color-surface)" }}>
+                <button
+                  onClick={onClose}
+                  className="w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{ background: "var(--color-surface)" }}
+                >
                   <X size={14} strokeWidth={1.5} className="text-[var(--color-muted)]" />
                 </button>
               </div>
@@ -171,7 +195,10 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
 
             {/* Evidence photo */}
             <div className="px-5 pb-8">
-              <div className="relative rounded-[18px] overflow-hidden mb-4 aspect-square w-full max-w-[260px] mx-auto" style={{ background: "var(--color-surface)" }}>
+              <div
+                className="relative rounded-[18px] overflow-hidden mb-4 aspect-square w-full max-w-[260px] mx-auto"
+                style={{ background: "var(--color-surface)" }}
+              >
                 {signedUrl ? (
                   <>
                     <button
@@ -179,13 +206,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
                       className="absolute inset-0 w-full h-full"
                       aria-label="Ver foto completa"
                     >
-                      <Image
-                        src={signedUrl}
-                        alt="Evidencia"
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
+                      <Image src={signedUrl} alt="Evidencia" fill className="object-cover" unoptimized />
                     </button>
                     <button
                       onClick={expandPhoto}
@@ -196,42 +217,67 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace }: Che
                   </>
                 ) : (
                   <div className="flex items-center justify-center h-full min-h-[260px]">
-                    <div className="w-8 h-8 border-2 border-t-warm rounded-full animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-warm)" }} />
+                    <div
+                      className="w-8 h-8 border-2 rounded-full animate-spin"
+                      style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-warm)" }}
+                    />
                   </div>
                 )}
               </div>
 
-              {/* Replace button */}
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={replacing}
-                className="w-full flex items-center justify-center gap-2 text-[var(--color-fg)] rounded-full py-3 text-[14px] disabled:opacity-50" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-              >
-                {replacing ? (
-                  <RefreshCw size={15} strokeWidth={1.5} className="animate-spin text-[var(--color-muted)]" />
-                ) : (
-                  <Camera size={15} strokeWidth={1.5} />
-                )}
-                {replacing ? "Subiendo…" : "Cambiar foto"}
-              </button>
+              {/* Bottom action — adapts to status */}
+              {isApproved ? (
+                <button
+                  onClick={onClose}
+                  className="w-full flex items-center justify-center rounded-full py-3 text-[14px] font-medium"
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+                >
+                  Cerrar
+                </button>
+              ) : isPending ? (
+                <button
+                  onClick={() => setSourceOpen(true)}
+                  disabled={replacing}
+                  className="w-full flex items-center justify-center gap-2 text-[var(--color-fg)] rounded-full py-3 text-[14px] disabled:opacity-50"
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+                >
+                  {replacing ? "Subiendo…" : "Cambiar foto"}
+                </button>
+              ) : isRejected ? (
+                <button
+                  onClick={() => setSourceOpen(true)}
+                  disabled={replacing}
+                  className="w-full flex items-center justify-center gap-2 text-[var(--color-fg)] rounded-full py-3 text-[14px] disabled:opacity-50"
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+                >
+                  {replacing ? "Subiendo…" : "Volver a subir"}
+                </button>
+              ) : null}
             </div>
-
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handleFile}
-            />
           </VaulDrawer.Content>
         </VaulDrawer.Portal>
       </VaulDrawer.Root>
 
-      {/* Fullscreen photo modal — rendered outside drawer so it covers everything */}
+      {/* Fullscreen photo modal */}
       {photoOpen && photoUrl && (
         <PhotoModal url={photoUrl} onClose={() => setPhotoOpen(false)} />
       )}
+
+      {/* Source + preview drawers (always rendered so Vaul can animate out) */}
+      <PhotoSourceDrawer
+        open={sourceOpen}
+        onClose={() => setSourceOpen(false)}
+        onFileSelected={handleFileSelected}
+      />
+
+      <EvidencePreviewDrawer
+        file={pendingFile}
+        open={previewOpen}
+        uploading={replacing}
+        onConfirm={handleConfirm}
+        onRetake={handleRetake}
+        onClose={() => { setPreviewOpen(false); setPendingFile(null); }}
+      />
     </>
   );
 }

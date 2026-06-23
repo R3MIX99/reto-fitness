@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Check, Clock, X, Dumbbell, UtensilsCrossed, Target, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { Check, Clock, X, Dumbbell, UtensilsCrossed, Target, RotateCcw } from "lucide-react";
+import { PhotoSourceDrawer } from "@/components/checklist/PhotoSourceDrawer";
+import { EvidencePreviewDrawer } from "@/components/checklist/EvidencePreviewDrawer";
 import {
   useGoals,
   useTodayChecks,
@@ -67,31 +69,52 @@ function StatusBadge({ status }: { status?: string }) {
 type ResubmitFn = (check: DailyCheck, file: File) => Promise<void>;
 
 function ResubmitButton({ check, onResubmit }: { check: DailyCheck; onResubmit: ResubmitFn }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  function handleFileSelected(file: File) {
+    setPendingFile(file);
+    setSourceOpen(false);
+    setPreviewOpen(true);
+  }
+
+  async function handleConfirm() {
+    if (!pendingFile) return;
+    setUploading(true);
+    setPreviewOpen(false);
+    try { await onResubmit(check, pendingFile); }
+    finally { setUploading(false); setPendingFile(null); }
+  }
+
   return (
     <>
       <button
-        onClick={() => inputRef.current?.click()}
+        onClick={() => setSourceOpen(true)}
         disabled={uploading}
-        className="flex items-center gap-1 text-[11px] text-[var(--color-warm)] bg-[rgba(239,200,139,0.1)] border border-[var(--color-warm)]/30 rounded-full px-2.5 py-0.5 disabled:opacity-50"
-      >
-        <RefreshCw size={9} strokeWidth={1.5} />
-        {uploading ? "Subiendo…" : "Volver a subir"}
-      </button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          e.target.value = "";
-          setUploading(true);
-          try { await onResubmit(check, file); } finally { setUploading(false); }
+        className="w-6 h-6 rounded-full flex items-center justify-center disabled:opacity-50"
+        style={{
+          background: "rgba(239,200,139,0.1)",
+          border: "1px solid rgba(239,200,139,0.3)",
         }}
+        title="Volver a subir"
+      >
+        <RotateCcw size={9} strokeWidth={1.5} style={{ color: "var(--color-warm)" }} />
+      </button>
+
+      <PhotoSourceDrawer
+        open={sourceOpen}
+        onClose={() => setSourceOpen(false)}
+        onFileSelected={handleFileSelected}
+      />
+      <EvidencePreviewDrawer
+        file={pendingFile}
+        open={previewOpen}
+        uploading={uploading}
+        onConfirm={handleConfirm}
+        onRetake={() => { setPreviewOpen(false); setPendingFile(null); setSourceOpen(true); }}
+        onClose={() => { setPreviewOpen(false); setPendingFile(null); }}
       />
     </>
   );
@@ -254,6 +277,7 @@ export default function ChecklistPage() {
       kind: check.kind,
       goalId: check.goal_id,
       file,
+      oldEvidencePath: check.evidence_path,
     });
   }
 
@@ -362,6 +386,7 @@ export default function ChecklistPage() {
         check={detailCheck}
         onClose={() => setDetailOpen(false)}
         onReplace={handleMark}
+        onResubmit={detailCheck ? (file) => handleResubmit(detailCheck, file) : undefined}
       />
     </>
   );

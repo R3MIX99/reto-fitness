@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await authClient.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const { checkId, evidencePath } = await req.json() as { checkId: string; evidencePath: string };
+  const { checkId, evidencePath, oldEvidencePath } = await req.json() as { checkId: string; evidencePath: string; oldEvidencePath?: string | null };
   if (!checkId || !evidencePath) {
     return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 });
   }
@@ -24,6 +24,9 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  // Delete previous audit votes so the check returns to a clean pending state
+  await admin.from("audits").delete().eq("check_id", checkId);
+
   // Update check: reset to pending with new evidence
   const { error: updateError } = await admin
     .from("daily_checks")
@@ -32,6 +35,11 @@ export async function POST(req: NextRequest) {
     .eq("user_id", user.id);
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+
+  // Delete old storage file (best-effort: different path = accumulated timestamp files)
+  if (oldEvidencePath && oldEvidencePath !== evidencePath) {
+    await admin.storage.from("evidencias").remove([oldEvidencePath]);
+  }
 
   // Find the most recent auditor for this check
   type AuditRow = { reviewer_id: string };
