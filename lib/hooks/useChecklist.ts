@@ -112,6 +112,8 @@ export function useTodayChecks(groupId: string | null) {
   return useQuery({
     queryKey: ["todayChecks", user?.id, groupId],
     enabled: !!user && !!groupId,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async (): Promise<DailyCheck[]> => {
       const supabase = createClient();
       type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string; created_at: string };
