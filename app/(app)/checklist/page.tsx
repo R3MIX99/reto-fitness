@@ -13,6 +13,7 @@ import {
   useDeleteGoal,
   useReorderGoals,
   useDateChecks,
+  useChecklistRealtime,
   todayStr,
 } from "@/lib/hooks/useChecklist";
 import type { Goal, DailyCheck, GoalKind, CategoryView } from "@/lib/hooks/useChecklist";
@@ -219,6 +220,9 @@ function PastDayView({
 export default function ChecklistPage() {
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
+
+  // Refresca en tiempo real cuando un compañero aprueba/rechaza una evidencia
+  useChecklistRealtime(groupId);
 
   const { data: goals = [] } = useGoals();
   const { data: todayChecks = [] } = useTodayChecks(groupId);

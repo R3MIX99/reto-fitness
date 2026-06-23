@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
@@ -145,6 +146,39 @@ export function useMonthChecks(groupId: string | null) {
       return (data ?? []) as DailyCheck[];
     },
   });
+}
+
+// ── Realtime ───────────────────────────────────────────────────────────────
+
+// Suscribe a cambios en daily_checks del usuario actual y refresca las queries
+// del checklist cuando un compañero aprueba o rechaza una evidencia.
+export function useChecklistRealtime(groupId: string | null) {
+  const { user } = useUser();
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!user || !groupId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`checklist-rt-${user.id}-${groupId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "daily_checks",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["todayChecks"] });
+          qc.invalidateQueries({ queryKey: ["monthChecks"] });
+          qc.invalidateQueries({ queryKey: ["dateChecks"] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, groupId, qc]);
 }
 
 // ── Mutations ──────────────────────────────────────────────────────────────
