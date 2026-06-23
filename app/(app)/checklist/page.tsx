@@ -220,12 +220,14 @@ function PastDayView({
 export default function ChecklistPage() {
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
+  const allGroupIds = groups.map((g) => g.id);
 
   // Refresca en tiempo real cuando un compañero aprueba/rechaza una evidencia
   useChecklistRealtime(groupId);
 
   const { data: goals = [] } = useGoals();
-  const { data: todayChecks = [] } = useTodayChecks(groupId);
+  // Pasa todos los grupos para que la deduplicación elija el mejor status (approved > pending)
+  const { data: todayChecks = [] } = useTodayChecks(allGroupIds);
   const { data: monthChecks = [] } = useMonthChecks(groupId);
 
   const markCheck = useMarkCheck(groupId);

@@ -107,11 +107,15 @@ export function useDateChecks(groupId: string | null, date: string) {
   });
 }
 
-export function useTodayChecks(groupId: string | null) {
+// Prioridad de status para deduplicación fan-out: approved > pending > rejected
+const STATUS_RANK: Record<string, number> = { approved: 3, pending: 2, rejected: 1 };
+
+export function useTodayChecks(groupIds: string | string[] | null) {
   const { user } = useUser();
+  const ids = Array.isArray(groupIds) ? groupIds : groupIds ? [groupIds] : [];
   return useQuery({
-    queryKey: ["todayChecks", user?.id, groupId],
-    enabled: !!user && !!groupId,
+    queryKey: ["todayChecks", user?.id, ids],
+    enabled: !!user && ids.length > 0,
     staleTime: 0,
     refetchOnMount: "always",
     queryFn: async (): Promise<DailyCheck[]> => {
@@ -121,9 +125,20 @@ export function useTodayChecks(groupId: string | null) {
         .from("daily_checks")
         .select("id, goal_id, kind, check_date, status, evidence_path, group_id, created_at")
         .eq("user_id", user!.id)
-        .eq("group_id", groupId!)
+        .in("group_id", ids)
         .eq("check_date", todayStr()) as unknown as { data: CheckRow[] | null };
-      return (data ?? []) as DailyCheck[];
+
+      // Fan-out: el mismo goal puede tener una fila por grupo.
+      // De-duplicar por kind+goal_id eligiendo el mejor status (approved > pending > rejected).
+      const best = new Map<string, CheckRow>();
+      for (const row of data ?? []) {
+        const key = `${row.kind}|${row.goal_id ?? ""}`;
+        const existing = best.get(key);
+        if (!existing || (STATUS_RANK[row.status] ?? 0) > (STATUS_RANK[existing.status] ?? 0)) {
+          best.set(key, row);
+        }
+      }
+      return Array.from(best.values()) as DailyCheck[];
     },
   });
 }
