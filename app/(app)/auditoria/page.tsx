@@ -8,6 +8,7 @@ import { Drawer as VaulDrawer } from "vaul";
 import { createClient } from "@/lib/supabase/client";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { usePendingChecks, useAuditCheck, useAutoApproveOldChecks, kindLabel, getWeekNumber } from "@/lib/hooks/useAuditoria";
+import { useActiveSeason } from "@/lib/hooks/useSeasons";
 import { useUser } from "@/lib/hooks/useUser";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -100,8 +101,14 @@ function AuditoriaInner() {
     : groups.map((g) => g.id);
 
   const { data: checks = [], isLoading } = usePendingChecks(scopedGroupIds);
+  const { data: activeSeason } = useActiveSeason(groupParam);
   const audit = useAuditCheck();
   const autoApprove = useAutoApproveOldChecks(scopedGroupIds);
+
+  function isPreSeason(checkDate: string): boolean {
+    if (!activeSeason?.start_date) return false;
+    return checkDate < activeSeason.start_date;
+  }
 
   const [auditedIds, setAuditedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<"approved" | "rejected" | null>(null);
@@ -236,6 +243,19 @@ function AuditoriaInner() {
           {/* Evidence photo */}
           <EvidenceImage path={current.evidence_path} />
 
+          {/* Pre-season notice */}
+          {isPreSeason(current.check_date) && (
+            <div
+              className="mt-3 rounded-[12px] px-3.5 py-2.5 flex items-start gap-2.5"
+              style={{ background: "rgba(239,200,139,0.08)", border: "1px solid rgba(239,200,139,0.25)" }}
+            >
+              <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: "var(--color-warm)" }} />
+              <p className="text-[12px]" style={{ color: "var(--color-warm)" }}>
+                Pretemporada · Esta evidencia no suma puntos a la temporada en curso
+              </p>
+            </div>
+          )}
+
           {/* Question */}
           <p className="text-[12px] text-[var(--color-fg)] text-center mt-3.5 mb-3">¿Cumplió con esta meta?</p>
 
@@ -280,6 +300,11 @@ function AuditoriaInner() {
                     <span className="text-[11px] text-[var(--color-muted)] truncate block">{c.goal_title}</span>
                   )}
                 </div>
+                {isPreSeason(c.check_date) && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(239,200,139,0.1)", color: "var(--color-warm)", border: "1px solid rgba(239,200,139,0.2)" }}>
+                    Pre
+                  </span>
+                )}
                 <KindBadge kind={c.kind} />
               </div>
             ))}

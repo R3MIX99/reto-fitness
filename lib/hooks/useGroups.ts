@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
-import { fetchAuditableWindows } from "./useSeasons";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -280,29 +279,16 @@ export function usePendingAudits(groupIds: string[]) {
       if (!groupIds.length || !user) return 0;
       const supabase = createClient();
 
-      // Filtrar por la ventana auditable del grupo (respeta la temporada activa)
-      const windows = await fetchAuditableWindows(groupIds);
+      // Todos los checks pendientes del grupo, excluyendo los propios.
+      // (Los pre-temporada se muestran con aviso en la UI pero sí se pueden revisar)
+      const { data } = await supabase
+        .from("daily_checks")
+        .select("id")
+        .in("group_id", groupIds)
+        .eq("status", "pending")
+        .neq("user_id", user.id) as unknown as { data: { id: string }[] | null };
 
-      let total = 0;
-      for (const gid of groupIds) {
-        const w = windows[gid];
-        let q = supabase
-          .from("daily_checks")
-          .select("id", { count: "exact", head: true })
-          .eq("group_id", gid)
-          .eq("status", "pending")
-          .neq("user_id", user.id);
-
-        if (w) {
-          q = (q as unknown as { gte: (c: string, v: string) => typeof q }).gte("check_date", w.from) as unknown as typeof q;
-          q = (q as unknown as { lte: (c: string, v: string) => typeof q }).lte("check_date", w.to) as unknown as typeof q;
-        }
-
-        const { count } = await (q as unknown as Promise<{ count: number | null }>);
-        total += count ?? 0;
-      }
-
-      return total;
+      return (data ?? []).length;
     },
   });
 }

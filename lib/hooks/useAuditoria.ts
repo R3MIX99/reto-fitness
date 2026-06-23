@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
 import { notifyUser } from "@/lib/notify";
-import { fetchAuditableWindows } from "./useSeasons";
 
 export interface PendingCheck {
   id: string;
@@ -54,43 +53,17 @@ export function usePendingChecks(groupIds: string[]) {
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
       type GoalRow = { title: string };
 
-      // Obtener la ventana auditable por grupo (filtra checks fuera de la temporada)
-      const windows = await fetchAuditableWindows(groupIds);
+      // Todos los checks pendientes de los grupos dados, excluyendo los propios.
+      // Los pre-temporada se muestran con aviso en la UI pero sí se pueden revisar.
+      const { data: rawChecks } = await supabase
+        .from("daily_checks")
+        .select("id, user_id, kind, check_date, evidence_path, goal_id, group_id")
+        .in("group_id", groupIds)
+        .eq("status", "pending")
+        .neq("user_id", user!.id)
+        .order("check_date", { ascending: false }) as unknown as { data: CheckRow[] | null };
 
-      // Construir filtros de fecha: para cada grupo usar su ventana [from, to]
-      // Agrupamos por rango idéntico para hacer el menor número de queries.
-      const rangeMap: Record<string, string[]> = {};
-      for (const gid of groupIds) {
-        const w = windows[gid];
-        const key = w ? `${w.from}|${w.to}` : "open";
-        rangeMap[key] = [...(rangeMap[key] ?? []), gid];
-      }
-
-      const allChecks: CheckRow[] = [];
-      for (const [rangeKey, gids] of Object.entries(rangeMap)) {
-        let q = supabase
-          .from("daily_checks")
-          .select("id, user_id, kind, check_date, evidence_path, goal_id, group_id")
-          .in("group_id", gids)
-          .eq("status", "pending")
-          .neq("user_id", user!.id);
-
-        if (rangeKey !== "open") {
-          const [from, to] = rangeKey.split("|");
-          q = (q as unknown as { gte: (col: string, val: string) => typeof q }).gte("check_date", from) as unknown as typeof q;
-          q = (q as unknown as { lte: (col: string, val: string) => typeof q }).lte("check_date", to) as unknown as typeof q;
-        }
-
-        const { data } = await (q.order("check_date", { ascending: false }) as unknown as Promise<{ data: CheckRow[] | null }>);
-        allChecks.push(...(data ?? []));
-      }
-
-      // Deduplicar (por si un check aparece en varios rangos) y ordenar
-      const seen = new Set<string>();
-      const rawChecks = allChecks.filter((c) => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
-      rawChecks.sort((a, b) => b.check_date.localeCompare(a.check_date));
-
-      const checks = rawChecks;
+      const checks = rawChecks ?? [];
 
       if (!checks.length) return [];
 
