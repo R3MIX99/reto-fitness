@@ -232,7 +232,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Temporadas activas */}
-      <SeasonWidget />
+      <div className="pt-2">
+        <SeasonWidget />
+      </div>
 
       {/* Tareas pendientes */}
       {pendingItems.length > 0 && groupId && (

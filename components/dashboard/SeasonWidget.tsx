@@ -276,6 +276,7 @@ export function SeasonWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [thumbLeft, setThumbLeft] = useState(0);
   const [thumbWidth, setThumbWidth] = useState(24);
+  const [hasScroll, setHasScroll] = useState(false);
 
   // Clamp index if activeGroups shrinks
   const clampedIdx = Math.min(activeIdx, Math.max(0, activeGroups.length - 1));
@@ -283,6 +284,9 @@ export function SeasonWidget() {
   const updateThumb = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const scrollable = el.scrollWidth > el.clientWidth + 2;
+    setHasScroll(scrollable);
+    if (!scrollable) return;
     const trackW = 56;
     const ratio = el.clientWidth / el.scrollWidth;
     const tw = Math.max(18, Math.round(trackW * ratio));
@@ -308,42 +312,51 @@ export function SeasonWidget() {
 
   return (
     <div>
-      {/* Pills: solo si hay más de 1 grupo con temporada activa */}
-      {activeGroups.length > 1 && (
-        <>
-          <div
-            ref={scrollRef}
-            className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5 mb-2"
-            style={{ scrollSnapType: "x mandatory" }}
-          >
-            {activeGroups.map((g, i) => (
-              <button
-                key={g.id}
-                onClick={() => setActiveIdx(i)}
-                className="flex-shrink-0 rounded-full px-3.5 py-1.5 text-[12px] transition-colors"
-                style={{
-                  scrollSnapAlign: "start",
-                  background: i === clampedIdx ? "var(--color-warm)" : "var(--color-bg-card)",
-                  color: i === clampedIdx ? "#1a1000" : "var(--color-muted)",
-                  border: i === clampedIdx ? "none" : "1px solid var(--color-border)",
-                  fontWeight: i === clampedIdx ? 500 : 400,
-                }}
-              >
-                {g.name}
-              </button>
-            ))}
-          </div>
+      {/* Título + selector de grupos */}
+      <div className="mb-3 mt-1">
+        <p className="text-[11px] uppercase tracking-wider mb-3" style={{ color: "var(--color-muted)" }}>
+          Temporadas en curso
+        </p>
 
-          <div className="flex justify-center mb-3">
-            <div className="relative w-14 h-1 rounded-full" style={{ background: "var(--color-surface)" }}>
-              <div
-                className="absolute top-0 h-1 rounded-full transition-all duration-150"
-                style={{ width: thumbWidth, left: thumbLeft, background: "#7C7C7C" }}
-              />
+        {activeGroups.length > 1 && (
+          <>
+            <div
+              ref={scrollRef}
+              className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"
+              style={{ scrollSnapType: "x mandatory" }}
+            >
+              {activeGroups.map((g, i) => (
+                <button
+                  key={g.id}
+                  onClick={() => setActiveIdx(i)}
+                  className="flex-shrink-0 rounded-full px-3.5 py-1.5 text-[12px] transition-colors"
+                  style={{
+                    scrollSnapAlign: "start",
+                    background: i === clampedIdx ? "var(--color-warm)" : "var(--color-bg-card)",
+                    color: i === clampedIdx ? "#1a1000" : "var(--color-muted)",
+                    border: i === clampedIdx ? "none" : "1px solid var(--color-border)",
+                    fontWeight: i === clampedIdx ? 500 : 400,
+                  }}
+                >
+                  {g.name}
+                </button>
+              ))}
             </div>
-          </div>
-        </>
-      )}
+
+            {/* Scroll indicator — solo si hay overflow real */}
+            {hasScroll && (
+              <div className="flex justify-center mt-2">
+                <div className="relative w-14 h-1 rounded-full" style={{ background: "var(--color-surface)" }}>
+                  <div
+                    className="absolute top-0 h-1 rounded-full transition-all duration-150"
+                    style={{ width: thumbWidth, left: thumbLeft, background: "#7C7C7C" }}
+                  />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <SeasonCard
         key={activeGroup.id}
