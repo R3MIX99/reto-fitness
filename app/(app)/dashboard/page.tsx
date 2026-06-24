@@ -9,6 +9,7 @@ import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
 import { useActiveSeason, computePhase, type Season } from "@/lib/hooks/useSeasons";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { usePrefetchPlayerCards } from "@/lib/hooks/usePlayerCard";
+import { SeasonWidget } from "@/components/dashboard/SeasonWidget";
 
 const TOTAL_PTS = 13;
 const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
@@ -229,6 +230,9 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Temporadas activas */}
+      <SeasonWidget />
 
       {/* Tareas pendientes */}
       {pendingItems.length > 0 && groupId && (
