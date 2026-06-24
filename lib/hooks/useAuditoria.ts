@@ -16,6 +16,7 @@ export interface PendingCheck {
   goal_title: string | null;
   full_name: string | null;
   avatar_url: string | null;
+  uploaded_at: string | null;
 }
 
 function getWeekNumber(): number {
@@ -50,6 +51,7 @@ export function usePendingChecks(groupIds: string[]) {
         evidence_path: string;
         goal_id: string | null;
         group_id: string;
+        created_at: string | null;
       };
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
       type GoalRow = { title: string };
@@ -58,7 +60,7 @@ export function usePendingChecks(groupIds: string[]) {
       // Los pre-temporada se muestran con aviso en la UI pero sí se pueden revisar.
       const { data: rawChecks } = await supabase
         .from("daily_checks")
-        .select("id, user_id, kind, check_date, evidence_path, goal_id, group_id")
+        .select("id, user_id, kind, check_date, evidence_path, goal_id, group_id, created_at")
         .in("group_id", groupIds)
         .eq("status", "pending")
         .neq("user_id", user!.id)
@@ -107,6 +109,7 @@ export function usePendingChecks(groupIds: string[]) {
             goal_title,
             full_name: profile?.full_name ?? null,
             avatar_url: profile?.avatar_url ?? null,
+            uploaded_at: c.created_at ?? null,
           };
         })
       );

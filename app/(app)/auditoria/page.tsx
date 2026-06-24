@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, X, Check, Dumbbell, UtensilsCrossed, Target, ImageIcon } from "lucide-react";
+import { ChevronLeft, X, Check, Dumbbell, UtensilsCrossed, Target, ImageIcon, Maximize2 } from "lucide-react";
 import { Drawer as VaulDrawer } from "vaul";
 import { createClient } from "@/lib/supabase/client";
 import { useMyGroups } from "@/lib/hooks/useGroups";
@@ -43,11 +43,25 @@ function KindBadge({ kind }: { kind: string }) {
   );
 }
 
-// ── Evidence image with signed URL ─────────────────────────────────────────
+// ── Helpers de fecha/hora ──────────────────────────────────────────────────
+
+function formatUploadTime(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const hh = d.getHours();
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ampm = hh >= 12 ? "p.m." : "a.m.";
+  const h12 = hh % 12 === 0 ? 12 : hh % 12;
+  const DIAS = ["dom","lun","mar","mié","jue","vie","sáb"];
+  return `${DIAS[d.getDay()]} ${d.getDate()} · ${h12}:${mm} ${ampm}`;
+}
+
+// ── Evidence image with signed URL + fullscreen lightbox ───────────────────
 
 function EvidenceImage({ path }: { path: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
 
   useEffect(() => {
     setUrl(null);
@@ -62,9 +76,9 @@ function EvidenceImage({ path }: { path: string }) {
       });
   }, [path]);
 
-  if (error || (!url)) {
+  if (error || !url) {
     return (
-      <div className="w-full h-[180px] rounded-[14px] flex flex-col items-center justify-center gap-2" style={{ background: "var(--color-surface)" }}>
+      <div className="w-full h-[260px] rounded-[16px] flex flex-col items-center justify-center gap-2" style={{ background: "var(--color-surface)" }}>
         <ImageIcon size={30} strokeWidth={1} className="text-[var(--color-muted)]" />
         <span className="text-[11px] text-[var(--color-muted)]">{error ? "No se pudo cargar" : "Cargando…"}</span>
       </div>
@@ -72,9 +86,39 @@ function EvidenceImage({ path }: { path: string }) {
   }
 
   return (
-    <div className="relative w-full h-[180px] rounded-[14px] overflow-hidden" style={{ background: "var(--color-surface)" }}>
-      <Image src={url} alt="Evidencia" fill className="object-cover" unoptimized />
-    </div>
+    <>
+      <div
+        className="relative w-full h-[260px] rounded-[16px] overflow-hidden cursor-pointer"
+        style={{ background: "var(--color-surface)" }}
+        onClick={() => setLightbox(true)}
+      >
+        <Image src={url} alt="Evidencia" fill className="object-cover" unoptimized />
+        {/* Expand hint */}
+        <div className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}>
+          <Maximize2 size={14} strokeWidth={1.5} style={{ color: "#fff" }} />
+        </div>
+      </div>
+
+      {/* Fullscreen lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[500] flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.93)" }}
+          onClick={() => setLightbox(false)}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightbox(false); }}
+            className="absolute top-5 right-5 w-10 h-10 rounded-full flex items-center justify-center z-10"
+            style={{ background: "rgba(255,255,255,0.12)" }}
+          >
+            <X size={18} strokeWidth={1.5} style={{ color: "#fff" }} />
+          </button>
+          <div className="relative w-full h-full" onClick={(e) => e.stopPropagation()}>
+            <Image src={url} alt="Evidencia ampliada" fill className="object-contain" unoptimized />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -242,6 +286,13 @@ function AuditoriaInner() {
 
           {/* Evidence photo */}
           <EvidenceImage path={current.evidence_path} />
+
+          {/* Upload timestamp */}
+          {current.uploaded_at && (
+            <p className="text-[11px] text-[var(--color-muted)] text-right mt-1.5">
+              Subida: {formatUploadTime(current.uploaded_at)}
+            </p>
+          )}
 
           {/* Pre-season notice */}
           {isPreSeason(current.check_date) && (
