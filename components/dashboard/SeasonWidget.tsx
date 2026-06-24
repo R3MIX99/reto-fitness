@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { useSeasonLeaderboard, computePhase, type Season, type SeasonLeaderboardEntry } from "@/lib/hooks/useSeasons";
 import { useUser } from "@/lib/hooks/useUser";
+import { PlayerCard } from "@/components/player/PlayerCard";
+import { usePrefetchPlayerCards } from "@/lib/hooks/usePlayerCard";
 
 // ── Fetch todas las temporadas activas de múltiples grupos en una sola query ─
 
@@ -74,18 +77,44 @@ function buildInsight(
   return parts.join(" · ") + ". Un día completo puede cambiar todo.";
 }
 
+// ── Avatar ────────────────────────────────────────────────────────────────
+
+function Avatar({ url, initials, size = 28 }: { url?: string | null; initials: string; size?: number }) {
+  if (url) {
+    return (
+      <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: size, height: size }}>
+        <Image src={url} alt={initials} width={size} height={size} className="object-cover w-full h-full" unoptimized={url.includes("?t=")} />
+      </div>
+    );
+  }
+  return (
+    <div
+      className="rounded-full flex items-center justify-center flex-shrink-0 font-semibold"
+      style={{ width: size, height: size, background: "var(--color-surface)", color: "var(--color-fg)", fontSize: size * 0.36 }}
+    >
+      {initials}
+    </div>
+  );
+}
+
 // ── SeasonCard (recibe la season ya resuelta, sin fetch doble) ────────────
 
 function SeasonCard({
   season,
   groupName,
+  groupId,
   userId,
 }: {
   season: Season;
   groupName: string;
+  groupId: string;
   userId: string;
 }) {
   const { data: lb = [] } = useSeasonLeaderboard(season);
+  const [cardUserId, setCardUserId] = useState<string | null>(null);
+
+  // Precarga tarjetas para que abran al instante
+  usePrefetchPlayerCards(lb.map((e) => e.user_id), groupId);
 
   const { elapsed, total, pct } = seasonProgress(season);
   // FIX: puntos posibles = duración total de la temporada × 13 (no solo días transcurridos)
@@ -188,15 +217,17 @@ function SeasonCard({
           const entry = isMe ? myEntry : (row as SeasonLeaderboardEntry);
           if (!entry) return null;
           const diff = entry.total_points - myPts;
+          const initials = (entry.full_name ?? "?").split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
           return (
             <div
               key={isMe ? "me" : entry.user_id}
               className="flex items-center gap-2.5 rounded-[12px] px-3 py-2"
-              style={
-                isMe
+              style={{
+                ...(isMe
                   ? { background: "rgba(239,200,139,0.08)", border: "1px solid rgba(239,200,139,0.2)" }
-                  : { background: "var(--color-surface)" }
-              }
+                  : { background: "var(--color-surface)", cursor: "pointer" }),
+              }}
+              onClick={!isMe ? () => setCardUserId(entry.user_id) : undefined}
             >
               <span
                 className="text-[13px] font-semibold w-5 text-center flex-shrink-0"
@@ -205,21 +236,13 @@ function SeasonCard({
                 {entry.position}
               </span>
 
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0"
-                style={{
-                  background: isMe ? "rgba(239,200,139,0.15)" : "var(--color-bg-card)",
-                  color: isMe ? "var(--color-warm)" : "var(--color-fg)",
-                }}
-              >
-                {(entry.full_name ?? "?").split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
-              </div>
+              <Avatar url={entry.avatar_url} initials={initials} size={28} />
 
               <span
                 className="flex-1 text-[13px] truncate"
                 style={{ color: isMe ? "var(--color-warm)" : "var(--color-fg)", fontWeight: isMe ? 500 : 400 }}
               >
-                {isMe ? "Tú" : (entry.full_name?.split(" ")[0] ?? "—")}
+                {isMe ? "Tú" : (entry.full_name ?? "—")}
               </span>
 
               {!isMe && (
@@ -251,6 +274,20 @@ function SeasonCard({
             {insight}
           </p>
         </div>
+      )}
+
+      {/* Tarjeta de jugador al hacer clic en un rival */}
+      {cardUserId && (
+        <PlayerCard
+          userId={cardUserId}
+          groupId={groupId}
+          currentUserId={userId}
+          placeholder={lb.find((e) => e.user_id === cardUserId) ? {
+            full_name: lb.find((e) => e.user_id === cardUserId)!.full_name,
+            avatar_url: lb.find((e) => e.user_id === cardUserId)!.avatar_url,
+          } : undefined}
+          onClose={() => setCardUserId(null)}
+        />
       )}
     </div>
   );
@@ -361,6 +398,7 @@ export function SeasonWidget() {
         key={activeGroup.id}
         season={activeSeason}
         groupName={activeGroup.name}
+        groupId={activeGroup.id}
         userId={user.id}
       />
     </div>
