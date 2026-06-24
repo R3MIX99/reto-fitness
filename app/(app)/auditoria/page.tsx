@@ -149,7 +149,7 @@ function AuditoriaInner() {
       checkDate: current.check_date,
       checkGroupId: current.group_id,
       checkKind: current.kind,
-      reviewerName: (user as { user_metadata?: { full_name?: string } } | null)?.user_metadata?.full_name ?? null,
+      checkGoalId: current.goal_id ?? null,
     });
   }
 

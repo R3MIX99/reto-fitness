@@ -234,7 +234,7 @@ export default function MisAuditoriasPage() {
       checkDate: entry.check_date,
       checkGroupId: entry.check_group_id,
       checkKind: entry.check_kind,
-      reviewerName: user?.user_metadata?.full_name ?? null,
+      checkGoalId: entry.check_goal_id ?? null,
     });
   }
 

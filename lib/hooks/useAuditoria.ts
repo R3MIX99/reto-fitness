@@ -12,6 +12,7 @@ export interface PendingCheck {
   kind: string;
   check_date: string;
   evidence_path: string;
+  goal_id: string | null;
   goal_title: string | null;
   full_name: string | null;
   avatar_url: string | null;
@@ -63,9 +64,19 @@ export function usePendingChecks(groupIds: string[]) {
         .neq("user_id", user!.id)
         .order("check_date", { ascending: false }) as unknown as { data: CheckRow[] | null };
 
-      const checks = rawChecks ?? [];
+      const allChecks = rawChecks ?? [];
+      if (!allChecks.length) return [];
 
-      if (!checks.length) return [];
+      // Fan-out: misma evidencia puede tener una fila por grupo.
+      // Mostrar solo 1 por evidencia única (user+date+kind+goal) para no
+      // enviar notificaciones duplicadas al dueño.
+      const evidenceSeen = new Set<string>();
+      const checks = allChecks.filter((c) => {
+        const key = `${c.user_id}|${c.check_date}|${c.kind}|${c.goal_id ?? ""}`;
+        if (evidenceSeen.has(key)) return false;
+        evidenceSeen.add(key);
+        return true;
+      });
 
       return Promise.all(
         checks.map(async (c) => {
@@ -92,6 +103,7 @@ export function usePendingChecks(groupIds: string[]) {
             kind: c.kind,
             check_date: c.check_date,
             evidence_path: c.evidence_path,
+            goal_id: c.goal_id,
             goal_title,
             full_name: profile?.full_name ?? null,
             avatar_url: profile?.avatar_url ?? null,
@@ -135,7 +147,7 @@ export function useAuditCheck() {
       checkDate,
       checkGroupId,
       checkKind,
-      reviewerName,
+      checkGoalId,
     }: {
       checkId: string;
       approved: boolean;
@@ -144,10 +156,19 @@ export function useAuditCheck() {
       checkDate: string;
       checkGroupId: string;
       checkKind?: string;
-      reviewerName?: string | null;
+      checkGoalId?: string | null;
     }) => {
       if (!user) throw new Error("Sin sesión");
       const supabase = createClient();
+
+      // Nombre real del revisor desde profiles (no user_metadata que queda con el nombre de Google)
+      type ProfileRow = { full_name: string | null };
+      const { data: reviewerProfile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single() as unknown as { data: ProfileRow | null };
+      const auditorName = reviewerProfile?.full_name ?? "Un compañero";
 
       // Snapshot leaderboard BEFORE recalc to detect ranking changes
       type ScoreRow = { user_id: string; total_points: number | null };
@@ -167,6 +188,25 @@ export function useAuditCheck() {
         .eq("id", checkId) as unknown as { error: unknown };
 
       if (error) throw error;
+
+      // Actualizar también las filas hermanas del fan-out (misma evidencia en otros grupos)
+      // para evitar que aparezcan de nuevo en la cola de otros revisores y envíen más notifs.
+      {
+        let siblingsQ = supabase
+          .from("daily_checks")
+          .update({ status: approved ? "approved" : "rejected" } as never)
+          .eq("user_id", checkUserId)
+          .eq("check_date", checkDate)
+          .eq("kind", checkKind ?? "")
+          .neq("id", checkId);
+
+        if (checkGoalId) {
+          siblingsQ = (siblingsQ as unknown as { eq: (c: string, v: string) => typeof siblingsQ }).eq("goal_id", checkGoalId) as unknown as typeof siblingsQ;
+        } else {
+          siblingsQ = (siblingsQ as unknown as { is: (c: string, v: null) => typeof siblingsQ }).is("goal_id", null) as unknown as typeof siblingsQ;
+        }
+        await siblingsQ;
+      }
 
       // Upsert the audit vote — handles first-time and changed decisions
       await (supabase.from("audits") as unknown as {
@@ -194,7 +234,6 @@ export function useAuditCheck() {
 
       // ── Fire notifications (best-effort, don't await sequentially) ──────
 
-      const auditorName = reviewerName ?? "Un compañero";
       const kindLabel = checkKind === "gym" ? "de gimnasio" : checkKind === "diet" ? "de dieta" : "de meta";
 
       // 1. Notify the check owner about the result
