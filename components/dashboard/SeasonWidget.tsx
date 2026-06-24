@@ -224,10 +224,10 @@ function SeasonCard({
               className="flex items-center gap-2.5 rounded-[12px] px-3 py-2"
               style={{
                 ...(isMe
-                  ? { background: "rgba(239,200,139,0.08)", border: "1px solid rgba(239,200,139,0.2)" }
+                  ? { background: "rgba(239,200,139,0.08)", border: "1px solid rgba(239,200,139,0.2)", cursor: "pointer" }
                   : { background: "var(--color-surface)", cursor: "pointer" }),
               }}
-              onClick={!isMe ? () => setCardUserId(entry.user_id) : undefined}
+              onClick={() => setCardUserId(entry.user_id)}
             >
               <span
                 className="text-[13px] font-semibold w-5 text-center flex-shrink-0"
