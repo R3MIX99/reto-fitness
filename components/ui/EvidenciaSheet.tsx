@@ -6,6 +6,9 @@ import { X, Dumbbell, UtensilsCrossed, Target, Camera, Lock, ChevronRight, Check
 import type { Goal, GoalKind, DailyCheck } from "@/lib/hooks/useChecklist";
 import { useGoals, useMarkCheck, useTodayChecks } from "@/lib/hooks/useChecklist";
 import { useMyGroups } from "@/lib/hooks/useGroups";
+import { PhotoSourceDrawer } from "@/components/checklist/PhotoSourceDrawer";
+import { EvidencePreviewDrawer } from "@/components/checklist/EvidencePreviewDrawer";
+import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
 
 // ── Sub-sheet para elegir bloque de dieta o meta ───────────────────────────
 
@@ -127,8 +130,9 @@ const OPTIONS: { kind: OptionKind; label: string; desc: string; color: string; t
 export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
+  const allGroupIds = groups.map((g) => g.id);
   const { data: goals = [] } = useGoals();
-  const { data: todayChecks = [] } = useTodayChecks(groupId);
+  const { data: todayChecks = [] } = useTodayChecks(allGroupIds);
   const markCheck = useMarkCheck(groupId);
   const gymDone = todayChecks.some((c) => c.kind === "gym");
 
@@ -136,16 +140,22 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [successLabel, setSuccessLabel] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+
+  // Preview + source drawer state
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [progressPhase, setProgressPhase] = useState<"uploading" | "success" | null>(null);
+
   const pendingGoal = useRef<Goal | null>(null);
   const pendingKind = useRef<OptionKind | null>(null);
 
   function handleOption(kind: OptionKind) {
     setUploadError(null);
+    pendingKind.current = kind;
+    pendingGoal.current = null;
     if (kind === "gym") {
-      pendingKind.current = "gym";
-      pendingGoal.current = null;
-      fileRef.current?.click();
+      setSourceOpen(true);
     } else {
       setPickerKind(kind as GoalKind);
       setPickerOpen(true);
@@ -156,28 +166,44 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
     setPickerOpen(false);
     pendingKind.current = goal.kind;
     pendingGoal.current = goal;
-    setTimeout(() => fileRef.current?.click(), 300);
+    setTimeout(() => setSourceOpen(true), 300);
   }
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!groupId) { setUploadError("Sin grupo activo"); return; }
-    if (!pendingKind.current) { setUploadError("Selecciona el tipo primero"); return; }
-    e.target.value = "";
+  function handleFileSelected(file: File) {
+    setPendingFile(file);
+    setSourceOpen(false);
+    setPreviewOpen(true);
+  }
+
+  async function handleConfirmUpload() {
+    if (!pendingFile || !groupId || !pendingKind.current) return;
+    setUploadError(null);
+    setPreviewOpen(false);
+    onClose();
+    setProgressPhase("uploading");
+    const start = Date.now();
     try {
       await markCheck.mutateAsync({
-        file,
+        file: pendingFile,
         kind: pendingKind.current as GoalKind,
         goalId: pendingGoal.current?.id,
       });
-      const label = pendingGoal.current?.title
-        ?? (pendingKind.current === "gym" ? "Ejercicio" : "Elemento");
-      onClose();
-      setSuccessLabel(label);
+      const elapsed = Date.now() - start;
+      if (elapsed < 1000) await new Promise((r) => setTimeout(r, 1000 - elapsed));
+      setProgressPhase("success");
     } catch (err) {
+      setProgressPhase(null);
       setUploadError(err instanceof Error ? err.message : "Error al subir la foto");
+    } finally {
+      setPendingFile(null);
     }
+  }
+
+  function handleSuccessLabel() {
+    const label = pendingGoal.current?.title
+      ?? (pendingKind.current === "gym" ? "Ejercicio" : "Elemento");
+    setProgressPhase(null);
+    setSuccessLabel(label);
   }
 
   return (
@@ -220,21 +246,16 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
                         opacity: markCheck.isPending ? 0.4 : 1,
                       }}
                     >
-                      {/* Icon box */}
                       <div
                         className="w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0"
                         style={{ background: tint }}
                       >
                         <Icon size={20} strokeWidth={1.5} style={{ color }} />
                       </div>
-
-                      {/* Text */}
                       <div className="flex-1 leading-snug">
                         <p className="text-[14px] font-medium" style={{ color: done ? "var(--color-muted)" : "var(--color-fg)", textDecoration: done ? "line-through" : "none" }}>{label}</p>
                         <p className="text-[11px] text-[var(--color-muted)]">{done ? "Completado hoy" : desc}</p>
                       </div>
-
-                      {/* Check or Camera */}
                       {done
                         ? <Check size={18} strokeWidth={2} className="text-accent flex-shrink-0" />
                         : <Camera size={18} strokeWidth={1.5} className="text-warm flex-shrink-0" />
@@ -248,7 +269,6 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
                 <p className="mt-4 text-[12px] text-red-400 text-center">{uploadError}</p>
               )}
 
-              {/* Footer note */}
               <div className="flex items-center justify-center gap-1.5 mt-5 text-[11px] text-[var(--color-muted)]">
                 <Lock size={11} strokeWidth={1.5} />
                 La foto se valida en la auditoría semanal
@@ -268,14 +288,27 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
         onClose={() => setPickerOpen(false)}
       />
 
-      {/* Hidden file input */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFile}
+      {/* Source drawer: camera vs gallery */}
+      <PhotoSourceDrawer
+        open={sourceOpen}
+        onClose={() => setSourceOpen(false)}
+        onFileSelected={handleFileSelected}
+      />
+
+      {/* Preview before upload */}
+      <EvidencePreviewDrawer
+        file={pendingFile}
+        open={previewOpen}
+        uploading={false}
+        onConfirm={handleConfirmUpload}
+        onRetake={() => { setPreviewOpen(false); setPendingFile(null); setSourceOpen(true); }}
+        onClose={() => { setPreviewOpen(false); setPendingFile(null); }}
+      />
+
+      {/* Upload progress modal */}
+      <UploadProgressModal
+        phase={progressPhase}
+        onDone={handleSuccessLabel}
       />
 
       {/* Toast de confirmación */}

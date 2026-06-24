@@ -5,6 +5,7 @@ import { Camera, Check, Clock, Pencil, ChevronsUpDown, X, RotateCcw } from "luci
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
+import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
 
 interface CheckItemProps {
   goal: Goal;
@@ -26,6 +27,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [isResubmit, setIsResubmit] = useState(false);
+  const [progressPhase, setProgressPhase] = useState<"uploading" | "success" | null>(null);
 
   const status = check?.status;
   const isDone = !!check;
@@ -43,18 +45,23 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
   async function handleConfirm() {
     if (!pendingFile) return;
     setError(null);
-    setUploading(true);
     setPreviewOpen(false);
+    setProgressPhase("uploading");
+    const start = Date.now();
     try {
       if (isResubmit && onResubmit) {
         await onResubmit(pendingFile);
       } else {
         await onMark(pendingFile, goal.kind, goal.id);
       }
+      const elapsed = Date.now() - start;
+      if (elapsed < 1000) await new Promise((r) => setTimeout(r, 1000 - elapsed));
+      setProgressPhase("success");
     } catch (err) {
+      setProgressPhase(null);
+      setUploading(false);
       setError(err instanceof Error ? err.message : "Error al subir");
     } finally {
-      setUploading(false);
       setPendingFile(null);
     }
   }
@@ -220,6 +227,11 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
           onFileSelected={(file) => handleFileSelect(file, true)}
         />
       )}
+
+      <UploadProgressModal
+        phase={progressPhase}
+        onDone={() => { setProgressPhase(null); setUploading(false); }}
+      />
     </>
   );
 }

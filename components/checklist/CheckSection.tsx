@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown, X, RotateCcw } from "lucide-react";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
+import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
 import {
   DndContext,
   closestCenter,
@@ -88,6 +89,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [isResubmit, setIsResubmit] = useState(false);
+  const [progressPhase, setProgressPhase] = useState<"uploading" | "success" | null>(null);
 
   const isDone = !!check;
   const isPending = check?.status === "pending";
@@ -120,18 +122,23 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
   async function handleConfirm() {
     if (!pendingFile) return;
     setUploadError(false);
-    setUploading(true);
     setPreviewOpen(false);
+    setProgressPhase("uploading");
+    const start = Date.now();
     try {
       if (isResubmit && onResubmit) {
         await onResubmit(pendingFile);
       } else {
         await onMark(pendingFile);
       }
+      const elapsed = Date.now() - start;
+      if (elapsed < 1000) await new Promise((r) => setTimeout(r, 1000 - elapsed));
+      setProgressPhase("success");
     } catch {
+      setProgressPhase(null);
+      setUploading(false);
       setUploadError(true);
     } finally {
-      setUploading(false);
       setPendingFile(null);
     }
   }
@@ -261,6 +268,11 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
           onFileSelected={(file) => handleFileSelect(file, true)}
         />
       )}
+
+      <UploadProgressModal
+        phase={progressPhase}
+        onDone={() => { setProgressPhase(null); setUploading(false); }}
+      />
     </>
   );
 }
