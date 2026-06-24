@@ -14,7 +14,8 @@ import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
 function useSignedUrl(path: string | null) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
-    if (!path) { setUrl(null); return; }
+    setUrl(null); // limpiar inmediatamente para no mostrar imagen anterior
+    if (!path) return;
     let cancelled = false;
     createClient()
       .storage.from("evidencias")
