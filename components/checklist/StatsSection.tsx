@@ -361,7 +361,7 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
       {/* Category cards */}
       <div
         ref={cardsRef}
-        className="flex gap-2.5 overflow-x-auto no-scrollbar pb-0.5 scroll-smooth"
+        className="flex gap-2.5 overflow-x-auto no-scrollbar pb-0.5 scroll-smooth -mx-4 px-4"
         style={{ scrollSnapType: "x mandatory" }}
       >
         {ORDER.map((cat) => {

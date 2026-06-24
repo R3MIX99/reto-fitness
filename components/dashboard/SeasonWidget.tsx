@@ -358,7 +358,7 @@ export function SeasonWidget() {
           <>
             <div
               ref={scrollRef}
-              className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"
+              className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5 -mx-4 px-4"
               style={{ scrollSnapType: "x mandatory" }}
             >
               {activeGroups.map((g, i) => (
