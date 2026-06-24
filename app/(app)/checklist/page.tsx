@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Check, Clock, X, Dumbbell, UtensilsCrossed, Target, RotateCcw } from "lucide-react";
 import { PhotoSourceDrawer } from "@/components/checklist/PhotoSourceDrawer";
 import { EvidencePreviewDrawer } from "@/components/checklist/EvidencePreviewDrawer";
@@ -217,7 +218,8 @@ function PastDayView({
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
-export default function ChecklistPage() {
+function ChecklistPageInner() {
+  const searchParams = useSearchParams();
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
   const allGroupIds = groups.map((g) => g.id);
@@ -236,7 +238,34 @@ export default function ChecklistPage() {
   const deleteGoal = useDeleteGoal();
   const reorderGoals = useReorderGoals();
 
-  const [view, setView] = useState<CategoryView>("general");
+  const [view, setView] = useState<CategoryView>(() => {
+    const s = searchParams.get("scrollTo");
+    if (s === "ejercicio") return "ejercicio";
+    if (s === "dieta") return "dieta";
+    if (s === "metas") return "metas";
+    return "general";
+  });
+
+  useEffect(() => {
+    const scrollTo = searchParams.get("scrollTo");
+    if (!scrollTo) return;
+    const sectionMap: Record<string, string> = {
+      ejercicio: "section-gym",
+      dieta: "section-diet",
+      metas: "section-goals",
+    };
+    const sectionId = sectionMap[scrollTo];
+    if (!sectionId) return;
+    const timer = setTimeout(() => {
+      const el = document.getElementById(sectionId);
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top, behavior: "smooth" });
+    }, 350);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [defaultKind, setDefaultKind] = useState<GoalKind>("goal");
@@ -322,7 +351,7 @@ export default function ChecklistPage() {
             <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-3">Hoy</p>
 
             {/* Gym */}
-            <div data-tour="gym-section">
+            <div id="section-gym" data-tour="gym-section">
               <GymSection
                 check={gymCheck}
                 onMark={(file) => handleMark(file, "gym")}
@@ -333,6 +362,7 @@ export default function ChecklistPage() {
 
             {/* Diet + Goals */}
             <div data-tour="goals-section">
+            <div id="section-diet">
             <DietSection
               goals={goals}
               checks={todayChecks}
@@ -343,8 +373,10 @@ export default function ChecklistPage() {
               onDetail={openDetail}
               onReorder={(ids) => reorderGoals.mutate(ids)}
             />
+            </div>
 
             {/* Goals */}
+            <div id="section-goals">
             <GoalsSection
               goals={goals}
               checks={todayChecks}
@@ -355,6 +387,7 @@ export default function ChecklistPage() {
               onDetail={openDetail}
               onReorder={(ids) => reorderGoals.mutate(ids)}
             />
+            </div>
             </div>
           </>
         ) : (
@@ -395,5 +428,13 @@ export default function ChecklistPage() {
         onResubmit={detailCheck ? (file) => handleResubmit(detailCheck, file) : undefined}
       />
     </>
+  );
+}
+
+export default function ChecklistPage() {
+  return (
+    <Suspense>
+      <ChecklistPageInner />
+    </Suspense>
   );
 }

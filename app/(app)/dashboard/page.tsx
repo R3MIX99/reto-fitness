@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
@@ -103,6 +104,7 @@ function PlayerRow({
 const PREVIEW_COUNT = 3;
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user } = useUser();
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
@@ -146,17 +148,17 @@ export default function DashboardPage() {
   const pct = Math.min(100, Math.round((todayPts / TOTAL_PTS) * 100));
   // Pending tasks
   const gymDone = todayChecks.some((c) => c.kind === "gym");
-  const pendingItems: { icon: React.ReactNode; label: string }[] = [];
+  const pendingItems: { icon: React.ReactNode; label: string; scrollTo: string }[] = [];
   if (!gymDone) {
-    pendingItems.push({ icon: <Dumbbell size={13} strokeWidth={1.5} className="text-accent" />, label: "Ejercicio de hoy" });
+    pendingItems.push({ icon: <Dumbbell size={13} strokeWidth={1.5} className="text-accent" />, label: "Ejercicio de hoy", scrollTo: "ejercicio" });
   }
   goals.filter((g) => g.kind === "diet").forEach((g) => {
     const done = todayChecks.some((c) => c.goal_id === g.id);
-    if (!done) pendingItems.push({ icon: <UtensilsCrossed size={13} strokeWidth={1.5} className="text-warm" />, label: g.title });
+    if (!done) pendingItems.push({ icon: <UtensilsCrossed size={13} strokeWidth={1.5} className="text-warm" />, label: g.title, scrollTo: "dieta" });
   });
   goals.filter((g) => g.kind === "goal").forEach((g) => {
     const done = todayChecks.some((c) => c.goal_id === g.id);
-    if (!done) pendingItems.push({ icon: <Target size={13} strokeWidth={1.5} className="text-warm" />, label: g.title });
+    if (!done) pendingItems.push({ icon: <Target size={13} strokeWidth={1.5} className="text-warm" />, label: g.title, scrollTo: "metas" });
   });
 
   // Find rival: the person just above current user in leaderboard
@@ -237,9 +239,10 @@ export default function DashboardPage() {
           </p>
           <div className="flex flex-col gap-0">
             {pendingItems.map((item, i) => (
-              <div
+              <button
                 key={i}
-                className="flex items-center gap-3 py-2.5"
+                onClick={() => router.push(`/checklist?scrollTo=${item.scrollTo}`)}
+                className="flex items-center gap-3 py-2.5 w-full text-left"
                 style={{ borderBottom: i < pendingItems.length - 1 ? "0.5px solid var(--color-border)" : "none" }}
               >
                 <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "var(--color-surface)" }}>
@@ -247,7 +250,7 @@ export default function DashboardPage() {
                 </div>
                 <span className="text-[13px] flex-1">{item.label}</span>
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "var(--color-border)" }} />
-              </div>
+              </button>
             ))}
           </div>
         </div>
