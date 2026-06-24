@@ -40,22 +40,14 @@ export async function fetchPlayerCard(userId: string, groupId: string): Promise<
   {
       const supabase = createClient();
 
-      type ProfileRow = { full_name: string | null; avatar_url: string | null; gender: string | null; equipped_season_id: string | null };
+      type ProfileRow = { full_name: string | null; avatar_url: string | null; gender: string | null; equipped_season_id: string | null; created_at: string | null };
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url, gender, equipped_season_id")
+        .select("full_name, avatar_url, gender, equipped_season_id, created_at")
         .eq("id", userId)
         .single() as unknown as { data: ProfileRow | null };
 
       const gender = profile?.gender ?? "unspecified";
-
-      type MemberRow = { joined_at: string | null };
-      const { data: membership } = await supabase
-        .from("group_members")
-        .select("joined_at")
-        .eq("group_id", groupId)
-        .eq("user_id", userId)
-        .maybeSingle() as unknown as { data: MemberRow | null };
 
       // Temporadas finalizadas del grupo
       type SeasonRow = { id: string; name: string; season_number: number; end_date: string };
@@ -123,7 +115,7 @@ export async function fetchPlayerCard(userId: string, groupId: string): Promise<
         full_name: profile?.full_name ?? null,
         avatar_url: profile?.avatar_url ?? null,
         gender,
-        joined_at: membership?.joined_at ?? null,
+        joined_at: profile?.created_at ?? null,
         wins,
         wins_count: winsCount,
         tier,
