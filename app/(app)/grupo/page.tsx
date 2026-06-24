@@ -30,7 +30,7 @@ function GrupoPageInner() {
   const initializedRef = useRef(false);
   const swipeRef = useRef<{ startY: number; startX: number } | null>(null);
 
-  // On first load: if ?joined=ID, go to that group; else default to the owned group
+  // On first load: ?joined=ID > localStorage > owned group
   useEffect(() => {
     if (!initializedRef.current && groups.length > 0 && user) {
       initializedRef.current = true;
@@ -39,10 +39,21 @@ function GrupoPageInner() {
         const idx = groups.findIndex((g) => g.id === joinedId);
         if (idx !== -1) { setActiveGroupIdx(idx); return; }
       }
+      const savedId = typeof window !== "undefined" ? localStorage.getItem("lastGroupId") : null;
+      if (savedId) {
+        const idx = groups.findIndex((g) => g.id === savedId);
+        if (idx !== -1) { setActiveGroupIdx(idx); return; }
+      }
       const ownedIdx = groups.findIndex((g) => g.owner_id === user.id);
       if (ownedIdx !== -1) setActiveGroupIdx(ownedIdx);
     }
   }, [groups, user, searchParams]);
+
+  // Persist active group to localStorage whenever it changes
+  useEffect(() => {
+    const id = groups[activeGroupIdx]?.id;
+    if (id) localStorage.setItem("lastGroupId", id);
+  }, [activeGroupIdx, groups]);
 
   // Clamp index when groups array shrinks (e.g. after leaving a group)
   useEffect(() => {

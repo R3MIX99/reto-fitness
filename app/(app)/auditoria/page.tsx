@@ -170,12 +170,12 @@ function AuditoriaInner() {
   const current = remaining[0] ?? null;
   const week = getWeekNumber();
 
-  // Redirect when all done
+  // Redirect when all done — volver al grupo que se estaba revisando
   useEffect(() => {
     if (!isLoading && checks.length > 0 && remaining.length === 0) {
-      router.push("/grupo");
+      router.push(groupParam ? `/grupo?joined=${groupParam}` : "/grupo");
     }
-  }, [isLoading, checks.length, remaining.length, router]);
+  }, [isLoading, checks.length, remaining.length, router, groupParam]);
 
   async function handleAudit(approved: boolean, reason?: string) {
     if (!current) return;
