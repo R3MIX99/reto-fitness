@@ -259,7 +259,7 @@ export default function DashboardPage() {
       {/* Leaderboard */}
       {effectiveLeaderboard.length > 0 && (
         <div>
-          <p className="text-[12px] text-[var(--color-muted)] mb-1.5">Tabla de jugadores</p>
+          <p className="text-[12px] text-[var(--color-muted)] mb-1.5">Tabla de jugadores globales</p>
           <div className="bg-[var(--color-bg-card)] rounded-[18px] px-4">
             {visibleLeaderboard.map((entry, i) => (
               <PlayerRow
