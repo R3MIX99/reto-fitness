@@ -150,10 +150,19 @@ function CalendarGrid({
     return { day, gym, dietDone, dietTotal: safeDiet, goalsDone, goalsTotal: safeGoals, pts, pct: Math.round((pts / 13) * 100) };
   }
 
-  function isDone(day: number) {
-    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-    if (view === "general") return getDaySummary(day).pts === 13;
-    return checks.some((c) => c.check_date === dateStr && viewMatchesKind(view, c.kind) && c.status !== "rejected");
+  function isDone(day: number): boolean {
+    const s = getDaySummary(day);
+    if (view === "ejercicio") return s.gym;
+    if (view === "dieta")    return s.dietTotal > 0 && s.dietDone >= s.dietTotal;
+    if (view === "metas")    return s.goalsTotal > 0 && s.goalsDone >= s.goalsTotal;
+    // General: las tres categorías completas (si existen)
+    if (view === "general") {
+      const gymOk  = s.gym;
+      const dietOk = s.dietTotal === 0 || s.dietDone >= s.dietTotal;
+      const goalOk = s.goalsTotal === 0 || s.goalsDone >= s.goalsTotal;
+      return gymOk && dietOk && goalOk;
+    }
+    return false;
   }
 
   const cellSize = expanded ? 42 : 36;
