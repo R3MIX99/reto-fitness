@@ -141,9 +141,8 @@ function SeasonCard({
           </div>
         </div>
         <div className="text-right">
-          {/* FIX: mostrar Temp. N en lugar de season.name para evitar confusión */}
           <div className="text-[13px] font-medium" style={{ color: "var(--color-fg)" }}>
-            Temp. {season.season_number}
+            {season.name}
           </div>
           <div className="text-[11px] mt-0.5" style={{ color: "var(--color-muted)" }}>
             {groupName}
