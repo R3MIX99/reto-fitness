@@ -6,7 +6,6 @@ import { X, Dumbbell, UtensilsCrossed, Target, Camera, Lock, ChevronRight, Check
 import type { Goal, GoalKind, DailyCheck } from "@/lib/hooks/useChecklist";
 import { useGoals, useMarkCheck, useTodayChecks } from "@/lib/hooks/useChecklist";
 import { useMyGroups } from "@/lib/hooks/useGroups";
-import { PhotoSourceDrawer } from "@/components/checklist/PhotoSourceDrawer";
 import { EvidencePreviewDrawer } from "@/components/checklist/EvidencePreviewDrawer";
 import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
 
@@ -141,11 +140,11 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [successLabel, setSuccessLabel] = useState<string | null>(null);
 
-  // Preview + source drawer state
-  const [sourceOpen, setSourceOpen] = useState(false);
+  // Primera subida: siempre va directo a cámara (sin drawer de selección)
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [progressPhase, setProgressPhase] = useState<"uploading" | "success" | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const pendingGoal = useRef<Goal | null>(null);
   const pendingKind = useRef<OptionKind | null>(null);
@@ -155,7 +154,7 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
     pendingKind.current = kind;
     pendingGoal.current = null;
     if (kind === "gym") {
-      setSourceOpen(true);
+      fileRef.current?.click();
     } else {
       setPickerKind(kind as GoalKind);
       setPickerOpen(true);
@@ -166,12 +165,11 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
     setPickerOpen(false);
     pendingKind.current = goal.kind;
     pendingGoal.current = goal;
-    setTimeout(() => setSourceOpen(true), 300);
+    setTimeout(() => fileRef.current?.click(), 300);
   }
 
   function handleFileSelected(file: File) {
     setPendingFile(file);
-    setSourceOpen(false);
     setPreviewOpen(true);
   }
 
@@ -288,20 +286,28 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
         onClose={() => setPickerOpen(false)}
       />
 
-      {/* Source drawer: camera vs gallery */}
-      <PhotoSourceDrawer
-        open={sourceOpen}
-        onClose={() => setSourceOpen(false)}
-        onFileSelected={handleFileSelected}
+      {/* Input oculto: primera subida siempre va directo a cámara */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          e.target.value = "";
+          handleFileSelected(file);
+        }}
       />
 
-      {/* Preview before upload */}
+      {/* Preview antes de confirmar la subida */}
       <EvidencePreviewDrawer
         file={pendingFile}
         open={previewOpen}
         uploading={false}
         onConfirm={handleConfirmUpload}
-        onRetake={() => { setPreviewOpen(false); setPendingFile(null); setSourceOpen(true); }}
+        onRetake={() => { setPreviewOpen(false); setPendingFile(null); fileRef.current?.click(); }}
         onClose={() => { setPreviewOpen(false); setPendingFile(null); }}
       />
 
