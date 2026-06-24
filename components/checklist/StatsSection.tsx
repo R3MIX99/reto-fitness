@@ -361,9 +361,10 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
       {/* Category cards */}
       <div
         ref={cardsRef}
-        className="flex gap-2.5 overflow-x-auto no-scrollbar pb-0.5 scroll-smooth -mx-4 px-4"
-        style={{ scrollSnapType: "x mandatory" }}
+        className="flex gap-2.5 overflow-x-auto no-scrollbar pb-0.5 scroll-smooth -mx-4"
+        style={{ scrollSnapType: "x mandatory", scrollPaddingLeft: 16 }}
       >
+        <div className="w-4 flex-shrink-0" />
         {ORDER.map((cat) => {
           const c = CATEGORY_CONFIG[cat];
           const p = calcPct(checks, cat, dietTotal, goalsTotal);
@@ -386,6 +387,7 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
             </button>
           );
         })}
+        <div className="w-4 flex-shrink-0" />
       </div>
 
       {/* Scroll indicator */}

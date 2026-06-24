@@ -358,9 +358,10 @@ export function SeasonWidget() {
           <>
             <div
               ref={scrollRef}
-              className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5 -mx-4 px-4"
-              style={{ scrollSnapType: "x mandatory" }}
+              className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5 -mx-4"
+              style={{ scrollSnapType: "x mandatory", scrollPaddingLeft: 16 }}
             >
+              <div className="w-4 flex-shrink-0" />
               {activeGroups.map((g, i) => (
                 <button
                   key={g.id}
@@ -377,6 +378,7 @@ export function SeasonWidget() {
                   {g.name}
                 </button>
               ))}
+              <div className="w-4 flex-shrink-0" />
             </div>
 
             {/* Scroll indicator — solo si hay overflow real */}
