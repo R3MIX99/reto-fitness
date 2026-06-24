@@ -88,11 +88,14 @@ export function useGoals() {
   });
 }
 
-export function useDateChecks(groupId: string | null, date: string) {
+export function useDateChecks(groupIds: string | string[] | null, date: string) {
   const { user } = useUser();
+  const ids = Array.isArray(groupIds) ? groupIds : groupIds ? [groupIds] : [];
   return useQuery({
-    queryKey: ["dateChecks", user?.id, groupId, date],
-    enabled: !!user && !!groupId && !!date,
+    queryKey: ["dateChecks", user?.id, ids, date],
+    enabled: !!user && ids.length > 0 && !!date,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async (): Promise<DailyCheck[]> => {
       const supabase = createClient();
       type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string; created_at: string };
@@ -100,9 +103,19 @@ export function useDateChecks(groupId: string | null, date: string) {
         .from("daily_checks")
         .select("id, goal_id, kind, check_date, status, evidence_path, group_id, created_at")
         .eq("user_id", user!.id)
-        .eq("group_id", groupId!)
+        .in("group_id", ids)
         .eq("check_date", date) as unknown as { data: CheckRow[] | null };
-      return (data ?? []) as DailyCheck[];
+
+      // Fan-out: misma meta puede tener una fila por grupo → elegir mejor status
+      const best = new Map<string, CheckRow>();
+      for (const row of data ?? []) {
+        const key = `${row.kind}|${row.goal_id ?? ""}`;
+        const existing = best.get(key);
+        if (!existing || (STATUS_RANK[row.status] ?? 0) > (STATUS_RANK[existing.status] ?? 0)) {
+          best.set(key, row);
+        }
+      }
+      return Array.from(best.values()) as DailyCheck[];
     },
   });
 }

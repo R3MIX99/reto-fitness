@@ -249,7 +249,7 @@ export default function ChecklistPage() {
   const isToday = !selectedDate || selectedDate === todayStr();
 
   const { data: pastChecks = [], isLoading: pastLoading } = useDateChecks(
-    isToday ? null : groupId,
+    isToday ? null : allGroupIds,
     selectedDate ?? ""
   );
 
