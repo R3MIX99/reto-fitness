@@ -135,6 +135,11 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
   const markCheck = useMarkCheck(groupId);
   const gymDone = todayChecks.some((c) => c.kind === "gym");
 
+  const dietGoals = goals.filter((g) => g.kind === "diet");
+  const goalGoals = goals.filter((g) => g.kind === "goal");
+  const dietDone = dietGoals.length > 0 && dietGoals.every((g) => todayChecks.some((c) => c.goal_id === g.id));
+  const goalsDone = goalGoals.length > 0 && goalGoals.every((g) => todayChecks.some((c) => c.goal_id === g.id));
+
   const [pickerKind, setPickerKind] = useState<GoalKind | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -231,7 +236,7 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
               {/* Options */}
               <div className="flex flex-col gap-2.5">
                 {OPTIONS.map(({ kind, label, desc, color, tint, Icon }) => {
-                  const done = kind === "gym" ? gymDone : false;
+                  const done = kind === "gym" ? gymDone : kind === "diet" ? dietDone : goalsDone;
                   return (
                     <button
                       key={kind}
