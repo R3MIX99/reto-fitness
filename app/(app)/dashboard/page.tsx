@@ -6,7 +6,7 @@ import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp } from
 import { useUser } from "@/lib/hooks/useUser";
 import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
 import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
-import { useActiveSeason, computePhase, type Season } from "@/lib/hooks/useSeasons";
+import { useActiveSeasonCount } from "@/lib/hooks/useSeasons";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { usePrefetchPlayerCards } from "@/lib/hooks/usePlayerCard";
 import { SeasonWidget } from "@/components/dashboard/SeasonWidget";
@@ -14,17 +14,10 @@ import { SeasonWidget } from "@/components/dashboard/SeasonWidget";
 const TOTAL_PTS = 13;
 const ORDINALS = ["1ero", "2do", "3ero", "4to", "5to", "6to", "7mo", "8vo", "9no", "10mo"];
 
-const MESES_CORTOS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-function fmtDate(dateStr: string): string {
-  const d = new Date(dateStr + "T12:00:00");
-  return `${d.getDate()} ${MESES_CORTOS[d.getMonth()]}`;
-}
-// Texto del badge según haya o no temporada
-function seasonBadge(season: Season | null): string {
-  if (!season) return "Sin temporada activa";
-  const phase = computePhase(season);
-  if (!phase.hasStarted) return `empieza ${fmtDate(season.start_date)}`;
-  return `termina ${fmtDate(season.end_date)}`;
+function activeSeasonBadge(count: number): string {
+  if (count === 0) return "Sin temporada activa";
+  if (count === 1) return "1 temporada activa";
+  return `${count} temporadas activas`;
 }
 
 // ── Avatar ─────────────────────────────────────────────────────────────────
@@ -120,7 +113,7 @@ export default function DashboardPage() {
   const { data: todayPts = 0 } = useTodayScore(groupId);
   const { data: streak = 0 } = useStreak(groupId);
   const { data: leaderboard = [] } = useGlobalLeaderboard(groupIds);
-  const { data: season = null } = useActiveSeason(groupId);
+  const { data: activeSeasonCount = 0 } = useActiveSeasonCount(groupIds);
 
   // If no one has scored yet, show all unique members from all groups at 0 pts
   const allMembers = groups.flatMap((g) => g.members);
@@ -187,8 +180,8 @@ export default function DashboardPage() {
       <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4" data-tour="dash-points">
         <div className="flex justify-between items-baseline mb-1">
           <span className="text-[10.5px] text-[var(--color-muted)]">Puntos de hoy</span>
-          <span className="text-[10.5px]" style={{ color: season ? "var(--color-warm)" : "var(--color-muted)" }}>
-            {seasonBadge(season)}
+          <span className="text-[10.5px]" style={{ color: activeSeasonCount > 0 ? "var(--color-warm)" : "var(--color-muted)" }}>
+            {activeSeasonBadge(activeSeasonCount)}
           </span>
         </div>
         <div className="font-display font-medium text-[30px] mb-2.5">

@@ -188,6 +188,27 @@ export function useActiveSeason(groupId: string | null) {
   });
 }
 
+// Cuenta cuántas temporadas activas (ya iniciadas) tiene el usuario entre sus grupos.
+export function useActiveSeasonCount(groupIds: string[]) {
+  return useQuery({
+    queryKey: ["activeSeasonCount", groupIds],
+    enabled: groupIds.length > 0,
+    queryFn: async (): Promise<number> => {
+      if (!groupIds.length) return 0;
+      const supabase = createClient();
+      type Row = { start_date: string };
+      const { data } = await supabase
+        .from("seasons")
+        .select("start_date")
+        .in("group_id", groupIds)
+        .in("status", ["active", "reviewing"]) as unknown as { data: Row[] | null };
+      const today = new Date().toISOString().split("T")[0];
+      return (data ?? []).filter((s) => s.start_date <= today).length;
+    },
+    staleTime: 60_000,
+  });
+}
+
 export interface SeasonLeaderboardEntry {
   user_id: string;
   full_name: string | null;
