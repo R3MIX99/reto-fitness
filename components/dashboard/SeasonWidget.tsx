@@ -1,31 +1,51 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Flame, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 import { useMyGroups } from "@/lib/hooks/useGroups";
-import { useActiveSeason, useSeasonLeaderboard, computePhase, type Season } from "@/lib/hooks/useSeasons";
+import { useSeasonLeaderboard, computePhase, type Season, type SeasonLeaderboardEntry } from "@/lib/hooks/useSeasons";
 import { useUser } from "@/lib/hooks/useUser";
-import type { SeasonLeaderboardEntry } from "@/lib/hooks/useSeasons";
 
-// ── Helper: días transcurridos / total ────────────────────────────────────
+// ── Fetch todas las temporadas activas de múltiples grupos en una sola query ─
+
+function useActiveSeasonsByGroups(groupIds: string[]) {
+  return useQuery({
+    queryKey: ["activeSeasonsByGroups", groupIds],
+    enabled: groupIds.length > 0,
+    queryFn: async (): Promise<Record<string, Season>> => {
+      if (!groupIds.length) return {};
+      const supabase = createClient();
+      type SeasonRow = Season & { group_id: string };
+      const { data } = await supabase
+        .from("seasons")
+        .select("*")
+        .in("group_id", groupIds)
+        .in("status", ["active", "reviewing"])
+        .order("season_number", { ascending: false }) as unknown as { data: SeasonRow[] | null };
+
+      // Una por grupo: la más reciente
+      const map: Record<string, Season> = {};
+      for (const s of data ?? []) {
+        if (!map[s.group_id]) map[s.group_id] = s;
+      }
+      return map;
+    },
+    staleTime: 60_000,
+  });
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 function seasonProgress(season: Season): { elapsed: number; total: number; pct: number } {
   const start = new Date(season.start_date + "T00:00:00").getTime();
   const end   = new Date(season.end_date   + "T23:59:59").getTime();
   const now   = Date.now();
-  const total = Math.max(1, Math.round((end - start) / 86400000));
+  const total   = Math.max(1, Math.round((end - start) / 86400000));
   const elapsed = Math.min(total, Math.max(0, Math.round((now - start) / 86400000)));
   return { elapsed, total, pct: Math.round((elapsed / total) * 100) };
 }
-
-// ── Helper: puntos posibles al día de hoy ────────────────────────────────
-
-function possiblePts(season: Season): number {
-  const { elapsed } = seasonProgress(season);
-  return elapsed * 13;
-}
-
-// ── Helper: insight dinámico ──────────────────────────────────────────────
 
 function buildInsight(
   myEntry: SeasonLeaderboardEntry | undefined,
@@ -54,24 +74,27 @@ function buildInsight(
   return parts.join(" · ") + ". Un día completo puede cambiar todo.";
 }
 
-// ── Single group season card ──────────────────────────────────────────────
+// ── SeasonCard (recibe la season ya resuelta, sin fetch doble) ────────────
 
-function SeasonCard({ groupId, groupName, userId }: { groupId: string; groupName: string; userId: string }) {
-  const { data: season = null } = useActiveSeason(groupId);
+function SeasonCard({
+  season,
+  groupName,
+  userId,
+}: {
+  season: Season;
+  groupName: string;
+  userId: string;
+}) {
   const { data: lb = [] } = useSeasonLeaderboard(season);
 
-  if (!season) return null;
-
-  const phase = computePhase(season);
-  if (!phase.hasStarted) return null; // solo temporadas en curso
-
   const { elapsed, total, pct } = seasonProgress(season);
-  const possible = possiblePts(season);
+  // FIX: puntos posibles = duración total de la temporada × 13 (no solo días transcurridos)
+  const totalPossible = total * 13;
+
   const myEntry = lb.find((e) => e.user_id === userId);
   const myPos   = myEntry?.position ?? null;
   const myPts   = myEntry?.total_points ?? 0;
 
-  // Rivales: 1 arriba + 1 abajo. Si soy 1°, los 2 de abajo.
   const rivals: SeasonLeaderboardEntry[] = [];
   if (myPos === 1) {
     const r1 = lb.find((e) => e.position === 2);
@@ -87,7 +110,6 @@ function SeasonCard({ groupId, groupName, userId }: { groupId: string; groupName
 
   const insight = buildInsight(myEntry, lb);
 
-  // Filas a mostrar: intercalar "yo" entre los rivales
   const rows: (SeasonLeaderboardEntry | "me")[] = [];
   if (myPos === 1) {
     rows.push("me");
@@ -105,7 +127,7 @@ function SeasonCard({ groupId, groupName, userId }: { groupId: string; groupName
       className="rounded-[18px] p-4"
       style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
     >
-      {/* Header: posición + nombre temporada */}
+      {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>
           <div
@@ -119,8 +141,9 @@ function SeasonCard({ groupId, groupName, userId }: { groupId: string; groupName
           </div>
         </div>
         <div className="text-right">
+          {/* FIX: mostrar Temp. N en lugar de season.name para evitar confusión */}
           <div className="text-[13px] font-medium" style={{ color: "var(--color-fg)" }}>
-            {season.name}
+            Temp. {season.season_number}
           </div>
           <div className="text-[11px] mt-0.5" style={{ color: "var(--color-muted)" }}>
             {groupName}
@@ -128,20 +151,20 @@ function SeasonCard({ groupId, groupName, userId }: { groupId: string; groupName
         </div>
       </div>
 
-      {/* Puntos */}
+      {/* Puntos: lo que llevas vs. el total de toda la temporada */}
       <div className="flex items-baseline gap-1.5 mb-2">
         <span className="font-display font-semibold text-[22px]" style={{ color: "var(--color-fg)" }}>
           {myPts}
         </span>
         <span className="text-[13px]" style={{ color: "var(--color-muted)" }}>
-          / {possible} pts posibles
+          / {totalPossible} pts de la temporada
         </span>
         <span className="text-[11px] ml-auto" style={{ color: "var(--color-muted)" }}>
           Día {elapsed} de {total}
         </span>
       </div>
 
-      {/* Barra de progreso de temporada */}
+      {/* Barra de progreso */}
       <div className="h-[5px] rounded-full overflow-hidden mb-1" style={{ background: "var(--color-surface)" }}>
         <div
           className="h-full rounded-full transition-all duration-500"
@@ -150,25 +173,22 @@ function SeasonCard({ groupId, groupName, userId }: { groupId: string; groupName
       </div>
       <div className="flex justify-between text-[10px] mb-3.5" style={{ color: "#555" }}>
         <span>Inicio</span>
-        <span>{pct}% completado</span>
+        <span>{pct}% de la temporada</span>
         <span>Fin</span>
       </div>
 
-      {/* Divider */}
       <div className="h-px mb-3" style={{ background: "var(--color-border)" }} />
 
-      {/* Tabla de rivales */}
       <div className="text-[11px] mb-2.5" style={{ color: "#555" }}>
         Posiciones cercanas
       </div>
 
       <div className="flex flex-col gap-1.5">
-        {rows.map((row, i) => {
-          const isMe = row === "me";
-          const entry = isMe ? myEntry : row as SeasonLeaderboardEntry;
+        {rows.map((row) => {
+          const isMe  = row === "me";
+          const entry = isMe ? myEntry : (row as SeasonLeaderboardEntry);
           if (!entry) return null;
           const diff = entry.total_points - myPts;
-          const pos  = entry.position;
           return (
             <div
               key={isMe ? "me" : entry.user_id}
@@ -183,7 +203,7 @@ function SeasonCard({ groupId, groupName, userId }: { groupId: string; groupName
                 className="text-[13px] font-semibold w-5 text-center flex-shrink-0"
                 style={{ color: isMe ? "var(--color-warm)" : "var(--color-muted)" }}
               >
-                {pos}
+                {entry.position}
               </span>
 
               <div
@@ -203,7 +223,6 @@ function SeasonCard({ groupId, groupName, userId }: { groupId: string; groupName
                 {isMe ? "Tú" : (entry.full_name?.split(" ")[0] ?? "—")}
               </span>
 
-              {/* Diff + pts */}
               {!isMe && (
                 <span
                   className="text-[11px] font-medium mr-1 flex-shrink-0"
@@ -223,7 +242,6 @@ function SeasonCard({ groupId, groupName, userId }: { groupId: string; groupName
         })}
       </div>
 
-      {/* Insight */}
       {insight && (
         <div
           className="flex items-start gap-2.5 rounded-[13px] px-3 py-2.5 mt-3"
@@ -244,10 +262,23 @@ function SeasonCard({ groupId, groupName, userId }: { groupId: string; groupName
 export function SeasonWidget() {
   const { user } = useUser();
   const { data: groups = [] } = useMyGroups();
+  const groupIds = groups.map((g) => g.id);
+
+  const { data: seasonsByGroup = {}, isLoading } = useActiveSeasonsByGroups(groupIds);
+
+  // FIX: solo grupos con temporada activa YA iniciada
+  const activeGroups = groups.filter((g) => {
+    const s = seasonsByGroup[g.id];
+    return s && computePhase(s).hasStarted;
+  });
+
   const [activeIdx, setActiveIdx] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [thumbLeft, setThumbLeft] = useState(0);
   const [thumbWidth, setThumbWidth] = useState(24);
+
+  // Clamp index if activeGroups shrinks
+  const clampedIdx = Math.min(activeIdx, Math.max(0, activeGroups.length - 1));
 
   const updateThumb = useCallback(() => {
     const el = scrollRef.current;
@@ -269,31 +300,33 @@ export function SeasonWidget() {
     return () => el.removeEventListener("scroll", updateThumb);
   }, [updateThumb]);
 
-  if (!user || groups.length === 0) return null;
+  if (!user || isLoading || activeGroups.length === 0) return null;
 
-  const activeGroup = groups[activeIdx] ?? groups[0];
+  const activeGroup = activeGroups[clampedIdx];
+  const activeSeason = seasonsByGroup[activeGroup.id];
+  if (!activeSeason) return null;
 
   return (
     <div>
-      {/* Pill selector scrollable */}
-      {groups.length > 1 && (
+      {/* Pills: solo si hay más de 1 grupo con temporada activa */}
+      {activeGroups.length > 1 && (
         <>
           <div
             ref={scrollRef}
             className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5 mb-2"
             style={{ scrollSnapType: "x mandatory" }}
           >
-            {groups.map((g, i) => (
+            {activeGroups.map((g, i) => (
               <button
                 key={g.id}
                 onClick={() => setActiveIdx(i)}
                 className="flex-shrink-0 rounded-full px-3.5 py-1.5 text-[12px] transition-colors"
                 style={{
                   scrollSnapAlign: "start",
-                  background: i === activeIdx ? "var(--color-warm)" : "var(--color-bg-card)",
-                  color: i === activeIdx ? "#1a1000" : "var(--color-muted)",
-                  border: i === activeIdx ? "none" : "1px solid var(--color-border)",
-                  fontWeight: i === activeIdx ? 500 : 400,
+                  background: i === clampedIdx ? "var(--color-warm)" : "var(--color-bg-card)",
+                  color: i === clampedIdx ? "#1a1000" : "var(--color-muted)",
+                  border: i === clampedIdx ? "none" : "1px solid var(--color-border)",
+                  fontWeight: i === clampedIdx ? 500 : 400,
                 }}
               >
                 {g.name}
@@ -301,7 +334,6 @@ export function SeasonWidget() {
             ))}
           </div>
 
-          {/* Scroll indicator */}
           <div className="flex justify-center mb-3">
             <div className="relative w-14 h-1 rounded-full" style={{ background: "var(--color-surface)" }}>
               <div
@@ -313,10 +345,9 @@ export function SeasonWidget() {
         </>
       )}
 
-      {/* Card para el grupo activo */}
       <SeasonCard
         key={activeGroup.id}
-        groupId={activeGroup.id}
+        season={activeSeason}
         groupName={activeGroup.name}
         userId={user.id}
       />
