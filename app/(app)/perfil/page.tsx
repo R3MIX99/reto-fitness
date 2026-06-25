@@ -15,6 +15,7 @@ import {
   Globe, AlertTriangle, Trash2,
 } from "lucide-react";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
+import { PlanCard } from "@/components/perfil/PlanCard";
 import { ThemeSwitch } from "@/components/ui/ThemeSwitch";
 import { createClient } from "@/lib/supabase/client";
 import { Drawer } from "@/components/ui/Drawer";
@@ -448,6 +449,9 @@ export default function PerfilPage() {
             <div className="text-[10px] text-[var(--color-muted)]">Puntos</div>
           </div>
         </div>
+
+        {/* Plan + super-admin */}
+        <PlanCard />
 
         {/* Editar perfil */}
         <button

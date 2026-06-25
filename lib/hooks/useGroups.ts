@@ -19,6 +19,7 @@ export function useGroupsRealtime() {
       qc.invalidateQueries({ queryKey: ["groups"] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
       qc.invalidateQueries({ queryKey: ["activeSeason"] });
+      qc.invalidateQueries({ queryKey: ["myPlan"] });
     };
     const invalidateTransfers = () => {
       qc.invalidateQueries({ queryKey: ["incomingTransfers"] });
@@ -443,13 +444,16 @@ export function useCreateGroup() {
       // Avoid .select() after insert to prevent RLS race with the trigger.
       const { error } = await supabase
         .from("groups")
-        .insert({ name, owner_id: user.id } as never) as unknown as { error: unknown };
+        .insert({ name, owner_id: user.id } as never) as unknown as { error: { message: string } | null };
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
 
       return;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["groups"] });
+      qc.invalidateQueries({ queryKey: ["myPlan"] });
+    },
   });
 }
 
@@ -475,7 +479,10 @@ export function useDeleteGroup() {
       const { error } = await (supabase.rpc as Function)("delete_group", { p_group_id: groupId });
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["groups"] });
+      qc.invalidateQueries({ queryKey: ["myPlan"] });
+    },
   });
 }
 

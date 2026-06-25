@@ -25,8 +25,9 @@ export default function CrearGrupoPage() {
     try {
       await createGroup.mutateAsync(name.trim());
       setShowSuccess(true);
-    } catch {
-      setError("Error al crear el grupo. Inténtalo de nuevo.");
+    } catch (err) {
+      // Muestra el mensaje real (p. ej. límite de grupos del plan)
+      setError(err instanceof Error ? err.message : "Error al crear el grupo. Inténtalo de nuevo.");
     }
   }
 
