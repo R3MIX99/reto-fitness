@@ -37,7 +37,7 @@ function UserAvatar({ url, name, size }: { url: string | null; name: string | nu
           width={size}
           height={size}
           className="object-cover w-full h-full"
-          unoptimized
+          unoptimized={url.includes("?t=")}
           referrerPolicy="no-referrer"
         />
       </div>

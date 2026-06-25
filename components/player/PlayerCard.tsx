@@ -111,7 +111,7 @@ export function PlayerCard({
             >
               <div className="w-[84px] h-[84px] rounded-full overflow-hidden flex items-center justify-center" style={{ background: "var(--color-surface)", border: "3px solid var(--color-bg-card)" }}>
                 {data?.avatar_url ? (
-                  <Image src={data.avatar_url} alt={data.full_name ?? ""} width={84} height={84} className="object-cover w-full h-full" unoptimized referrerPolicy="no-referrer" />
+                  <Image src={data.avatar_url} alt={data.full_name ?? ""} width={84} height={84} className="object-cover w-full h-full" unoptimized={data.avatar_url.includes("?t=")} referrerPolicy="no-referrer" />
                 ) : (
                   <span className="text-[26px] font-display font-semibold text-[var(--color-muted)]">{getInitials(data?.full_name ?? null)}</span>
                 )}
