@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle, ArrowRightLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { GroupWithMembers } from "@/lib/hooks/useGroups";
 import { getInitials, useLeaveGroup, useDeleteGroup, useTransferGroup } from "@/lib/hooks/useGroups";
+import { usePlan } from "@/lib/hooks/usePlan";
 import { computePhase, type Season } from "@/lib/hooks/useSeasons";
 import { TransferDrawer } from "@/components/grupo/TransferDrawer";
+import { UpgradeDrawer } from "@/components/ui/UpgradeDrawer";
 import Image from "next/image";
 
 const MESES_CORTOS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -118,9 +121,21 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
   const [leftGroup, setLeftGroup] = useState<string | null>(null);
   const [switchedTo, setSwitchedTo] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const router = useRouter();
+  const { data: plan } = usePlan();
   const leaveGroup = useLeaveGroup();
   const deleteGroup = useDeleteGroup();
   const transferGroup = useTransferGroup();
+
+  // ¿Puede crear otro grupo? (super-admin o por debajo del límite del plan)
+  const canCreateGroup = !plan || plan.is_super_admin || plan.owned_groups < plan.max_groups;
+
+  function handleCreateGroup() {
+    setOpen(false);
+    if (canCreateGroup) router.push("/grupo/crear");
+    else setShowUpgrade(true);
+  }
 
   const shownMembers = group.members.slice(0, 2);
   const extra = group.members.length - 2;
@@ -233,10 +248,9 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
 
             <div className="border-t" style={{ borderColor: "var(--color-border)" }} />
 
-            <Link
-              href="/grupo/crear"
-              onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}
+            <button
+              onClick={handleCreateGroup}
+              className="w-full flex items-center gap-3 px-4 py-3 border-b text-left" style={{ borderColor: "var(--color-border)" }}
             >
               <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
                 <Plus size={14} strokeWidth={1.5} className="text-accent" />
@@ -245,7 +259,7 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
                 <p className="text-[13px] font-medium">Crear grupo</p>
                 <p className="text-[11px] text-[var(--color-muted)]">Genera un código de invitación</p>
               </div>
-            </Link>
+            </button>
 
             <Link
               href="/grupo/unirse"
@@ -369,6 +383,18 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
         members={otherMembers}
         pending={transferGroup.isPending}
         onConfirm={handleTransfer}
+      />
+
+      {/* Drawer de upgrade cuando se alcanza el límite de grupos del plan */}
+      <UpgradeDrawer
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        title={plan?.tier === "pro" ? "Alcanzaste el límite de Pro" : "Estás en el plan Free"}
+        message={
+          plan?.tier === "pro"
+            ? "Mejora al plan Elite para crear más grupos."
+            : "Accede al plan Pro o Elite para mejorar y crear más grupos."
+        }
       />
 
       <Portal>
