@@ -91,10 +91,17 @@ Crear con estas convenciones:
 - RLS habilitado en todas las tablas — respetar siempre.
 
 ### Sistema de puntos
-- 11 pts/día: 4 comidas + 6 metas diarias + 1 gimnasio
+- **Hasta 13 pts base/día**, según el motor `recalc_day_score`
+  (`supabase/migrations/20260619_recalc_day_score.sql`):
+  - **Gimnasio:** 3 pts (todo o nada — `LEAST(count,1)*3`)
+  - **Dieta:** hasta 5 pts, **proporcional** al avance → `FLOOR(done/total*5)`
+  - **Metas diarias:** hasta 5 pts, **proporcional** → `FLOOR(done/total*5)`
+- Como dieta y metas son proporcionales, los puntos NO mapean 1:1 con cada check
+  (ej. 2 de 4 comidas = `FLOOR(2/4*5)` = 2 pts). La UI debe explicar esto.
 - Cada check **requiere foto de evidencia** (sin foto no cuenta)
 - Puntos **provisionales** durante la semana → **validados** tras auditoría del domingo
 - Rachas: 3 días perfectos = +3 pts bonus; 3 días fallando = -3 pts penalización
+- El total y bonus/penalización viven en `daily_scores` (por usuario, grupo y fecha)
 
 ### Mockups de referencia (fuente de verdad del diseño)
 - `project-assets/mockups/dashboard.html`

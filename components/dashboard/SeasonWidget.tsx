@@ -83,7 +83,7 @@ function Avatar({ url, initials, size = 28 }: { url?: string | null; initials: s
   if (url) {
     return (
       <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: size, height: size }}>
-        <Image src={url} alt={initials} width={size} height={size} className="object-cover w-full h-full" unoptimized={url.includes("?t=")} />
+        <Image src={url} alt={initials} width={size} height={size} className="object-cover w-full h-full" unoptimized={url.includes("?t=")} referrerPolicy="no-referrer" />
       </div>
     );
   }

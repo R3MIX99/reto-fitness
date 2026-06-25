@@ -13,6 +13,8 @@ interface LeaderboardProps {
   currentUserId: string;
   championUserId?: string | null;
   onPlayerClick?: (userId: string) => void;
+  title?: string;
+  subtitle?: string;
 }
 
 function PlayerRow({ entry, currentUserId, championUserId, onPlayerClick }: { entry: LeaderboardEntry; currentUserId: string; championUserId?: string | null; onPlayerClick?: (userId: string) => void }) {
@@ -64,7 +66,7 @@ function PlayerRow({ entry, currentUserId, championUserId, onPlayerClick }: { en
   );
 }
 
-export function Leaderboard({ entries, currentUserId, championUserId, onPlayerClick }: LeaderboardProps) {
+export function Leaderboard({ entries, currentUserId, championUserId, onPlayerClick, title = "Tabla de jugadores", subtitle }: LeaderboardProps) {
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? entries : entries.slice(0, 3);
 
@@ -72,7 +74,10 @@ export function Leaderboard({ entries, currentUserId, championUserId, onPlayerCl
     <div>
       <div className="flex items-center gap-2 mb-1">
         <Trophy size={15} strokeWidth={1.5} className="text-warm" />
-        <span className="text-[14px] font-medium">Tabla de jugadores</span>
+        <span className="text-[14px] font-medium">{title}</span>
+        {subtitle && (
+          <span className="text-[11px] text-[var(--color-muted)]">· {subtitle}</span>
+        )}
       </div>
 
       <div className="relative">

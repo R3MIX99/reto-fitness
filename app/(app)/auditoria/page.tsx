@@ -25,6 +25,34 @@ function getInitials(name: string | null): string {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
+// Avatar del jugador con fallback a iniciales. referrerPolicy="no-referrer"
+// evita el 403 de Google al cargar la foto directo del navegador.
+function UserAvatar({ url, name, size }: { url: string | null; name: string | null; size: number }) {
+  if (url) {
+    return (
+      <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: size, height: size }}>
+        <Image
+          src={url}
+          alt={name ?? ""}
+          width={size}
+          height={size}
+          className="object-cover w-full h-full"
+          unoptimized
+          referrerPolicy="no-referrer"
+        />
+      </div>
+    );
+  }
+  return (
+    <div
+      className="rounded-full flex items-center justify-center flex-shrink-0 font-medium"
+      style={{ width: size, height: size, background: "var(--color-surface)", color: "var(--color-fg)", fontSize: size * 0.36 }}
+    >
+      {getInitials(name)}
+    </div>
+  );
+}
+
 function KindBadge({ kind }: { kind: string }) {
   if (kind === "gym") return (
     <span className="flex items-center gap-1.5 text-[11px] text-accent border border-accent/40 rounded-full px-2.5 py-0.5">
@@ -262,12 +290,7 @@ function AuditoriaInner() {
         <div className="bg-[var(--color-bg-card)] rounded-[20px] p-4 mb-5">
           {/* User info */}
           <div className="flex items-center gap-2.5 mb-3">
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-medium flex-shrink-0"
-              style={{ background: "var(--color-surface)", color: "var(--color-fg)" }}
-            >
-              {getInitials(current.full_name)}
-            </div>
+            <UserAvatar url={current.avatar_url} name={current.full_name} size={36} />
             <span className="font-medium text-[15px]">{current.full_name ?? "—"}</span>
           </div>
 
@@ -339,12 +362,7 @@ function AuditoriaInner() {
           <div className="flex flex-col gap-2 opacity-70">
             {remaining.slice(1, 4).map((c) => (
               <div key={c.id} className="flex items-center gap-2.5 bg-[var(--color-bg-card)] rounded-[13px] px-3.5 py-2.5">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0"
-                  style={{ background: "var(--color-surface)", color: "var(--color-fg)" }}
-                >
-                  {getInitials(c.full_name)}
-                </div>
+                <UserAvatar url={c.avatar_url} name={c.full_name} size={28} />
                 <div className="flex-1 min-w-0">
                   <span className="text-[13px] truncate block">{c.full_name ?? "—"}</span>
                   {c.kind !== "gym" && c.goal_title && (

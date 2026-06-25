@@ -306,7 +306,14 @@ function GrupoPageInner() {
         )}
 
         {/* 3) Tabla de jugadores */}
-        <Leaderboard entries={displayLeaderboard} currentUserId={user?.id ?? ""} championUserId={championUserId} onPlayerClick={setCardUserId} />
+        <Leaderboard
+          entries={displayLeaderboard}
+          currentUserId={user?.id ?? ""}
+          championUserId={championUserId}
+          onPlayerClick={setCardUserId}
+          title={season ? "Tabla de la temporada" : "Tabla de jugadores"}
+          subtitle={season ? season.name : "puntos globales"}
+        />
 
         {/* 4) Comparativa */}
         {last7.length > 0 && (

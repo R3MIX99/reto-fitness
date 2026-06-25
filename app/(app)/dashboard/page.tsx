@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp } from "lucide-react";
+import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
 import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
@@ -27,7 +27,7 @@ function Avatar({ url, initials, size = 26 }: { url?: string | null; initials: s
   if (url) {
     return (
       <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: size, height: size }}>
-        <Image src={url} alt={initials} width={size} height={size} className="object-cover w-full h-full" unoptimized={url.includes("?t=")} />
+        <Image src={url} alt={initials} width={size} height={size} className="object-cover w-full h-full" unoptimized={url.includes("?t=")} referrerPolicy="no-referrer" />
       </div>
     );
   }
@@ -110,6 +110,7 @@ export default function DashboardPage() {
   const groupId = groups[0]?.id ?? null;
   const groupIds = groups.map((g) => g.id);
   const [showAll, setShowAll] = useState(false);
+  const [showPointsInfo, setShowPointsInfo] = useState(false);
   const [cardUserId, setCardUserId] = useState<string | null>(null);
 
   const { data: todayPts = 0 } = useTodayScore(groupId);
@@ -181,7 +182,10 @@ export default function DashboardPage() {
       {/* Puntos del día */}
       <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4" data-tour="dash-points">
         <div className="flex justify-between items-baseline mb-1">
-          <span className="text-[10.5px] text-[var(--color-muted)]">Puntos de hoy</span>
+          <button onClick={() => setShowPointsInfo((v) => !v)} className="flex items-center gap-1">
+            <span className="text-[10.5px] text-[var(--color-muted)]">Puntos de hoy</span>
+            <Info size={11} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+          </button>
           <span className="text-[10.5px]" style={{ color: activeSeasonCount > 0 ? "var(--color-warm)" : "var(--color-muted)" }}>
             {activeSeasonBadge(activeSeasonCount)}
           </span>
@@ -196,6 +200,34 @@ export default function DashboardPage() {
           />
         </div>
         <p className="text-[11px] text-[var(--color-muted)] mt-2.5">{streakMsg()}</p>
+
+        {/* Desglose de cómo se calculan los 13 pts */}
+        {showPointsInfo && (
+          <div className="mt-3 pt-3 space-y-1.5" style={{ borderTop: "0.5px solid var(--color-border)" }}>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1.5 text-[var(--color-fg)]">
+                <Dumbbell size={12} strokeWidth={1.5} className="text-accent" /> Ejercicio
+              </span>
+              <span className="text-[var(--color-muted)]">3 pts · todo o nada</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1.5 text-[var(--color-fg)]">
+                <UtensilsCrossed size={12} strokeWidth={1.5} className="text-warm" /> Dieta
+              </span>
+              <span className="text-[var(--color-muted)]">hasta 5 pts · según avance</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1.5 text-[var(--color-fg)]">
+                <Target size={12} strokeWidth={1.5} className="text-warm" /> Metas diarias
+              </span>
+              <span className="text-[var(--color-muted)]">hasta 5 pts · según avance</span>
+            </div>
+            <p className="text-[10.5px] text-[var(--color-muted)] pt-1" style={{ lineHeight: 1.5 }}>
+              Dieta y metas son proporcionales: cuentan según el % que completes
+              (ej. 2 de 4 comidas = 2 pts). Una racha de 3 días perfectos da +3 pts.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Mini tarjetas */}
