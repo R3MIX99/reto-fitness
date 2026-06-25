@@ -11,6 +11,7 @@ import { usePlan } from "@/lib/hooks/usePlan";
 import { computePhase, type Season } from "@/lib/hooks/useSeasons";
 import { TransferDrawer } from "@/components/grupo/TransferDrawer";
 import { UpgradeDrawer } from "@/components/ui/UpgradeDrawer";
+import { Drawer } from "@/components/ui/Drawer";
 import Image from "next/image";
 
 const MESES_CORTOS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -397,6 +398,81 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
         }
       />
 
+      {/* Drawer: confirmar salir del grupo */}
+      <Drawer open={confirmLeave} onClose={() => setConfirmLeave(false)}>
+        <div className="px-6 pb-8 pt-1 flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
+            <AlertTriangle size={26} strokeWidth={1.5} className="text-red-400" />
+          </div>
+          <p className="font-display font-semibold text-[18px] mb-1">¿Salir del grupo?</p>
+          <p className="text-[13px] text-[var(--color-muted)] mb-1">Estás a punto de abandonar</p>
+          <p className="text-[14px] font-medium text-warm mb-4">{group.name}</p>
+          <p className="text-[12px] text-[var(--color-muted)] mb-6">
+            Serás removido del ranking y tus puntos en este grupo serán eliminados.
+          </p>
+          <div className="flex flex-col gap-2.5 w-full">
+            <button
+              onClick={handleLeave}
+              disabled={leaveGroup.isPending}
+              className="w-full bg-red-500/80 text-white rounded-pill py-3.5 text-[14px] font-medium disabled:opacity-50"
+            >
+              {leaveGroup.isPending ? "Saliendo..." : "Sí, salir del grupo"}
+            </button>
+            <button
+              onClick={() => setConfirmLeave(false)}
+              className="w-full text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]" style={{ background: "var(--color-surface)" }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </Drawer>
+
+      {/* Drawer: confirmar borrar grupo (dueño) */}
+      <Drawer open={confirmDelete} onClose={() => setConfirmDelete(false)}>
+        <div className="px-6 pb-8 pt-1 flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
+            <Trash2 size={26} strokeWidth={1.5} className="text-red-400" />
+          </div>
+          <p className="font-display font-semibold text-[18px] mb-1">¿Borrar el grupo?</p>
+          <p className="text-[14px] font-medium text-warm mb-4">{group.name}</p>
+          <p className="text-[12px] text-[var(--color-muted)] mb-6">
+            Esto elimina el grupo para <span className="text-red-400 font-medium">todos los miembros</span>, junto con sus checklists, puntos, temporadas e historial. Esta acción no se puede deshacer.
+          </p>
+          <div className="flex flex-col gap-2.5 w-full">
+            <button
+              onClick={handleDelete}
+              disabled={deleteGroup.isPending}
+              className="w-full bg-red-500/80 text-white rounded-pill py-3.5 text-[14px] font-medium disabled:opacity-50"
+            >
+              {deleteGroup.isPending ? "Borrando..." : "Sí, borrar el grupo"}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="w-full text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]" style={{ background: "var(--color-surface)" }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </Drawer>
+
+      {/* Drawer: error de acción */}
+      <Drawer open={!!actionError} onClose={() => setActionError(null)}>
+        <div className="px-6 pb-8 pt-1 flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
+            <AlertTriangle size={24} strokeWidth={1.5} className="text-red-400" />
+          </div>
+          <p className="text-[14px] mb-6">{actionError}</p>
+          <button
+            onClick={() => setActionError(null)}
+            className="w-full text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]" style={{ background: "var(--color-surface)" }}
+          >
+            Entendido
+          </button>
+        </div>
+      </Drawer>
+
       <Portal>
       {/* Toast cambio de grupo */}
       {switchedTo && (
@@ -415,99 +491,12 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
         </div>
       )}
 
-      {/* Modal confirmación salir */}
-      {confirmLeave && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center px-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setConfirmLeave(false)} />
-          <div className="relative w-full max-w-[420px] rounded-t-[24px] pb-[88px] pt-6 px-6 flex flex-col items-center text-center animate-slide-up" style={{ background: "var(--color-bg-card)" }}>
-            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--color-border)" }} />
-            <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
-              <AlertTriangle size={26} strokeWidth={1.5} className="text-red-400" />
-            </div>
-            <p className="font-display font-semibold text-[18px] mb-1">¿Salir del grupo?</p>
-            <p className="text-[13px] text-[var(--color-muted)] mb-1">Estás a punto de abandonar</p>
-            <p className="text-[14px] font-medium text-warm mb-4">{group.name}</p>
-            <p className="text-[12px] text-[var(--color-muted)] mb-6">
-              Serás removido del ranking y tus puntos en este grupo serán eliminados.
-            </p>
-            <div className="flex flex-col gap-2.5 w-full">
-              <button
-                onClick={handleLeave}
-                disabled={leaveGroup.isPending}
-                className="w-full bg-red-500/80 text-white rounded-pill py-3.5 text-[14px] font-medium disabled:opacity-50"
-              >
-                {leaveGroup.isPending ? "Saliendo..." : "Sí, salir del grupo"}
-              </button>
-              <button
-                onClick={() => setConfirmLeave(false)}
-                className="w-full text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]" style={{ background: "var(--color-surface)" }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal confirmación borrar grupo (dueño) */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center px-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setConfirmDelete(false)} />
-          <div className="relative w-full max-w-[420px] rounded-t-[24px] pb-[88px] pt-6 px-6 flex flex-col items-center text-center animate-slide-up" style={{ background: "var(--color-bg-card)" }}>
-            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--color-border)" }} />
-            <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
-              <Trash2 size={26} strokeWidth={1.5} className="text-red-400" />
-            </div>
-            <p className="font-display font-semibold text-[18px] mb-1">¿Borrar el grupo?</p>
-            <p className="text-[14px] font-medium text-warm mb-4">{group.name}</p>
-            <p className="text-[12px] text-[var(--color-muted)] mb-6">
-              Esto elimina el grupo para <span className="text-red-400 font-medium">todos los miembros</span>, junto con sus checklists, puntos, temporadas e historial. Esta acción no se puede deshacer.
-            </p>
-            <div className="flex flex-col gap-2.5 w-full">
-              <button
-                onClick={handleDelete}
-                disabled={deleteGroup.isPending}
-                className="w-full bg-red-500/80 text-white rounded-pill py-3.5 text-[14px] font-medium disabled:opacity-50"
-              >
-                {deleteGroup.isPending ? "Borrando..." : "Sí, borrar el grupo"}
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="w-full text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]" style={{ background: "var(--color-surface)" }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Toast: solicitud de transferencia enviada */}
       {transferDone && (
         <div className="fixed bottom-[88px] left-4 right-4 z-[90] flex justify-center pointer-events-none">
           <div className="flex items-center gap-2.5 rounded-full px-4 py-3 shadow-lg" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
             <Check size={14} strokeWidth={2} className="text-warm flex-shrink-0" />
             <p className="text-[13px] text-[var(--color-fg)]">Transferencia pendiente · esperando respuesta</p>
-          </div>
-        </div>
-      )}
-
-      {/* Toast: error de acción */}
-      {actionError && (
-        <div className="fixed inset-0 z-[95] flex items-end justify-center px-4" onClick={() => setActionError(null)}>
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="relative w-full max-w-[420px] rounded-t-[24px] pb-[88px] pt-6 px-6 flex flex-col items-center text-center animate-slide-up" style={{ background: "var(--color-bg-card)" }}>
-            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--color-border)" }} />
-            <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
-              <AlertTriangle size={24} strokeWidth={1.5} className="text-red-400" />
-            </div>
-            <p className="text-[14px] mb-6">{actionError}</p>
-            <button
-              onClick={() => setActionError(null)}
-              className="w-full text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]" style={{ background: "var(--color-surface)" }}
-            >
-              Entendido
-            </button>
           </div>
         </div>
       )}

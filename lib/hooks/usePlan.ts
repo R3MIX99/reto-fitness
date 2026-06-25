@@ -7,7 +7,7 @@ import { useUser } from "./useUser";
 export type Tier = "free" | "pro" | "elite";
 
 export const TIER_LABEL: Record<Tier, string> = { free: "Free", pro: "Pro", elite: "Elite" };
-export const TIER_PRICE: Record<Tier, string> = { free: "$0", pro: "$5.99/mes", elite: "$12.99/mes" };
+export const TIER_PRICE: Record<Tier, string> = { free: "$0", pro: "$99 MXN/mes", elite: "$199 MXN/mes" };
 
 export interface MyPlan {
   tier: Tier;

@@ -76,8 +76,8 @@ export function UpgradeDrawer({
           <p className="text-[13px] text-[var(--color-muted)]">{message}</p>
         </div>
 
-        <PlanOption name="Pro" price="$5.99/mes" color="#CF5C36" features={PRO_FEATURES} />
-        <PlanOption name="Elite" price="$12.99/mes" color="#EFC88B" features={ELITE_FEATURES} highlight />
+        <PlanOption name="Pro" price="$99 MXN/mes" color="#CF5C36" features={PRO_FEATURES} />
+        <PlanOption name="Elite" price="$199 MXN/mes" color="#EFC88B" features={ELITE_FEATURES} highlight />
 
         <p className="text-[11px] text-[var(--color-muted)] text-center mt-3">
           El pago de planes estará disponible muy pronto.

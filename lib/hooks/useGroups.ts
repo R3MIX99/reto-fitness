@@ -624,8 +624,8 @@ export function useOutgoingTransfer(groupId: string | null) {
 // La validación real del tier se conecta en la Fase 3 (suscripciones).
 export function planRequiredForMembers(memberCount: number): { tier: "free" | "pro" | "elite"; label: string; cost: string } {
   if (memberCount <= 5) return { tier: "free", label: "Free", cost: "$0" };
-  if (memberCount <= 49) return { tier: "pro", label: "Pro", cost: "$5.99/mes" };
-  return { tier: "elite", label: "Elite", cost: "$12.99/mes" };
+  if (memberCount <= 49) return { tier: "pro", label: "Pro", cost: "$99 MXN/mes" };
+  return { tier: "elite", label: "Elite", cost: "$199 MXN/mes" };
 }
 
 export function useLookupGroup(code: string) {
