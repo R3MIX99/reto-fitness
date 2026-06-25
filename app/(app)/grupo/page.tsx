@@ -14,6 +14,7 @@ import { InviteSheet } from "@/components/grupo/InviteSheet";
 import { SeasonBanner } from "@/components/grupo/SeasonBanner";
 import { SeasonPodium } from "@/components/grupo/SeasonPodium";
 import { SeasonHistory } from "@/components/grupo/SeasonHistory";
+import { IncomingTransferCard } from "@/components/grupo/IncomingTransferCard";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { usePrefetchPlayerCards } from "@/lib/hooks/usePlayerCard";
 import { useActiveSeason, useSeasonLeaderboard, useLatestFinishedSeason } from "@/lib/hooks/useSeasons";
@@ -219,6 +220,9 @@ function GrupoPageInner() {
   return (
     <>
       <div className="px-4 pb-28 pt-2">
+        {/* Transferencias de propiedad entrantes (informe + aceptar/rechazar) */}
+        <IncomingTransferCard />
+
         {/* 1) Tarjeta del grupo */}
         <div
           data-tour="group-card"

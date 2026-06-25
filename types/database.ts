@@ -121,6 +121,8 @@ export type Database = {
           group_id: string
           penalty_points: number
           score_date: string
+          streak_bonus: number
+          streak_day: number
           total_points: number | null
           user_id: string
         }
@@ -130,6 +132,8 @@ export type Database = {
           group_id: string
           penalty_points?: number
           score_date: string
+          streak_bonus?: number
+          streak_day?: number
           total_points?: number | null
           user_id: string
         }
@@ -139,6 +143,8 @@ export type Database = {
           group_id?: string
           penalty_points?: number
           score_date?: string
+          streak_bonus?: number
+          streak_day?: number
           total_points?: number | null
           user_id?: string
         }
@@ -305,6 +311,61 @@ export type Database = {
           },
         ]
       }
+      group_transfers: {
+        Row: {
+          created_at: string
+          expires_at: string
+          from_user: string
+          group_id: string
+          id: string
+          responded_at: string | null
+          status: string
+          to_user: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          from_user: string
+          group_id: string
+          id?: string
+          responded_at?: string | null
+          status?: string
+          to_user: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          from_user?: string
+          group_id?: string
+          id?: string
+          responded_at?: string | null
+          status?: string
+          to_user?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_transfers_from_user_fkey"
+            columns: ["from_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_transfers_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_transfers_to_user_fkey"
+            columns: ["to_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groups: {
         Row: {
           created_at: string
@@ -420,7 +481,7 @@ export type Database = {
           created_at: string
           equipped_season_id: string | null
           full_name: string | null
-          gender: string
+          gender: string | null
           id: string
           locale: string
           onboarded: boolean
@@ -432,7 +493,7 @@ export type Database = {
           created_at?: string
           equipped_season_id?: string | null
           full_name?: string | null
-          gender?: string
+          gender?: string | null
           id: string
           locale?: string
           onboarded?: boolean
@@ -444,14 +505,22 @@ export type Database = {
           created_at?: string
           equipped_season_id?: string | null
           full_name?: string | null
-          gender?: string
+          gender?: string | null
           id?: string
           locale?: string
           onboarded?: boolean
           theme?: string
           tour_completed?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_equipped_season_id_fkey"
+            columns: ["equipped_season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -730,6 +799,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_approve_2days: { Args: never; Returns: undefined }
       auto_approve_old_checks: {
         Args: { p_group_id: string }
         Returns: undefined
@@ -738,14 +808,36 @@ export type Database = {
         Args: { p_reason: string; p_season_id: string }
         Returns: undefined
       }
+      compute_user_streak: {
+        Args: { p_group_id: string; p_user_id: string }
+        Returns: number
+      }
       daily_max_points: { Args: { g_id: string }; Returns: number }
+      delete_group: { Args: { p_group_id: string }; Returns: undefined }
+      delete_scheduled_season: {
+        Args: { p_season_id: string }
+        Returns: undefined
+      }
       group_is_auditing: { Args: { g_id: string }; Returns: boolean }
+      is_day_streak_valid: {
+        Args: { p_date: string; p_group_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_group_member: { Args: { g_id: string }; Returns: boolean }
       join_group_by_code: { Args: { p_invite_code: string }; Returns: Json }
+      leave_group: { Args: { p_group_id: string }; Returns: undefined }
       preview_group_by_code: { Args: { p_invite_code: string }; Returns: Json }
-      process_seasons: { Args: Record<PropertyKey, never>; Returns: undefined }
+      process_seasons: { Args: never; Returns: undefined }
       recalc_day_score: {
         Args: { p_date: string; p_group_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      request_group_transfer: {
+        Args: { p_group_id: string; p_to_user: string }
+        Returns: string
+      }
+      respond_group_transfer: {
+        Args: { p_accept: boolean; p_transfer_id: string }
         Returns: undefined
       }
       start_season: {
@@ -756,6 +848,15 @@ export type Database = {
           p_start_date: string
         }
         Returns: string
+      }
+      update_scheduled_season: {
+        Args: {
+          p_duration_weeks: number
+          p_name?: string
+          p_season_id: string
+          p_start_date: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
@@ -890,18 +991,7 @@ export const Constants = {
   },
 } as const
 
-// ── Alias de conveniencia ────────────────────────────────────────────────────
 export type Profile = Tables<"profiles">
-export type Group = Tables<"groups">
-export type GroupMember = Tables<"group_members">
-export type GroupSettings = Tables<"group_settings">
 export type Goal = Tables<"goals">
 export type DailyCheck = Tables<"daily_checks">
-export type DailyScore = Tables<"daily_scores">
-export type Streak = Tables<"streaks">
-export type Week = Tables<"weeks">
-export type Audit = Tables<"audits">
-export type Quote = Tables<"quotes">
-export type SeasonRow = Tables<"seasons">
-export type SeasonMember = Tables<"season_members">
-export type SeasonStanding = Tables<"season_standings">
+export type GroupTransfer = Tables<"group_transfers">

@@ -420,23 +420,121 @@ export function useCreateGroup() {
   });
 }
 
+// Salir de un grupo. El RPC bloquea salir si es tu único grupo o si eres el dueño.
 export function useLeaveGroup() {
-  const { user } = useUser();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (groupId: string): Promise<void> => {
-      if (!user) throw new Error("No autenticado");
       const supabase = createClient();
-      await supabase.from("daily_scores").delete().eq("group_id", groupId).eq("user_id", user.id);
-      const { error } = await supabase
-        .from("group_members")
-        .delete()
-        .eq("group_id", groupId)
-        .eq("user_id", user.id) as unknown as { error: unknown };
-      if (error) throw error;
+      const { error } = await (supabase.rpc as Function)("leave_group", { p_group_id: groupId });
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
   });
+}
+
+// Borrar un grupo por completo (solo dueño, no el último). Cascade borra todo.
+export function useDeleteGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (groupId: string): Promise<void> => {
+      const supabase = createClient();
+      const { error } = await (supabase.rpc as Function)("delete_group", { p_group_id: groupId });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+  });
+}
+
+// Solicitar transferencia de propiedad a un miembro (dura 48 h).
+export function useTransferGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, toUserId }: { groupId: string; toUserId: string }): Promise<void> => {
+      const supabase = createClient();
+      const { error } = await (supabase.rpc as Function)("request_group_transfer", {
+        p_group_id: groupId,
+        p_to_user: toUserId,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["incomingTransfers"] }),
+  });
+}
+
+export interface IncomingTransfer {
+  id: string;
+  group_id: string;
+  group_name: string;
+  from_name: string | null;
+  member_count: number;
+  expires_at: string;
+}
+
+// Transferencias de propiedad pendientes dirigidas al usuario actual (no vencidas).
+export function useIncomingTransfers() {
+  const { user } = useUser();
+  return useQuery({
+    queryKey: ["incomingTransfers", user?.id],
+    enabled: !!user,
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<IncomingTransfer[]> => {
+      const supabase = createClient();
+      type Row = { id: string; group_id: string; from_user: string; expires_at: string };
+      const { data } = await supabase
+        .from("group_transfers")
+        .select("id, group_id, from_user, expires_at")
+        .eq("to_user", user!.id)
+        .eq("status", "pending")
+        .gt("expires_at", new Date().toISOString()) as unknown as { data: Row[] | null };
+
+      const rows = data ?? [];
+      if (!rows.length) return [];
+
+      return Promise.all(
+        rows.map(async (r) => {
+          const { data: g } = await supabase.from("groups").select("name").eq("id", r.group_id).single() as unknown as { data: { name: string } | null };
+          const { data: p } = await supabase.from("profiles").select("full_name").eq("id", r.from_user).single() as unknown as { data: { full_name: string | null } | null };
+          const { count } = await supabase.from("group_members").select("user_id", { count: "exact", head: true }).eq("group_id", r.group_id) as unknown as { count: number | null };
+          return {
+            id: r.id,
+            group_id: r.group_id,
+            group_name: g?.name ?? "Grupo",
+            from_name: p?.full_name ?? null,
+            member_count: count ?? 0,
+            expires_at: r.expires_at,
+          };
+        })
+      );
+    },
+  });
+}
+
+// Aceptar o rechazar una transferencia de propiedad.
+export function useRespondTransfer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ transferId, accept }: { transferId: string; accept: boolean }): Promise<void> => {
+      const supabase = createClient();
+      const { error } = await (supabase.rpc as Function)("respond_group_transfer", {
+        p_transfer_id: transferId,
+        p_accept: accept,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["incomingTransfers"] });
+      qc.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+}
+
+// Plan mínimo requerido para un grupo según su número de miembros (informativo).
+// La validación real del tier se conecta en la Fase 3 (suscripciones).
+export function planRequiredForMembers(memberCount: number): { tier: "free" | "pro" | "elite"; label: string; cost: string } {
+  if (memberCount <= 5) return { tier: "free", label: "Free", cost: "$0" };
+  if (memberCount <= 49) return { tier: "pro", label: "Pro", cost: "$5.99/mes" };
+  return { tier: "elite", label: "Elite", cost: "$12.99/mes" };
 }
 
 export function useLookupGroup(code: string) {

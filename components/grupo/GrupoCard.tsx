@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle } from "lucide-react";
+import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle, ArrowRightLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { GroupWithMembers } from "@/lib/hooks/useGroups";
-import { getInitials, useLeaveGroup } from "@/lib/hooks/useGroups";
+import { getInitials, useLeaveGroup, useDeleteGroup, useTransferGroup, planRequiredForMembers } from "@/lib/hooks/useGroups";
 import { computePhase, type Season } from "@/lib/hooks/useSeasons";
 import Image from "next/image";
 
@@ -101,21 +101,57 @@ interface GrupoCardProps {
 export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, onSwitchGroup, onLeft }: GrupoCardProps) {
   const [open, setOpen] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferDone, setTransferDone] = useState(false);
   const [leftGroup, setLeftGroup] = useState<string | null>(null);
   const [switchedTo, setSwitchedTo] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const leaveGroup = useLeaveGroup();
+  const deleteGroup = useDeleteGroup();
+  const transferGroup = useTransferGroup();
 
   const shownMembers = group.members.slice(0, 2);
   const extra = group.members.length - 2;
   const isOwner = group.owner_id === currentUserId;
+  const isOnlyGroup = allGroups.length <= 1;
+  const otherMembers = group.members.filter((m) => m.user_id !== currentUserId);
 
   async function handleLeave() {
-    const name = group.name;
-    await leaveGroup.mutateAsync(group.id);
-    setConfirmLeave(false);
-    setLeftGroup(name);
-    onLeft();
-    setTimeout(() => setLeftGroup(null), 3000);
+    try {
+      const name = group.name;
+      await leaveGroup.mutateAsync(group.id);
+      setConfirmLeave(false);
+      setLeftGroup(name);
+      onLeft();
+      setTimeout(() => setLeftGroup(null), 3000);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "No se pudo salir");
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      const name = group.name;
+      await deleteGroup.mutateAsync(group.id);
+      setConfirmDelete(false);
+      setLeftGroup(name);
+      onLeft();
+      setTimeout(() => setLeftGroup(null), 3000);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "No se pudo borrar");
+    }
+  }
+
+  async function handleTransfer(toUserId: string) {
+    try {
+      await transferGroup.mutateAsync({ groupId: group.id, toUserId });
+      setShowTransfer(false);
+      setTransferDone(true);
+      setTimeout(() => setTransferDone(false), 3500);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "No se pudo transferir");
+    }
   }
 
   function handleSwitch(id: string, name: string) {
@@ -214,19 +250,55 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
               </div>
             </Link>
 
-            {!isOwner && (
+            {/* Acciones de gestión del grupo */}
+            <div className="border-t mx-3" style={{ borderColor: "var(--color-border)" }} />
+
+            {isOwner ? (
               <>
-                <div className="border-t mx-3" style={{ borderColor: "var(--color-border)" }} />
+                {/* Transferir propiedad (necesita al menos otro miembro) */}
+                {otherMembers.length > 0 && (
+                  <button
+                    onClick={() => { setOpen(false); setShowTransfer(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}
+                  >
+                    <div className="w-7 h-7 rounded-full bg-warm/15 flex items-center justify-center flex-shrink-0">
+                      <ArrowRightLeft size={14} strokeWidth={1.5} className="text-warm" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[13px] font-medium">Transferir propiedad</p>
+                      <p className="text-[11px] text-[var(--color-muted)]">Pasa el grupo a otro miembro</p>
+                    </div>
+                  </button>
+                )}
+                {/* Borrar grupo (bloqueado si es el único) */}
                 <button
-                  onClick={() => { setOpen(false); setConfirmLeave(true); }}
-                  className="w-full flex items-center gap-3 px-4 py-3"
+                  onClick={() => { if (isOnlyGroup) return; setOpen(false); setConfirmDelete(true); }}
+                  disabled={isOnlyGroup}
+                  className="w-full flex items-center gap-3 px-4 py-3 disabled:opacity-40"
                 >
                   <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                    <LogOut size={14} strokeWidth={1.5} className="text-red-400" />
+                    <Trash2 size={14} strokeWidth={1.5} className="text-red-400" />
                   </div>
-                  <p className="text-[13px] text-red-400">Salir del grupo</p>
+                  <div className="text-left">
+                    <p className="text-[13px] text-red-400">Borrar grupo</p>
+                    {isOnlyGroup && <p className="text-[11px] text-[var(--color-muted)]">No puedes borrar tu único grupo</p>}
+                  </div>
                 </button>
               </>
+            ) : (
+              <button
+                onClick={() => { if (isOnlyGroup) return; setOpen(false); setConfirmLeave(true); }}
+                disabled={isOnlyGroup}
+                className="w-full flex items-center gap-3 px-4 py-3 disabled:opacity-40"
+              >
+                <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                  <LogOut size={14} strokeWidth={1.5} className="text-red-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-[13px] text-red-400">Salir del grupo</p>
+                  {isOnlyGroup && <p className="text-[11px] text-[var(--color-muted)]">No puedes dejar tu único grupo</p>}
+                </div>
+              </button>
             )}
           </div>
         </SlideDown>
@@ -324,6 +396,113 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
                 Cancelar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmación borrar grupo (dueño) */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center px-4">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setConfirmDelete(false)} />
+          <div className="relative w-full max-w-[420px] rounded-t-[24px] pb-[88px] pt-6 px-6 flex flex-col items-center text-center animate-slide-up" style={{ background: "var(--color-bg-card)" }}>
+            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--color-border)" }} />
+            <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
+              <Trash2 size={26} strokeWidth={1.5} className="text-red-400" />
+            </div>
+            <p className="font-display font-semibold text-[18px] mb-1">¿Borrar el grupo?</p>
+            <p className="text-[14px] font-medium text-warm mb-4">{group.name}</p>
+            <p className="text-[12px] text-[var(--color-muted)] mb-6">
+              Esto elimina el grupo para <span className="text-red-400 font-medium">todos los miembros</span>, junto con sus checklists, puntos, temporadas e historial. Esta acción no se puede deshacer.
+            </p>
+            <div className="flex flex-col gap-2.5 w-full">
+              <button
+                onClick={handleDelete}
+                disabled={deleteGroup.isPending}
+                className="w-full bg-red-500/80 text-white rounded-pill py-3.5 text-[14px] font-medium disabled:opacity-50"
+              >
+                {deleteGroup.isPending ? "Borrando..." : "Sí, borrar el grupo"}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="w-full text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]" style={{ background: "var(--color-surface)" }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Selector de miembro para transferir propiedad */}
+      {showTransfer && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center px-4">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setShowTransfer(false)} />
+          <div className="relative w-full max-w-[420px] rounded-t-[24px] pb-[88px] pt-6 px-6 animate-slide-up" style={{ background: "var(--color-bg-card)" }}>
+            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--color-border)" }} />
+            <p className="font-display font-semibold text-[18px] mb-1 text-center">Transferir propiedad</p>
+            <p className="text-[12px] text-[var(--color-muted)] mb-1 text-center">
+              Elige a quién pasar el grupo. Recibirá un informe y tendrá 48 h para aceptar.
+            </p>
+            <p className="text-[11px] text-[var(--color-muted)] mb-4 text-center">
+              Plan requerido: <span className="text-warm">{planRequiredForMembers(group.members.length).label}</span> · {planRequiredForMembers(group.members.length).cost}
+            </p>
+            <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto no-scrollbar">
+              {otherMembers.map((m) => (
+                <button
+                  key={m.user_id}
+                  onClick={() => handleTransfer(m.user_id)}
+                  disabled={transferGroup.isPending}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] disabled:opacity-50"
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+                >
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ background: "var(--color-bg-card)" }}>
+                    {m.avatar_url ? (
+                      <Image src={m.avatar_url} alt={m.full_name ?? ""} width={32} height={32} className="object-cover w-full h-full" unoptimized={m.avatar_url.includes("?t=")} referrerPolicy="no-referrer" />
+                    ) : (
+                      <span className="text-[11px] font-medium text-[var(--color-muted)]">{getInitials(m.full_name)}</span>
+                    )}
+                  </div>
+                  <span className="flex-1 text-left text-[14px] truncate">{m.full_name ?? "—"}</span>
+                  <ArrowRightLeft size={15} strokeWidth={1.5} className="text-[var(--color-muted)] flex-shrink-0" />
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowTransfer(false)}
+              className="w-full text-[var(--color-fg)] rounded-pill py-3 text-[14px] mt-4" style={{ background: "var(--color-surface)" }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast: solicitud de transferencia enviada */}
+      {transferDone && (
+        <div className="fixed bottom-[88px] left-4 right-4 z-[90] flex justify-center pointer-events-none">
+          <div className="flex items-center gap-2.5 rounded-full px-4 py-3 shadow-lg" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+            <Check size={14} strokeWidth={2} className="text-warm flex-shrink-0" />
+            <p className="text-[13px] text-[var(--color-fg)]">Solicitud de transferencia enviada</p>
+          </div>
+        </div>
+      )}
+
+      {/* Toast: error de acción */}
+      {actionError && (
+        <div className="fixed inset-0 z-[95] flex items-end justify-center px-4" onClick={() => setActionError(null)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative w-full max-w-[420px] rounded-t-[24px] pb-[88px] pt-6 px-6 flex flex-col items-center text-center animate-slide-up" style={{ background: "var(--color-bg-card)" }}>
+            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--color-border)" }} />
+            <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
+              <AlertTriangle size={24} strokeWidth={1.5} className="text-red-400" />
+            </div>
+            <p className="text-[14px] mb-6">{actionError}</p>
+            <button
+              onClick={() => setActionError(null)}
+              className="w-full text-[var(--color-fg)] rounded-pill py-3.5 text-[14px]" style={{ background: "var(--color-surface)" }}
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}
