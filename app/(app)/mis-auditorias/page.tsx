@@ -107,7 +107,7 @@ function AuditCard({
       <div className="flex items-start gap-3 mb-3">
         <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center overflow-hidden" style={{ background: "var(--color-border)" }}>
           {entry.owner_avatar ? (
-            <Image src={entry.owner_avatar} alt={entry.owner_name ?? ""} width={40} height={40} className="object-cover" unoptimized />
+            <Image src={entry.owner_avatar} alt={entry.owner_name ?? ""} width={40} height={40} className="object-cover w-full h-full" unoptimized={entry.owner_avatar.includes("?t=")} referrerPolicy="no-referrer" />
           ) : (
             <span className="text-[13px] font-medium text-[var(--color-muted)]">{getInitials(entry.owner_name)}</span>
           )}

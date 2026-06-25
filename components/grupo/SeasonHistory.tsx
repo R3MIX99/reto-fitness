@@ -187,7 +187,7 @@ function FinishedStandings({ seasonId }: { seasonId: string }) {
           </span>
           <div className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0" style={{ background: "var(--color-surface)" }}>
             {e.avatar_url
-              ? <Image src={e.avatar_url} alt={e.full_name ?? ""} width={28} height={28} className="object-cover" unoptimized />
+              ? <Image src={e.avatar_url} alt={e.full_name ?? ""} width={28} height={28} className="object-cover" unoptimized={e.avatar_url.includes("?t=")} referrerPolicy="no-referrer" />
               : <span className="text-[10px] font-medium text-[var(--color-muted)]">{getInitials(e.full_name)}</span>}
           </div>
           <div className="flex-1 min-w-0">

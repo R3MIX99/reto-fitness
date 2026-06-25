@@ -28,7 +28,7 @@ function Avatar({ entry, size }: { entry: PodiumEntry; size: number }) {
       style={{ width: size, height: size, background: "var(--color-surface)" }}
     >
       {entry.avatar_url ? (
-        <Image src={entry.avatar_url} alt={entry.full_name ?? ""} width={size} height={size} className="object-cover" unoptimized />
+        <Image src={entry.avatar_url} alt={entry.full_name ?? ""} width={size} height={size} className="object-cover" unoptimized={entry.avatar_url.includes("?t=")} referrerPolicy="no-referrer" />
       ) : (
         <span className="font-medium text-[var(--color-muted)]" style={{ fontSize: size * 0.34 }}>
           {getInitials(entry.full_name)}
