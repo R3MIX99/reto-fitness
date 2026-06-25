@@ -5,8 +5,9 @@ import { createPortal } from "react-dom";
 import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle, ArrowRightLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { GroupWithMembers } from "@/lib/hooks/useGroups";
-import { getInitials, useLeaveGroup, useDeleteGroup, useTransferGroup, planRequiredForMembers } from "@/lib/hooks/useGroups";
+import { getInitials, useLeaveGroup, useDeleteGroup, useTransferGroup } from "@/lib/hooks/useGroups";
 import { computePhase, type Season } from "@/lib/hooks/useSeasons";
+import { TransferDrawer } from "@/components/grupo/TransferDrawer";
 import Image from "next/image";
 
 const MESES_CORTOS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -359,6 +360,17 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
         </button>
       </div>
 
+      {/* Drawer de transferencia (selector + confirmación, deslizable) */}
+      <TransferDrawer
+        open={showTransfer}
+        onClose={() => setShowTransfer(false)}
+        groupName={group.name}
+        memberCount={group.members.length}
+        members={otherMembers}
+        pending={transferGroup.isPending}
+        onConfirm={handleTransfer}
+      />
+
       <Portal>
       {/* Toast cambio de grupo */}
       {switchedTo && (
@@ -440,50 +452,6 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
                 Cancelar
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Selector de miembro para transferir propiedad */}
-      {showTransfer && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center px-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setShowTransfer(false)} />
-          <div className="relative w-full max-w-[420px] rounded-t-[24px] pb-[88px] pt-6 px-6 animate-slide-up" style={{ background: "var(--color-bg-card)" }}>
-            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--color-border)" }} />
-            <p className="font-display font-semibold text-[18px] mb-1 text-center">Transferir propiedad</p>
-            <p className="text-[12px] text-[var(--color-muted)] mb-1 text-center">
-              Elige a quién pasar el grupo. Recibirá un informe y tendrá 48 h para aceptar.
-            </p>
-            <p className="text-[11px] text-[var(--color-muted)] mb-4 text-center">
-              Plan requerido: <span className="text-warm">{planRequiredForMembers(group.members.length).label}</span> · {planRequiredForMembers(group.members.length).cost}
-            </p>
-            <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto no-scrollbar">
-              {otherMembers.map((m) => (
-                <button
-                  key={m.user_id}
-                  onClick={() => handleTransfer(m.user_id)}
-                  disabled={transferGroup.isPending}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] disabled:opacity-50"
-                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-                >
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ background: "var(--color-bg-card)" }}>
-                    {m.avatar_url ? (
-                      <Image src={m.avatar_url} alt={m.full_name ?? ""} width={32} height={32} className="object-cover w-full h-full" unoptimized={m.avatar_url.includes("?t=")} referrerPolicy="no-referrer" />
-                    ) : (
-                      <span className="text-[11px] font-medium text-[var(--color-muted)]">{getInitials(m.full_name)}</span>
-                    )}
-                  </div>
-                  <span className="flex-1 text-left text-[14px] truncate">{m.full_name ?? "—"}</span>
-                  <ArrowRightLeft size={15} strokeWidth={1.5} className="text-[var(--color-muted)] flex-shrink-0" />
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setShowTransfer(false)}
-              className="w-full text-[var(--color-fg)] rounded-pill py-3 text-[14px] mt-4" style={{ background: "var(--color-surface)" }}
-            >
-              Cancelar
-            </button>
           </div>
         </div>
       )}
