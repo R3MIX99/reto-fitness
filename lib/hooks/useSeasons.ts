@@ -230,7 +230,7 @@ export function useSeasonLeaderboard(season: Season | null) {
       if (!season) return [];
       const supabase = createClient();
 
-      type MemberRow = { user_id: string };
+      type MemberRow = { user_id: string; joined_at: string | null };
       type ScoreRow = { user_id: string; total_points: number | null; streak_bonus: number | null; streak_day: number | null; score_date: string };
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
 
@@ -239,11 +239,19 @@ export function useSeasonLeaderboard(season: Season | null) {
 
       const { data: members } = await supabase
         .from("season_members")
-        .select("user_id")
+        .select("user_id, joined_at")
         .eq("season_id", season.id) as unknown as { data: MemberRow[] | null };
 
       const memberIds = (members ?? []).map((m) => m.user_id);
       if (!memberIds.length) return [];
+
+      // Fecha desde la que cuentan los puntos de cada miembro: su joined_at si se
+      // unió a media temporada, o el inicio de la temporada si ya estaba.
+      const countFrom: Record<string, string> = {};
+      for (const m of members ?? []) {
+        const jd = m.joined_at ? m.joined_at.slice(0, 10) : season.start_date;
+        countFrom[m.user_id] = jd > season.start_date ? jd : season.start_date;
+      }
 
       const { data: scores } = await supabase
         .from("daily_scores")
@@ -257,6 +265,8 @@ export function useSeasonLeaderboard(season: Season | null) {
       const streakDaysSs: Record<string, number> = {};
       for (const id of memberIds) totals[id] = 0;
       for (const r of scores ?? []) {
+        // Ignora puntos anteriores a la fecha de ingreso del miembro a la temporada
+        if (r.score_date < (countFrom[r.user_id] ?? season.start_date)) continue;
         totals[r.user_id] = (totals[r.user_id] ?? 0) + (r.total_points ?? 0) + (r.streak_bonus ?? 0);
         if (r.score_date === todaySsd) streakDaysSs[r.user_id] = r.streak_day ?? 0;
       }
@@ -380,6 +390,23 @@ export function useStartSeason() {
       qc.invalidateQueries({ queryKey: ["activeSeason", vars.groupId] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
       qc.invalidateQueries({ queryKey: ["seasonHistory", vars.groupId] });
+    },
+  });
+}
+
+// Unirse a la temporada en curso (a media temporada). Los puntos cuentan desde hoy.
+export function useJoinActiveSeason() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (groupId: string): Promise<void> => {
+      const supabase = createClient();
+      const { error } = await (supabase.rpc as Function)("join_active_season", { p_group_id: groupId });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_d, groupId) => {
+      qc.invalidateQueries({ queryKey: ["seasonLeaderboard"] });
+      qc.invalidateQueries({ queryKey: ["activeSeason", groupId] });
+      qc.invalidateQueries({ queryKey: ["leaderboard"] });
     },
   });
 }

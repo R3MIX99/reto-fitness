@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Users, Plus, Eye } from "lucide-react";
+import { Users, Plus } from "lucide-react";
 import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits, useGroupMembersGlobalLeaderboard, useGroupMembersGlobalLast7Days } from "@/lib/hooks/useGroups";
 import { useUser } from "@/lib/hooks/useUser";
 import { GrupoCard } from "@/components/grupo/GrupoCard";
@@ -15,9 +15,10 @@ import { SeasonBanner } from "@/components/grupo/SeasonBanner";
 import { SeasonPodium } from "@/components/grupo/SeasonPodium";
 import { SeasonHistory } from "@/components/grupo/SeasonHistory";
 import { IncomingTransferCard } from "@/components/grupo/IncomingTransferCard";
+import { JoinSeasonCard } from "@/components/grupo/JoinSeasonCard";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { usePrefetchPlayerCards } from "@/lib/hooks/usePlayerCard";
-import { useActiveSeason, useSeasonLeaderboard, useLatestFinishedSeason } from "@/lib/hooks/useSeasons";
+import { useActiveSeason, useSeasonLeaderboard, useLatestFinishedSeason, computePhase } from "@/lib/hooks/useSeasons";
 
 function GrupoPageInner() {
   const router = useRouter();
@@ -294,19 +295,13 @@ function GrupoPageInner() {
           onViewHistory={() => router.push("/mis-auditorias")}
         />
 
-        {/* Aviso spectator: se unió a mitad de temporada */}
-        {isSpectator && (
-          <div className="bg-[var(--color-bg-card)] rounded-[16px] p-3.5 mb-3 border flex items-start gap-3" style={{ borderColor: "rgba(207,92,54,0.35)" }}>
-            <div className="w-[30px] h-[30px] rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(207,92,54,0.15)" }}>
-              <Eye size={15} strokeWidth={1.5} className="text-accent" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium">Temporada en curso</p>
-              <p className="text-[12px] text-[var(--color-muted)]">
-                Te uniste después de que arrancó. Tus checks siguen contando para tu progreso, pero competirás desde la próxima temporada.
-              </p>
-            </div>
-          </div>
+        {/* Se unió a mitad de temporada → puede unirse a competir */}
+        {isSpectator && season && (
+          <JoinSeasonCard
+            groupId={activeGroup.id}
+            seasonName={season.name}
+            hasStarted={computePhase(season).hasStarted}
+          />
         )}
 
         {/* 3) Tabla de jugadores */}
