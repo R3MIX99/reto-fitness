@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, UserPlus, Plus, Hash, Check, LogOut, AlertTriangle, ArrowRightLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { GroupWithMembers } from "@/lib/hooks/useGroups";
@@ -12,6 +13,15 @@ const MESES_CORTOS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct
 function fmtDate(dateStr: string): string {
   const d = new Date(dateStr + "T12:00:00");
   return `${d.getDate()} ${MESES_CORTOS[d.getMonth()]}`;
+}
+
+// ── Portal: saca los modales del div con transform (swipe) para que
+//    position:fixed se posicione respecto a la pantalla y no a la tarjeta. ──
+function Portal({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
 }
 
 // ── Dropdown con slide-down ────────────────────────────────────────────────
@@ -349,6 +359,7 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
         </button>
       </div>
 
+      <Portal>
       {/* Toast cambio de grupo */}
       {switchedTo && (
         <SwitchToast name={switchedTo} onDone={() => setSwitchedTo(null)} />
@@ -506,6 +517,7 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
           </div>
         </div>
       )}
+      </Portal>
     </>
   );
 }
