@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
@@ -15,6 +16,8 @@ export interface MyPlan {
   max_groups: number;
   max_members: number;
   owned_groups: number;
+  over_limit_until: string | null;
+  celebrate: Tier | null;
 }
 
 // Plan del usuario actual + uso de grupos (vía RPC get_my_plan).
@@ -30,6 +33,40 @@ export function usePlan() {
       if (error) throw new Error(error.message);
       return data as MyPlan;
     },
+  });
+}
+
+// Realtime de la suscripción propia: refresca el plan al instante cuando el
+// super-admin (o Stripe en Fase 4) cambia el tier.
+export function useSubscriptionRealtime() {
+  const { user } = useUser();
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`sub-rt-${user.id}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "subscriptions", filter: `user_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["myPlan"] });
+          qc.invalidateQueries({ queryKey: ["groups"] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, qc]);
+}
+
+// Limpia la marca de celebración tras mostrarla.
+export function useClearCelebration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<void> => {
+      const supabase = createClient();
+      await (supabase.rpc as Function)("clear_celebration");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["myPlan"] }),
   });
 }
 
@@ -64,6 +101,12 @@ export function useSetUserTier() {
       const supabase = createClient();
       const { error } = await (supabase.rpc as Function)("set_user_tier", { p_user: userId, p_tier: tier });
       if (error) throw new Error(error.message);
+      // Push al usuario sobre el cambio de plan (best-effort; el in-app lo hace el RPC)
+      fetch("/api/plan/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, tier }),
+      }).catch(() => {});
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["adminSearch"] }),
   });

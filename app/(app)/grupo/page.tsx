@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Users, Plus } from "lucide-react";
 import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits, useGroupMembersGlobalLeaderboard, useGroupMembersGlobalLast7Days, useGroupsRealtime } from "@/lib/hooks/useGroups";
 import { PendingTransferBanner } from "@/components/grupo/PendingTransferBanner";
+import { PlanGraceBanner } from "@/components/grupo/PlanGraceBanner";
 import { useUser } from "@/lib/hooks/useUser";
 import { GrupoCard } from "@/components/grupo/GrupoCard";
 import { EvidenciasCard } from "@/components/grupo/EvidenciasCard";
@@ -223,6 +224,9 @@ function GrupoPageInner() {
   return (
     <>
       <div className="px-4 pb-28 pt-2">
+        {/* Aviso de plan bajado: grupos de más con cuenta regresiva de 48 h */}
+        <PlanGraceBanner />
+
         {/* Transferencias de propiedad entrantes (informe + aceptar/rechazar) */}
         <IncomingTransferCard />
 
