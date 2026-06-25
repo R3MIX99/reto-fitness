@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
-import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitials } from "@/lib/hooks/useGroups";
+import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitials, useGroupsRealtime } from "@/lib/hooks/useGroups";
 import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
 import { useActiveSeasonCount } from "@/lib/hooks/useSeasons";
 import { PlayerCard } from "@/components/player/PlayerCard";
@@ -107,6 +107,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user } = useUser();
   const { data: groups = [] } = useMyGroups();
+  useGroupsRealtime();
   const groupId = groups[0]?.id ?? null;
   const groupIds = groups.map((g) => g.id);
   const [showAll, setShowAll] = useState(false);

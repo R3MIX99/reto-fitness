@@ -461,7 +461,7 @@ export function GrupoCard({ group, allGroups, season, currentUserId, onInvite, o
         <div className="fixed bottom-[88px] left-4 right-4 z-[90] flex justify-center pointer-events-none">
           <div className="flex items-center gap-2.5 rounded-full px-4 py-3 shadow-lg" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
             <Check size={14} strokeWidth={2} className="text-warm flex-shrink-0" />
-            <p className="text-[13px] text-[var(--color-fg)]">Solicitud de transferencia enviada</p>
+            <p className="text-[13px] text-[var(--color-fg)]">Transferencia pendiente · esperando respuesta</p>
           </div>
         </div>
       )}

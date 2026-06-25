@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Users, Plus } from "lucide-react";
-import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits, useGroupMembersGlobalLeaderboard, useGroupMembersGlobalLast7Days } from "@/lib/hooks/useGroups";
+import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits, useGroupMembersGlobalLeaderboard, useGroupMembersGlobalLast7Days, useGroupsRealtime } from "@/lib/hooks/useGroups";
+import { PendingTransferBanner } from "@/components/grupo/PendingTransferBanner";
 import { useUser } from "@/lib/hooks/useUser";
 import { GrupoCard } from "@/components/grupo/GrupoCard";
 import { EvidenciasCard } from "@/components/grupo/EvidenciasCard";
@@ -25,6 +26,7 @@ function GrupoPageInner() {
   const searchParams = useSearchParams();
   const { user } = useUser();
   const { data: groups = [], isLoading } = useMyGroups();
+  useGroupsRealtime();
   const [activeGroupIdx, setActiveGroupIdx] = useState(0);
   const [showInvite, setShowInvite] = useState(false);
   const [cardUserId, setCardUserId] = useState<string | null>(null);
@@ -223,6 +225,11 @@ function GrupoPageInner() {
       <div className="px-4 pb-28 pt-2">
         {/* Transferencias de propiedad entrantes (informe + aceptar/rechazar) */}
         <IncomingTransferCard />
+
+        {/* Banner: transferencia pendiente que YO envié (dueño) */}
+        {activeGroup && activeGroup.owner_id === user?.id && (
+          <PendingTransferBanner groupId={activeGroup.id} />
+        )}
 
         {/* 1) Tarjeta del grupo */}
         <div

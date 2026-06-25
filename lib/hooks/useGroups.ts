@@ -1,8 +1,41 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
+
+// Realtime: refresca grupos/membresías/transferencias al instante para todos los
+// involucrados (p. ej. al transferir, el dueño anterior deja de ser dueño sin
+// recargar). Montar una vez en pantallas de grupo/dashboard.
+export function useGroupsRealtime() {
+  const { user } = useUser();
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    const invalidateGroups = () => {
+      qc.invalidateQueries({ queryKey: ["groups"] });
+      qc.invalidateQueries({ queryKey: ["leaderboard"] });
+      qc.invalidateQueries({ queryKey: ["activeSeason"] });
+    };
+    const invalidateTransfers = () => {
+      qc.invalidateQueries({ queryKey: ["incomingTransfers"] });
+      qc.invalidateQueries({ queryKey: ["outgoingTransfer"] });
+      invalidateGroups();
+    };
+
+    const channel = supabase
+      .channel(`groups-rt-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, invalidateGroups)
+      .on("postgres_changes", { event: "*", schema: "public", table: "group_members" }, invalidateGroups)
+      .on("postgres_changes", { event: "*", schema: "public", table: "group_transfers" }, invalidateTransfers)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, qc]);
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -452,13 +485,22 @@ export function useTransferGroup() {
   return useMutation({
     mutationFn: async ({ groupId, toUserId }: { groupId: string; toUserId: string }): Promise<void> => {
       const supabase = createClient();
-      const { error } = await (supabase.rpc as Function)("request_group_transfer", {
+      const { data, error } = await (supabase.rpc as Function)("request_group_transfer", {
         p_group_id: groupId,
         p_to_user: toUserId,
       });
       if (error) throw new Error(error.message);
+      // Push al destinatario (best-effort); el in-app lo genera el RPC
+      fetch("/api/transfers/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transferId: data as string, event: "requested" }),
+      }).catch(() => {});
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["incomingTransfers"] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["incomingTransfers"] });
+      qc.invalidateQueries({ queryKey: ["outgoingTransfer", vars.groupId] });
+    },
   });
 }
 
@@ -521,10 +563,52 @@ export function useRespondTransfer() {
         p_accept: accept,
       });
       if (error) throw new Error(error.message);
+      // Push al dueño anterior (best-effort); el in-app lo genera el RPC
+      fetch("/api/transfers/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transferId, event: accept ? "accepted" : "rejected" }),
+      }).catch(() => {});
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["incomingTransfers"] });
       qc.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+}
+
+export interface OutgoingTransfer {
+  id: string;
+  to_name: string | null;
+  to_avatar: string | null;
+  created_at: string;
+  expires_at: string;
+}
+
+// Transferencia pendiente que el usuario (dueño) envió para un grupo. Para el banner.
+export function useOutgoingTransfer(groupId: string | null) {
+  const { user } = useUser();
+  return useQuery({
+    queryKey: ["outgoingTransfer", groupId, user?.id],
+    enabled: !!user && !!groupId,
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<OutgoingTransfer | null> => {
+      const supabase = createClient();
+      type Row = { id: string; to_user: string; created_at: string; expires_at: string };
+      const { data } = await supabase
+        .from("group_transfers")
+        .select("id, to_user, created_at, expires_at")
+        .eq("group_id", groupId!)
+        .eq("from_user", user!.id)
+        .eq("status", "pending")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle() as unknown as { data: Row | null };
+      if (!data) return null;
+      const { data: p } = await supabase
+        .from("profiles").select("full_name, avatar_url").eq("id", data.to_user).single() as unknown as { data: { full_name: string | null; avatar_url: string | null } | null };
+      return { id: data.id, to_name: p?.full_name ?? null, to_avatar: p?.avatar_url ?? null, created_at: data.created_at, expires_at: data.expires_at };
     },
   });
 }

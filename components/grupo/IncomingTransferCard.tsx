@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRightLeft, Users, CreditCard, Check, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ArrowRightLeft, Users, CreditCard, Check, X, Crown } from "lucide-react";
 import { useIncomingTransfers, useRespondTransfer, planRequiredForMembers } from "@/lib/hooks/useGroups";
 
 function hoursLeft(expiresAt: string): string {
@@ -14,25 +15,69 @@ function hoursLeft(expiresAt: string): string {
 }
 
 // Informe + aceptar/rechazar de transferencias de propiedad entrantes.
+interface AcceptedSummary { groupName: string; memberCount: number; planLabel: string; }
+
 export function IncomingTransferCard() {
   const { data: transfers = [] } = useIncomingTransfers();
   const respond = useRespondTransfer();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [accepted, setAccepted] = useState<AcceptedSummary | null>(null);
 
-  if (transfers.length === 0) return null;
-
-  async function act(transferId: string, accept: boolean) {
+  async function act(transferId: string, accept: boolean, summary?: AcceptedSummary) {
     setBusyId(transferId);
     setError(null);
     try {
       await respond.mutateAsync({ transferId, accept });
+      if (accept && summary) setAccepted(summary);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo responder");
     } finally {
       setBusyId(null);
     }
   }
+
+  // Modal de confirmación al aceptar (resumen del grupo recibido)
+  const acceptedModal = accepted && typeof document !== "undefined"
+    ? createPortal(
+        <div className="fixed inset-0 z-[95] flex items-end justify-center px-4" onClick={() => setAccepted(null)}>
+          <div className="absolute inset-0 bg-black/70" />
+          <div className="relative w-full max-w-[420px] rounded-t-[24px] pb-[88px] pt-6 px-6 flex flex-col items-center text-center animate-slide-up" style={{ background: "var(--color-bg-card)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--color-border)" }} />
+            <div className="w-14 h-14 rounded-full bg-warm/15 border border-warm/30 flex items-center justify-center mb-4">
+              <Crown size={26} strokeWidth={1.5} className="text-warm" />
+            </div>
+            <p className="font-display font-semibold text-[18px] mb-1">¡Transferencia aceptada!</p>
+            <p className="text-[13px] text-[var(--color-muted)] mb-4">
+              Ahora eres el dueño de <span className="text-warm font-medium">{accepted.groupName}</span>
+            </p>
+            <div className="w-full rounded-[12px] px-3 py-2.5 mb-5 space-y-2" style={{ background: "var(--color-surface)" }}>
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="flex items-center gap-1.5 text-[var(--color-muted)]"><Users size={13} strokeWidth={1.5} /> Miembros</span>
+                <span className="text-[var(--color-fg)]">{accepted.memberCount}</span>
+              </div>
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="flex items-center gap-1.5 text-[var(--color-muted)]"><CreditCard size={13} strokeWidth={1.5} /> Plan</span>
+                <span className="text-[var(--color-fg)]">{accepted.planLabel}</span>
+              </div>
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="flex items-center gap-1.5 text-[var(--color-muted)]"><Crown size={13} strokeWidth={1.5} /> Rol</span>
+                <span className="text-warm">Dueño · puede iniciar temporadas</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setAccepted(null)}
+              className="w-full bg-warm text-accent-dark rounded-pill py-3.5 text-[14px] font-medium"
+            >
+              Continuar a grupo
+            </button>
+          </div>
+        </div>,
+        document.body
+      )
+    : null;
+
+  if (transfers.length === 0) return acceptedModal;
 
   return (
     <div className="flex flex-col gap-3 mb-3">
@@ -82,7 +127,7 @@ export function IncomingTransferCard() {
 
             <div className="flex gap-2">
               <button
-                onClick={() => act(t.id, true)}
+                onClick={() => act(t.id, true, { groupName: t.group_name, memberCount: t.member_count, planLabel: plan.label })}
                 disabled={busy}
                 className="flex-1 flex items-center justify-center gap-1.5 bg-warm text-accent-dark text-[13px] font-medium rounded-pill py-2.5 disabled:opacity-50"
               >
@@ -100,6 +145,7 @@ export function IncomingTransferCard() {
           </div>
         );
       })}
+      {acceptedModal}
     </div>
   );
 }
