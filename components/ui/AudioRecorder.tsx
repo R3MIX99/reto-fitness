@@ -96,25 +96,33 @@ export function AudioRecorder({
   }, []);
 
   // Bucle de medición: lee la amplitud del micrófono y mueve las ondas.
+  // Se agrega una barra nueva cada BAR_INTERVAL_MS para que el desplazamiento
+  // de la onda sea más lento y agradable (no en cada frame ~60fps).
+  const lastBarAtRef = useRef(0);
   const startMeter = useCallback(() => {
     const analyser = analyserRef.current;
     const data = dataRef.current;
     if (!analyser || !data) return;
-    const tick = () => {
-      analyser.getByteTimeDomainData(data);
-      let sum = 0;
-      for (let i = 0; i < data.length; i++) {
-        const v = (data[i] - 128) / 128;
-        sum += v * v;
+    lastBarAtRef.current = 0;
+    const BAR_INTERVAL_MS = 110;
+    const tick = (now: number) => {
+      if (now - lastBarAtRef.current >= BAR_INTERVAL_MS) {
+        lastBarAtRef.current = now;
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length);
+        const amp = Math.min(1, Math.max(0.06, rms * 2.4));
+        ampHistory.current.push(amp);
+        setBars((prev) => {
+          const next = prev.slice(1);
+          next.push(amp);
+          return next;
+        });
       }
-      const rms = Math.sqrt(sum / data.length);
-      const amp = Math.min(1, Math.max(0.06, rms * 2.4));
-      ampHistory.current.push(amp);
-      setBars((prev) => {
-        const next = prev.slice(1);
-        next.push(amp);
-        return next;
-      });
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
