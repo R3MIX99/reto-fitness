@@ -47,6 +47,8 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
   const audioMod = modules.includes("audio");
   const videoMod = modules.includes("video");
   const baMod = modules.includes("before_after");
+  // Meta de solo-video: el video es la evidencia principal (sin foto).
+  const videoPrimary = videoMod && !baMod;
   const targetSec = (goal.config?.timer_minutes ?? 0) * 60;
 
   const [photo, setPhoto] = useState<File | null>(null);     // foto principal (o "antes")
@@ -84,15 +86,17 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
   }, [running]);
 
   const timerDone = targetSec > 0 && elapsed >= targetSec;
-  const photoOk = baMod ? (!!photo && !!after) : !!photo;
+  // En modo video-primario no se pide foto; el propio video es la evidencia.
+  const photoOk = videoPrimary ? !!video : baMod ? (!!photo && !!after) : !!photo;
   const canSubmit = photoOk
     && (!summaryMod || summary.trim().length > 0)
     && (!timerMod || elapsed > 0)
     && (!audioMod || !!audio)
-    && (!videoMod || !!video);
+    && (videoPrimary || !videoMod || !!video);
 
   async function submit() {
-    if (!photo) return;
+    const mainFile = videoPrimary ? video : photo;
+    if (!mainFile) return;
     setSubmitting(true); setError(null);
     try {
       const evidence: CheckEvidence = {};
@@ -101,8 +105,9 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
       const extraFiles: ExtraFiles = {};
       if (baMod && after) extraFiles.after = after;
       if (audioMod && audio) extraFiles.audio = audio;
-      if (videoMod && video) extraFiles.video = video;
-      await onSubmit(photo, evidence, extraFiles);
+      // Solo se sube como archivo extra cuando el video NO es el principal.
+      if (!videoPrimary && videoMod && video) extraFiles.video = video;
+      await onSubmit(mainFile, evidence, extraFiles);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar");
@@ -116,8 +121,21 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
       <div className="px-5 pb-8 pt-1">
         <p className="font-display font-semibold text-[18px] text-center mb-4">{goal.title}</p>
 
-        {/* Fotos: una sola o antes/después */}
-        {baMod ? (
+        {/* Evidencia principal: video, antes/después, o una sola foto */}
+        {videoPrimary ? (
+          <div className="flex mb-4">
+            <button onClick={() => { if (videoRef.current) { videoRef.current.value = ""; videoRef.current.click(); } }}
+              className="flex-1 rounded-[14px] overflow-hidden flex items-center justify-center"
+              style={{ background: "var(--color-surface)", border: "1px dashed var(--color-border)", minHeight: 120 }}>
+              <div className="flex flex-col items-center gap-1.5 py-6" style={{ color: video ? "#22c55e" : "var(--color-muted)" }}>
+                {video ? <Check size={20} strokeWidth={2} /> : <Video size={20} strokeWidth={1.5} />}
+                <span className="text-[11px]">{video ? "Video listo · tocar para regrabar" : "Grabar video"}</span>
+              </div>
+            </button>
+            <input ref={videoRef} type="file" accept="video/*" capture className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) setVideo(f); }} />
+          </div>
+        ) : baMod ? (
           <div className="flex gap-2.5 mb-4">
             <PhotoButton url={urls.photo ?? null} label="Antes" onPick={setPhoto} />
             <PhotoButton url={urls.after ?? null} label="Después" onPick={setAfter} />
@@ -168,8 +186,8 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
           </div>
         )}
 
-        {/* Video */}
-        {videoMod && (
+        {/* Video (fila secundaria; en modo video-primario ya es la evidencia principal) */}
+        {videoMod && !videoPrimary && (
           <div className="rounded-[14px] px-3.5 py-3 mb-4" style={{ background: "var(--color-surface)" }}>
             <button onClick={() => { if (videoRef.current) { videoRef.current.value = ""; videoRef.current.click(); } }}
               className="w-full flex items-center gap-3">

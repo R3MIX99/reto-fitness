@@ -10,6 +10,7 @@ import { useMyGroups } from "@/lib/hooks/useGroups";
 import { usePendingChecks, useAuditCheck, useAutoApproveOldChecks, kindLabel, getWeekNumber } from "@/lib/hooks/useAuditoria";
 import { useActiveSeason } from "@/lib/hooks/useSeasons";
 import { useUser } from "@/lib/hooks/useUser";
+import { isVideoPath } from "@/lib/hooks/useChecklist";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -109,6 +110,14 @@ function EvidenceImage({ path }: { path: string }) {
       <div className="w-full h-[260px] rounded-[16px] flex flex-col items-center justify-center gap-2" style={{ background: "var(--color-surface)" }}>
         <ImageIcon size={30} strokeWidth={1} className="text-[var(--color-muted)]" />
         <span className="text-[11px] text-[var(--color-muted)]">{error ? "No se pudo cargar" : "Cargando…"}</span>
+      </div>
+    );
+  }
+
+  if (isVideoPath(path)) {
+    return (
+      <div className="w-full rounded-[16px] overflow-hidden" style={{ background: "var(--color-surface)" }}>
+        <video controls src={url} className="w-full" style={{ maxHeight: 360 }} />
       </div>
     );
   }

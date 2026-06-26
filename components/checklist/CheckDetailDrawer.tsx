@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Drawer as VaulDrawer } from "vaul";
 import { Clock, CheckCircle2, X, Expand, XCircle, Timer, AlignLeft, Mic, Video } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
+import { isVideoPath } from "@/lib/hooks/useChecklist";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
@@ -135,6 +136,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
     }
   }
 
+  const mainIsVideo = isVideoPath(check?.evidence_path ?? null);
   const title = kindLabel(check?.kind ?? "", goal);
   const status = check?.status;
   const isPending  = status === "pending";
@@ -197,8 +199,19 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
               </div>
             </div>
 
-            {/* Evidence photo */}
+            {/* Evidence photo / video */}
             <div className="px-5 pb-8">
+              {mainIsVideo ? (
+                <div className="rounded-[18px] overflow-hidden mb-4 w-full max-w-[320px] mx-auto" style={{ background: "var(--color-surface)" }}>
+                  {signedUrl ? (
+                    <video controls src={signedUrl} className="w-full" style={{ maxHeight: 360 }} />
+                  ) : (
+                    <div className="flex items-center justify-center min-h-[200px]">
+                      <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-warm)" }} />
+                    </div>
+                  )}
+                </div>
+              ) : (
               <div
                 className="relative rounded-[18px] overflow-hidden mb-4 aspect-square w-full max-w-[260px] mx-auto"
                 style={{ background: "var(--color-surface)" }}
@@ -228,6 +241,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
                   </div>
                 )}
               </div>
+              )}
 
               {/* Foto "después" (antes/después) */}
               {check?.evidence?.after_path && afterUrl && (

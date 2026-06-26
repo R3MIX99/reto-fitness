@@ -5,12 +5,13 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft, Check, X, Clock, Dumbbell, UtensilsCrossed,
-  Target, ImageIcon, RefreshCw, ChevronDown, ChevronUp,
+  Target, ImageIcon, RefreshCw, ChevronDown, ChevronUp, Video as VideoIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useMyAudits, type MyAuditEntry } from "@/lib/hooks/useMyAudits";
 import { useAuditCheck } from "@/lib/hooks/useAuditoria";
 import { useUser } from "@/lib/hooks/useUser";
+import { isVideoPath } from "@/lib/hooks/useChecklist";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,19 @@ function EvidenceThumb({ path }: { path: string }) {
           ? <ImageIcon size={20} strokeWidth={1} className="text-[var(--color-muted)]" />
           : <div className="w-4 h-4 rounded-full border-2 border-t-[var(--color-muted)] animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-muted)" }} />
         }
+      </div>
+    );
+  }
+
+  if (isVideoPath(path)) {
+    return (
+      <div className="relative w-[72px] h-[72px] flex-shrink-0 rounded-[12px] overflow-hidden" style={{ background: "var(--color-surface)" }}>
+        <video src={url} className="w-full h-full object-cover" muted playsInline />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-full bg-black/45 flex items-center justify-center">
+            <VideoIcon size={13} strokeWidth={1.5} className="text-white" />
+          </div>
+        </div>
       </div>
     );
   }

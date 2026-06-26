@@ -33,6 +33,12 @@ export function hasModules(goal: Goal): boolean {
   return !!goal.config && Array.isArray(goal.config.modules) && goal.config.modules.length > 0;
 }
 
+// La evidencia principal de una meta de solo-video es el propio video (no foto).
+export function isVideoPath(path?: string | null): boolean {
+  if (!path) return false;
+  return /\.(mp4|mov|webm|m4v|3gp|ogg)$/i.test(path);
+}
+
 export interface Goal {
   id: string;
   title: string;
@@ -276,18 +282,29 @@ export function useMarkCheck(groupId: string | null) {
     mutationFn: async ({ file, kind, goalId, evidence, extraFiles }: { file: File; kind: GoalKind; goalId?: string; evidence?: CheckEvidence; extraFiles?: ExtraFiles }) => {
       if (!user || !groupId) throw new Error("Sin sesión o grupo");
 
-      // La evidencia es UNA sola foto, compartida por todos los grupos del usuario:
+      // La evidencia es UNA sola pieza, compartida por todos los grupos del usuario:
       // la ruta no incluye group_id, así que el archivo nunca se duplica.
-      const compressed = await compressImage(file, 1080);
+      // Para metas de solo-video, la evidencia principal es el propio video.
       const base = `${user.id}/${todayStr()}/${kind}${goalId ? `-${goalId}` : ""}`;
-      const path = `${base}.jpg`;
-
+      const isVideoMain = file.type.startsWith("video");
       const supabase = createClient();
-      const { error: uploadError } = await supabase.storage
-        .from("evidencias")
-        .upload(path, compressed, { upsert: true });
 
-      if (uploadError) throw uploadError;
+      let path: string;
+      if (isVideoMain) {
+        const ext = file.name.split(".").pop() || "mp4";
+        path = `${base}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("evidencias")
+          .upload(path, file, { upsert: true });
+        if (uploadError) throw uploadError;
+      } else {
+        const compressed = await compressImage(file, 1080);
+        path = `${base}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("evidencias")
+          .upload(path, compressed, { upsert: true });
+        if (uploadError) throw uploadError;
+      }
 
       // Evidencia rica: sube archivos extra (audio, video, foto "después") y
       // guarda sus rutas junto al resumen/cronómetro.
