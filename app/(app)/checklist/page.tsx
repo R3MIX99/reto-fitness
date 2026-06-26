@@ -7,6 +7,8 @@ import { PhotoSourceDrawer } from "@/components/checklist/PhotoSourceDrawer";
 import { EvidencePreviewDrawer } from "@/components/checklist/EvidencePreviewDrawer";
 import {
   useGoals,
+  useGoalsHistory,
+  goalAppliesOn,
   useTodayChecks,
   useMonthChecks,
   useMarkCheck,
@@ -136,9 +138,14 @@ function PastDayView({
   onResubmit?: ResubmitFn;
 }) {
   const gymCheck = checks.find((c) => c.kind === "gym");
-  const dietGoals = goals.filter((g) => g.kind === "diet");
-  const goalGoals = goals.filter((g) => g.kind === "goal");
-  const hasAnything = checks.length > 0 || goals.length > 0;
+  // Mostrar una meta en un día pasado solo si estuvo vigente ese día (creada y
+  // no borrada) o si tiene un registro ese día (p. ej. metas ya borradas que se
+  // cumplieron entonces).
+  const showsOnDay = (g: Goal) =>
+    goalAppliesOn(g, dateStr) || checks.some((c) => c.goal_id === g.id);
+  const dietGoals = goals.filter((g) => g.kind === "diet" && showsOnDay(g));
+  const goalGoals = goals.filter((g) => g.kind === "goal" && showsOnDay(g));
+  const hasAnything = checks.length > 0 || dietGoals.length > 0 || goalGoals.length > 0;
   const canResubmit = !!onResubmit && isInCurrentWeek(dateStr);
 
   if (!hasAnything) {
@@ -231,6 +238,13 @@ function ChecklistPageInner() {
   useChecklistRealtime(groupId);
 
   const { data: goals = [] } = useGoals();
+  // Historial completo (incluye metas borradas) para que el calendario cuente
+  // solo las metas vigentes en cada día.
+  const { data: goalsHistory = [] } = useGoalsHistory();
+  const dietTotalOn = (dateStr: string) =>
+    goalsHistory.filter((g) => g.kind === "diet" && goalAppliesOn(g, dateStr)).length;
+  const goalsTotalOn = (dateStr: string) =>
+    goalsHistory.filter((g) => g.kind === "goal" && goalAppliesOn(g, dateStr)).length;
   // Pasa todos los grupos para que la deduplicación elija el mejor status (approved > pending)
   const { data: todayChecks = [] } = useTodayChecks(allGroupIds);
   const { data: monthChecks = [] } = useMonthChecks(groupId);
@@ -337,8 +351,8 @@ function ChecklistPageInner() {
         <div data-tour="checklist-stats">
           <StatsSection
             checks={monthChecks}
-            dietTotal={goals.filter((g) => g.kind === "diet").length}
-            goalsTotal={goals.filter((g) => g.kind === "goal").length}
+            dietTotalOn={dietTotalOn}
+            goalsTotalOn={goalsTotalOn}
             view={view}
             onViewChange={setView}
             onDaySelect={(dateStr) => setSelectedDate(dateStr)}
@@ -410,7 +424,7 @@ function ChecklistPageInner() {
                 <div className="h-24 bg-[var(--color-bg-card)] rounded-[16px]" />
               </div>
             ) : (
-              <PastDayView dateStr={selectedDate!} checks={pastChecks} goals={goals} onResubmit={handleResubmit} />
+              <PastDayView dateStr={selectedDate!} checks={pastChecks} goals={goalsHistory} onResubmit={handleResubmit} />
             )}
           </>
         )}

@@ -49,6 +49,24 @@ export interface Goal {
   active: boolean;
   group_id: string | null;
   config: GoalConfig | null;
+  created_at: string;
+  deactivated_at: string | null;
+}
+
+// Una meta "aplica" en una fecha si ya existía ese día y aún no estaba borrada.
+// Sirve para no mostrar/contar metas en días previos a su creación, ni después
+// de borrarlas. dateStr en formato "YYYY-MM-DD".
+export function goalAppliesOn(goal: Goal, dateStr: string): boolean {
+  const created = goal.created_at ? goal.created_at.slice(0, 10) : "";
+  if (created && created > dateStr) return false;
+  if (goal.deactivated_at) {
+    const off = goal.deactivated_at.slice(0, 10);
+    if (dateStr >= off) return false;
+  } else if (!goal.active) {
+    // Inactiva sin fecha (legado): no aplica a ningún día.
+    return false;
+  }
+  return true;
 }
 
 export interface DailyCheck {
@@ -106,12 +124,34 @@ export function useGoals() {
     enabled: !!user,
     queryFn: async (): Promise<Goal[]> => {
       const supabase = createClient();
-      type GoalRow = { id: string; title: string; kind: string; position: number; icon: string | null; reminder_at: string | null; active: boolean; group_id: string | null; config: GoalConfig | null };
+      type GoalRow = { id: string; title: string; kind: string; position: number; icon: string | null; reminder_at: string | null; active: boolean; group_id: string | null; config: GoalConfig | null; created_at: string; deactivated_at: string | null };
       const { data } = await supabase
         .from("goals")
-        .select("id, title, kind, position, icon, reminder_at, active, group_id, config")
+        .select("id, title, kind, position, icon, reminder_at, active, group_id, config, created_at, deactivated_at")
         .eq("user_id", user!.id)
         .eq("active", true)
+        .order("position", { ascending: true }) as unknown as { data: GoalRow[] | null };
+
+      return (data ?? []) as Goal[];
+    },
+  });
+}
+
+// Todas las metas (activas e inactivas) con sus fechas de vida útil. Se usa para
+// el calendario/estadísticas y la vista de días pasados, donde una meta debe
+// aparecer solo en los días en que estuvo vigente.
+export function useGoalsHistory() {
+  const { user } = useUser();
+  return useQuery({
+    queryKey: ["goalsHistory", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<Goal[]> => {
+      const supabase = createClient();
+      type GoalRow = { id: string; title: string; kind: string; position: number; icon: string | null; reminder_at: string | null; active: boolean; group_id: string | null; config: GoalConfig | null; created_at: string; deactivated_at: string | null };
+      const { data } = await supabase
+        .from("goals")
+        .select("id, title, kind, position, icon, reminder_at, active, group_id, config, created_at, deactivated_at")
+        .eq("user_id", user!.id)
         .order("position", { ascending: true }) as unknown as { data: GoalRow[] | null };
 
       return (data ?? []) as Goal[];
@@ -438,7 +478,10 @@ export function useUpsertGoal() {
         if (error) throw new Error(error.message);
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["goals"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["goals"] });
+      qc.invalidateQueries({ queryKey: ["goalsHistory"] });
+    },
   });
 }
 
@@ -448,9 +491,14 @@ export function useDeleteGoal() {
   return useMutation({
     mutationFn: async (id: string) => {
       const supabase = createClient();
-      await supabase.from("goals").update({ active: false } as never).eq("id", id) as unknown as { error: unknown };
+      // Guardar la fecha de borrado para que la meta deje de contar/mostrarse
+      // a partir de hoy, pero siga apareciendo en los días en que estuvo vigente.
+      await supabase.from("goals").update({ active: false, deactivated_at: new Date().toISOString() } as never).eq("id", id) as unknown as { error: unknown };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["goals"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["goals"] });
+      qc.invalidateQueries({ queryKey: ["goalsHistory"] });
+    },
   });
 }
 

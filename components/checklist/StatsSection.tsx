@@ -20,12 +20,15 @@ interface DaySummary {
 
 interface StatsSectionProps {
   checks: DailyCheck[];
-  dietTotal: number;
-  goalsTotal: number;
+  // Totales por día: cuántas comidas/metas estaban vigentes en esa fecha.
+  dietTotalOn: (dateStr: string) => number;
+  goalsTotalOn: (dateStr: string) => number;
   view: CategoryView;
   onViewChange: (v: CategoryView) => void;
   onDaySelect?: (dateStr: string | null) => void;
 }
+
+type TotalFn = (dateStr: string) => number;
 
 const ORDER: CategoryView[] = ["general", "ejercicio", "dieta", "metas"];
 
@@ -51,7 +54,7 @@ function Donut({ pct, color, size = 44 }: { pct: number; color: string; size?: n
 
 // ── Bar Chart ──────────────────────────────────────────────────────────────
 
-function BarChart({ checks, view, month, dietTotal, goalsTotal }: { checks: DailyCheck[]; view: CategoryView; month: string; dietTotal: number; goalsTotal: number }) {
+function BarChart({ checks, view, month, dietTotalOn, goalsTotalOn }: { checks: DailyCheck[]; view: CategoryView; month: string; dietTotalOn: TotalFn; goalsTotalOn: TotalFn }) {
   const cfg = CATEGORY_CONFIG[view];
   const weeks = [1, 2, 3, 4];
   const weekPcts = weeks.map((w) => {
@@ -65,18 +68,26 @@ function BarChart({ checks, view, month, dietTotal, goalsTotal }: { checks: Dail
       const maxPts = days.length * 13;
       let pts = 0;
       for (const ds of dayStrs) {
+        const dt = dietTotalOn(ds);
+        const gt = goalsTotalOn(ds);
         const dc = checks.filter((c) => c.check_date === ds && c.status !== "rejected");
         const gymPts = dc.some((c) => c.kind === "gym") ? 3 : 0;
         const dietDone = dc.filter((c) => c.kind === "diet").length;
         const goalDone = dc.filter((c) => c.kind === "goal").length;
-        pts += gymPts + (dietTotal > 0 ? Math.floor((dietDone / dietTotal) * 5) : 0) + (goalsTotal > 0 ? Math.floor((goalDone / goalsTotal) * 5) : 0);
+        pts += gymPts + (dt > 0 ? Math.floor((dietDone / dt) * 5) : 0) + (gt > 0 ? Math.floor((goalDone / gt) * 5) : 0);
       }
       return Math.min(100, Math.round((pts / maxPts) * 100));
     }
     const relevant = checks.filter((c) => dayStrs.includes(c.check_date) && viewMatchesKind(view, c.kind) && c.status !== "rejected");
     if (view === "ejercicio") return Math.min(100, Math.round((new Set(relevant.map((c) => c.check_date)).size / days.length) * 100));
-    if (view === "dieta") return Math.min(100, dietTotal > 0 ? Math.round((relevant.length / (days.length * dietTotal)) * 100) : 0);
-    if (view === "metas") return Math.min(100, goalsTotal > 0 ? Math.round((relevant.length / (days.length * goalsTotal)) * 100) : 0);
+    if (view === "dieta") {
+      const denom = dayStrs.reduce((sum, ds) => sum + dietTotalOn(ds), 0);
+      return Math.min(100, denom > 0 ? Math.round((relevant.length / denom) * 100) : 0);
+    }
+    if (view === "metas") {
+      const denom = dayStrs.reduce((sum, ds) => sum + goalsTotalOn(ds), 0);
+      return Math.min(100, denom > 0 ? Math.round((relevant.length / denom) * 100) : 0);
+    }
     return 0;
   });
 
@@ -102,14 +113,14 @@ function BarChart({ checks, view, month, dietTotal, goalsTotal }: { checks: Dail
 // ── Calendar ───────────────────────────────────────────────────────────────
 
 function CalendarGrid({
-  checks, view, expanded, onToggleExpand, dietTotal, goalsTotal, onDaySelect,
+  checks, view, expanded, onToggleExpand, dietTotalOn, goalsTotalOn, onDaySelect,
 }: {
   checks: DailyCheck[];
   view: CategoryView;
   expanded: boolean;
   onToggleExpand: () => void;
-  dietTotal: number;
-  goalsTotal: number;
+  dietTotalOn: TotalFn;
+  goalsTotalOn: TotalFn;
   onDaySelect?: (dateStr: string | null) => void;
 }) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -142,8 +153,8 @@ function CalendarGrid({
     const dietDone = dc.filter((c) => c.kind === "diet").length;
     const goalsDone = dc.filter((c) => c.kind === "goal").length;
     const gymPts = gym ? 3 : 0;
-    const safeDiet = Number(dietTotal) || 0;
-    const safeGoals = Number(goalsTotal) || 0;
+    const safeDiet = Number(dietTotalOn(dateStr)) || 0;
+    const safeGoals = Number(goalsTotalOn(dateStr)) || 0;
     const dietPts = safeDiet > 0 ? Math.floor((dietDone / safeDiet) * 5) : 0;
     const goalPts = safeGoals > 0 ? Math.floor((goalsDone / safeGoals) * 5) : 0;
     const pts = gymPts + dietPts + goalPts;
@@ -267,23 +278,27 @@ function viewMatchesKind(view: CategoryView, kind: string): boolean {
   return false;
 }
 
-function calcPct(checks: DailyCheck[], view: CategoryView, dietTotal: number, goalsTotal: number): number {
+function calcPct(checks: DailyCheck[], view: CategoryView, dietTotalOn: TotalFn, goalsTotalOn: TotalFn): number {
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const today = now.getDate();
   if (today === 0) return 0;
 
   const nonRejected = checks.filter((c) => c.status !== "rejected");
+  const dayStrs: string[] = [];
+  for (let d = 1; d <= today; d++) dayStrs.push(`${month}-${String(d).padStart(2, "0")}`);
+
   if (view === "general") {
     const maxPts = today * 13;
     let pts = 0;
-    for (let d = 1; d <= today; d++) {
-      const ds = `${month}-${String(d).padStart(2, "0")}`;
+    for (const ds of dayStrs) {
+      const dt = dietTotalOn(ds);
+      const gt = goalsTotalOn(ds);
       const dc = nonRejected.filter((c) => c.check_date === ds);
       const gymPts = dc.some((c) => c.kind === "gym") ? 3 : 0;
       const dietDone = dc.filter((c) => c.kind === "diet").length;
       const goalDone = dc.filter((c) => c.kind === "goal").length;
-      pts += gymPts + (dietTotal > 0 ? Math.floor((dietDone / dietTotal) * 5) : 0) + (goalsTotal > 0 ? Math.floor((goalDone / goalsTotal) * 5) : 0);
+      pts += gymPts + (dt > 0 ? Math.floor((dietDone / dt) * 5) : 0) + (gt > 0 ? Math.floor((goalDone / gt) * 5) : 0);
     }
     return Math.min(100, Math.round((pts / maxPts) * 100));
   }
@@ -292,21 +307,23 @@ function calcPct(checks: DailyCheck[], view: CategoryView, dietTotal: number, go
     return Math.round((done / today) * 100);
   }
   if (view === "dieta") {
-    if (dietTotal === 0) return 0;
+    const denom = dayStrs.reduce((sum, ds) => sum + dietTotalOn(ds), 0);
+    if (denom === 0) return 0;
     const done = nonRejected.filter((c) => c.kind === "diet").length;
-    return Math.min(100, Math.round((done / (today * dietTotal)) * 100));
+    return Math.min(100, Math.round((done / denom) * 100));
   }
   if (view === "metas") {
-    if (goalsTotal === 0) return 0;
+    const denom = dayStrs.reduce((sum, ds) => sum + goalsTotalOn(ds), 0);
+    if (denom === 0) return 0;
     const done = nonRejected.filter((c) => c.kind === "goal").length;
-    return Math.min(100, Math.round((done / (today * goalsTotal)) * 100));
+    return Math.min(100, Math.round((done / denom) * 100));
   }
   return 0;
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────
 
-export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange, onDaySelect }: StatsSectionProps) {
+export function StatsSection({ checks, dietTotalOn, goalsTotalOn, view, onViewChange, onDaySelect }: StatsSectionProps) {
   const cardsRef = useRef<HTMLDivElement>(null);
   const [thumbLeft, setThumbLeft] = useState(0);
   const [thumbWidth, setThumbWidth] = useState(24);
@@ -354,7 +371,7 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
   }, [updateThumb]);
 
   const cfg = CATEGORY_CONFIG[view];
-  const pct = calcPct(checks, view, dietTotal, goalsTotal);
+  const pct = calcPct(checks, view, dietTotalOn, goalsTotalOn);
 
   return (
     <div>
@@ -367,7 +384,7 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
         <div className="w-4 flex-shrink-0" />
         {ORDER.map((cat) => {
           const c = CATEGORY_CONFIG[cat];
-          const p = calcPct(checks, cat, dietTotal, goalsTotal);
+          const p = calcPct(checks, cat, dietTotalOn, goalsTotalOn);
           const active = cat === view;
           return (
             <button
@@ -416,7 +433,7 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
               {pct}%
             </span>
           </div>
-          <BarChart checks={checks} view={view} month={month} dietTotal={dietTotal} goalsTotal={goalsTotal} />
+          <BarChart checks={checks} view={view} month={month} dietTotalOn={dietTotalOn} goalsTotalOn={goalsTotalOn} />
         </div>
 
         {/* Calendar */}
@@ -425,8 +442,8 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
           view={view}
           expanded={calExpanded}
           onToggleExpand={() => setCalExpanded((e) => !e)}
-          dietTotal={dietTotal}
-          goalsTotal={goalsTotal}
+          dietTotalOn={dietTotalOn}
+          goalsTotalOn={goalsTotalOn}
           onDaySelect={onDaySelect}
         />
 

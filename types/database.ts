@@ -191,6 +191,7 @@ export type Database = {
           active: boolean
           config: Json | null
           created_at: string
+          deactivated_at: string | null
           group_id: string | null
           icon: string | null
           id: string
@@ -204,6 +205,7 @@ export type Database = {
           active?: boolean
           config?: Json | null
           created_at?: string
+          deactivated_at?: string | null
           group_id?: string | null
           icon?: string | null
           id?: string
@@ -217,6 +219,7 @@ export type Database = {
           active?: boolean
           config?: Json | null
           created_at?: string
+          deactivated_at?: string | null
           group_id?: string | null
           icon?: string | null
           id?: string
