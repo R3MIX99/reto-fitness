@@ -111,3 +111,6 @@ BEGIN
 END; $$;
 
 GRANT EXECUTE ON FUNCTION respond_league_invite(uuid, uuid, boolean) TO authenticated;
+
+-- Fix RLS infinite recursion (patch aplicado en 20260626_fix_league_rls_recursion.sql)
+-- lp_select ya no referencia group_leagues para evitar ciclo circular.
