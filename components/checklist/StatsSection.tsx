@@ -392,10 +392,10 @@ export function StatsSection({ checks, dietTotal, goalsTotal, view, onViewChange
 
       {/* Scroll indicator */}
       <div className="flex justify-center my-2.5">
-        <div className="relative w-14 h-1 rounded-full" style={{ background: "var(--color-surface)" }}>
+        <div className="relative w-14 h-1 rounded-full" style={{ background: "rgba(124,124,124,0.22)" }}>
           <div
-            className="absolute top-0 h-1 bg-[#7C7C7C] rounded-full transition-all duration-150"
-            style={{ width: thumbWidth, left: thumbLeft }}
+            className="absolute top-0 h-1 rounded-full transition-all duration-150"
+            style={{ width: thumbWidth, left: thumbLeft, background: "var(--color-muted)" }}
           />
         </div>
       </div>

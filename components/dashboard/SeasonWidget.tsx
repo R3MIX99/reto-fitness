@@ -384,10 +384,10 @@ export function SeasonWidget() {
             {/* Scroll indicator — solo si hay overflow real */}
             {hasScroll && (
               <div className="flex justify-center mt-2">
-                <div className="relative w-14 h-1 rounded-full" style={{ background: "var(--color-surface)" }}>
+                <div className="relative w-14 h-1 rounded-full" style={{ background: "rgba(124,124,124,0.22)" }}>
                   <div
                     className="absolute top-0 h-1 rounded-full transition-all duration-150"
-                    style={{ width: thumbWidth, left: thumbLeft, background: "#7C7C7C" }}
+                    style={{ width: thumbWidth, left: thumbLeft, background: "var(--color-muted)" }}
                   />
                 </div>
               </div>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Flag, Users } from "lucide-react";
 import type { GroupWithMembers } from "@/lib/hooks/useGroups";
 import { useChallengesForGroups, occursOn, todayLocalStr, type Challenge } from "@/lib/hooks/useChallenges";
 import { ChallengeDetailDrawer } from "@/components/grupo/ChallengeDetailDrawer";
 import { AttendanceDrawer } from "@/components/grupo/AttendanceDrawer";
+import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 
 // Reto grupal del día en el checklist (arriba del ejercicio). Solo el día que toca.
 // Si varios grupos tienen reto hoy, muestra píldoras deslizables para cambiar.
@@ -13,6 +14,7 @@ export function ChallengeTodayCard({ groups, userId }: { groups: GroupWithMember
   const groupIds = groups.map((g) => g.id);
   const { data: challenges = [] } = useChallengesForGroups(groupIds);
   const [sel, setSel] = useState(0);
+  const pillsRef = useRef<HTMLDivElement>(null);
   const [detailFor, setDetailFor] = useState<Challenge | null>(null);
   const [attendanceFor, setAttendanceFor] = useState<{ challenge: Challenge; members: GroupWithMembers["members"] } | null>(null);
 
@@ -45,26 +47,29 @@ export function ChallengeTodayCard({ groups, userId }: { groups: GroupWithMember
 
       {/* Píldoras de grupos (si hay más de uno con reto hoy) */}
       {groupsWithToday.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 mb-3" style={{ scrollSnapType: "x mandatory" }}>
-          <div className="w-4 flex-shrink-0" />
-          {groupsWithToday.map((g, i) => (
-            <button
-              key={g.id}
-              onClick={() => setSel(i)}
-              className="flex-shrink-0 rounded-full px-3.5 py-1.5 text-[12px] transition-colors"
-              style={{
-                scrollSnapAlign: "start",
-                background: i === idx ? "var(--color-warm)" : "var(--color-surface)",
-                color: i === idx ? "#1a1000" : "var(--color-muted)",
-                border: i === idx ? "none" : "1px solid var(--color-border)",
-                fontWeight: i === idx ? 500 : 400,
-              }}
-            >
-              {g.name}
-            </button>
-          ))}
-          <div className="w-4 flex-shrink-0" />
-        </div>
+        <>
+          <div ref={pillsRef} className="flex gap-2 overflow-x-auto no-scrollbar -mx-4" style={{ scrollSnapType: "x mandatory" }}>
+            <div className="w-4 flex-shrink-0" />
+            {groupsWithToday.map((g, i) => (
+              <button
+                key={g.id}
+                onClick={() => setSel(i)}
+                className="flex-shrink-0 rounded-full px-3.5 py-1.5 text-[12px] transition-colors"
+                style={{
+                  scrollSnapAlign: "start",
+                  background: i === idx ? "var(--color-warm)" : "var(--color-surface)",
+                  color: i === idx ? "#1a1000" : "var(--color-muted)",
+                  border: i === idx ? "none" : "1px solid var(--color-border)",
+                  fontWeight: i === idx ? 500 : 400,
+                }}
+              >
+                {g.name}
+              </button>
+            ))}
+            <div className="w-4 flex-shrink-0" />
+          </div>
+          <ScrollIndicator scrollRef={pillsRef} className="mt-2 mb-3" />
+        </>
       )}
 
       <div className="flex flex-col gap-2">
