@@ -252,7 +252,13 @@ function StepOtherGroup({
   onCreated?: () => void;
   onClose: () => void;
 }) {
+  const { user } = useUser();
+  const { data: groups = [] } = useMyGroups();
   const create = useCreateLeague();
+
+  const ownedGroups = groups.filter((g) => g.owner_id === user?.id);
+
+  const [myGroupId, setMyGroupId] = useState(ownerGroupId);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [startDate, setStartDate] = useState(todayStr());
@@ -260,7 +266,8 @@ function StepOtherGroup({
 
   const { data: preview, isFetching: loadingPreview, isError: previewError } = useGroupPreview(code);
 
-  const isSelf = preview?.group_id === ownerGroupId;
+  const isSelf = preview?.group_id === myGroupId ||
+    ownedGroups.some((g) => g.id === preview?.group_id);
   const previewReady = code.trim().length >= 4;
   const previewElite = preview?.owner_tier === "elite";
 
@@ -277,7 +284,7 @@ function StepOtherGroup({
     try {
       await create.mutateAsync({
         name: name.trim(),
-        ownerGroupId,
+        ownerGroupId: myGroupId,
         targetGroupCode: code.trim().toUpperCase(),
         startDate,
       });
@@ -294,6 +301,39 @@ function StepOtherGroup({
         <button onClick={onBack} className="text-xs text-[var(--color-muted)]">← Atrás</button>
         <h2 className="font-display font-bold text-lg text-[var(--color-fg)]">Con otro grupo</h2>
       </div>
+
+      {/* Mi grupo que compite */}
+      {ownedGroups.length > 1 && (
+        <div className="space-y-1.5">
+          <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">
+            Tu grupo que compite
+          </label>
+          <div className="space-y-2">
+            {ownedGroups.map((g) => {
+              const active = myGroupId === g.id;
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => setMyGroupId(g.id)}
+                  className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all ${
+                    active
+                      ? "ring-1 ring-[var(--color-accent)] bg-[var(--color-accent)]/10"
+                      : "bg-white/5"
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-[var(--color-warm)]/15 flex items-center justify-center shrink-0">
+                    <Users className="w-3.5 h-3.5 text-[var(--color-warm)]" />
+                  </div>
+                  <p className="flex-1 font-display text-sm text-[var(--color-fg)] truncate">{g.name}</p>
+                  {active && (
+                    <CheckCircle2 className="w-4 h-4 text-[var(--color-accent)] shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Nombre */}
       <div className="space-y-1.5">
