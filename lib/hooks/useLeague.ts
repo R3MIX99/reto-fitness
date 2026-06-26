@@ -209,6 +209,33 @@ export function useLeagueStandings(leagueId: string | undefined) {
   });
 }
 
+export interface GroupPreview {
+  group_id: string;
+  group_name: string;
+  owner_name: string;
+  member_count: number;
+  owner_tier: string;
+}
+
+/** Preview de un grupo por código de invitación (para verificar antes de crear liga) */
+export function useGroupPreview(code: string) {
+  return useQuery({
+    queryKey: ["groupPreview", code.toUpperCase()],
+    enabled: code.trim().length >= 4,
+    staleTime: 30_000,
+    retry: false,
+    queryFn: async (): Promise<GroupPreview | null> => {
+      const supabase = createClient() as any;
+      const { data, error } = await supabase.rpc("get_group_preview", {
+        p_invite_code: code.toUpperCase(),
+      });
+      if (error) throw error;
+      if (!data || data.length === 0) return null;
+      return data[0] as GroupPreview;
+    },
+  });
+}
+
 // ── Mutations ──────────────────────────────────────────────────────────────
 
 /** Crear una liga e invitar a otro grupo por código */
@@ -305,6 +332,48 @@ export function useRespondLeagueInvite() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["pendingLeagueInvites", vars.groupId] });
       qc.invalidateQueries({ queryKey: ["myLeagues", vars.groupId] });
+      qc.invalidateQueries({ queryKey: ["allLeagues"] });
+    },
+  });
+}
+
+/** Crear liga entre dos grupos propios (ambos se insertan como accepted de inmediato) */
+export function useCreateLeagueBetweenMyGroups() {
+  const qc = useQueryClient();
+  const { user } = useUser();
+  return useMutation({
+    mutationFn: async ({
+      name,
+      groupA,
+      groupB,
+      startDate,
+    }: {
+      name: string;
+      groupA: string;
+      groupB: string;
+      startDate: string;
+    }) => {
+      const supabase = createClient() as any;
+      const { data: league, error: le } = await supabase
+        .from("group_leagues")
+        .insert({
+          name,
+          created_by: user!.id,
+          owner_group_id: groupA,
+          start_date: startDate,
+        })
+        .select()
+        .single();
+      if (le) throw le;
+
+      const { error: pe } = await supabase.from("league_participants").insert([
+        { league_id: league.id, group_id: groupA, invited_by: user!.id, status: "accepted", joined_at: new Date().toISOString() },
+        { league_id: league.id, group_id: groupB, invited_by: user!.id, status: "accepted", joined_at: new Date().toISOString() },
+      ]);
+      if (pe) throw pe;
+      return league;
+    },
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["allLeagues"] });
     },
   });
