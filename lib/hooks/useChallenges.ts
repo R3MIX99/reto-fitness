@@ -105,7 +105,7 @@ export function useGroupChallenges(groupId: string | null) {
       const supabase = createClient();
       const { data } = await supabase
         .from("group_challenges")
-        .select("id, group_id, title, description, recurrence, weekday, day_of_month, challenge_date, at_time, points")
+        .select("id, group_id, title, description, recurrence, weekdays, day_of_month, challenge_date, at_time, points")
         .eq("group_id", groupId!)
         .eq("active", true)
         .order("created_at", { ascending: false }) as unknown as { data: Challenge[] | null };
