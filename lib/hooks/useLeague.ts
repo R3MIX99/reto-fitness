@@ -133,12 +133,13 @@ export function useAllLeagues() {
         .in("owner_group_id", groupIds);
       if (oe) throw oe;
 
-      // Invitaciones pendientes (como grupo invitado)
+      // Invitaciones pendientes RECIBIDAS (no las que yo envié)
       const { data: pendingInvites, error: pie } = await supabase
         .from("league_participants")
         .select("*, league:group_leagues(id, name, start_date, end_date, owner_group_id, owner_group:groups!group_leagues_owner_group_id_fkey(name))")
         .in("group_id", groupIds)
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .neq("invited_by", user!.id);
       if (pie) throw pie;
 
       const seen = new Set<string>();

@@ -69,9 +69,12 @@ function StandingsCard({ entry, onOpen }: { entry: LeagueEntry; onOpen: () => vo
                   isMe ? "bg-[var(--color-accent)]/10" : "bg-white/3"
                 }`}
               >
-                <span className="font-display text-xs text-[var(--color-muted)] w-4 shrink-0">
-                  {s.rank === 1 ? "👑" : s.rank}
-                </span>
+                <div className="w-4 flex items-center justify-center shrink-0">
+                  {s.rank === 1
+                    ? <Crown className="w-3.5 h-3.5 text-[var(--color-warm)]" />
+                    : <span className="font-display text-xs text-[var(--color-muted)]">{s.rank}</span>
+                  }
+                </div>
                 <p className={`flex-1 font-display text-xs truncate ${
                   isMe ? "text-[var(--color-fg)] font-semibold" : "text-[var(--color-fg)]"
                 }`}>
@@ -120,9 +123,10 @@ function FinishedLeagueCard({ entry, onOpen }: { entry: LeagueEntry; onOpen: () 
           <p className="font-display font-semibold text-sm text-[var(--color-fg)] truncate">
             {entry.league.name}
           </p>
-          <p className="text-[11px] text-[var(--color-muted)] mt-0.5">
+          <p className="text-[11px] text-[var(--color-muted)] mt-0.5 flex items-center gap-1">
+            {iChampion && <Crown className="w-3 h-3 text-[var(--color-warm)]" />}
             {iChampion
-              ? "🏆 ¡Ganaste esta liga!"
+              ? "¡Ganaste esta liga!"
               : winner
               ? `Ganó: ${winner.group_name}`
               : "Finalizada"}
