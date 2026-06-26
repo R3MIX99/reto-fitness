@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
+import { goalAppliesOn, type Goal } from "./useChecklist";
 
 // Realtime: refresca grupos/membresías/transferencias al instante para todos los
 // involucrados (p. ej. al transferir, el dueño anterior deja de ser dueño sin
@@ -271,12 +272,13 @@ export function useTodayScore(groupId: string | null) {
       const _d = new Date();
       const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
       type CheckRow = { kind: string };
-      type GoalRow = { kind: string };
       const [{ data: checks }, { data: goals }] = await Promise.all([
         supabase.from("daily_checks").select("kind").eq("user_id", user!.id).eq("group_id", groupId).eq("check_date", today).neq("status", "rejected") as unknown as { data: CheckRow[] | null },
-        supabase.from("goals").select("kind").eq("user_id", user!.id).eq("active", true) as unknown as { data: GoalRow[] | null },
+        supabase.from("goals").select("kind, config, created_at, deactivated_at, active").eq("user_id", user!.id).eq("active", true) as unknown as { data: Goal[] | null },
       ]);
-      return calcDayPoints(checks ?? [], goals ?? []);
+      // Solo las metas vigentes hoy (frecuencia incluida) cuentan en el denominador.
+      const applicable = (goals ?? []).filter((g) => goalAppliesOn(g, today));
+      return calcDayPoints(checks ?? [], applicable);
     },
   });
 }

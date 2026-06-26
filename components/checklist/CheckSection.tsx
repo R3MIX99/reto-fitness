@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown, X, RotateCcw } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown, X, RotateCcw, CalendarClock, Pencil } from "lucide-react";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
 import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
@@ -22,7 +22,36 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
+import { goalAppliesOn, frequencyLabel, todayStr } from "@/lib/hooks/useChecklist";
 import { CheckItem } from "./CheckItem";
+
+// ¿Debe mostrarse como "programada" en el listado de hoy? Mensual sí (recurrente);
+// "un solo día" solo si su fecha es futura.
+function isUpcomingScheduled(goal: Goal, today: string): boolean {
+  const f = goal.config?.frequency;
+  if (f === "monthly") return true;
+  if (f === "once") return (goal.config?.once_date ?? "") > today;
+  return false;
+}
+
+// Fila muteada para metas programadas (un solo día / mensual) que NO aplican hoy.
+// No es marcable; permite editarla/borrarla con el lápiz.
+function ScheduledRow({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
+  return (
+    <div className="flex items-center gap-3 py-2.5" style={{ opacity: 0.6 }}>
+      <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "var(--color-surface)", border: "1.5px solid var(--color-border)" }}>
+        <CalendarClock size={13} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[14px] truncate">{goal.icon && <span className="mr-1.5">{goal.icon}</span>}{goal.title}</p>
+        <p className="text-[11px] text-[var(--color-muted)]">{frequencyLabel(goal) ?? "Programada"}</p>
+      </div>
+      <button onClick={onEdit} className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-muted)]">
+        <Pencil size={12} strokeWidth={1.5} />
+      </button>
+    </div>
+  );
+}
 
 // ── Sortable wrapper ───────────────────────────────────────────────────────
 
@@ -296,11 +325,18 @@ export function DietSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, 
   const [reordering, setReordering] = useState(false);
   const [localOrder, setLocalOrder] = useState<string[]>([]);
 
-  const dietGoals = goals.filter((g) => g.kind === "diet");
+  const today = todayStr();
+  const allDiet = goals.filter((g) => g.kind === "diet");
+  // Hoy solo se muestran/cuentan las metas vigentes hoy (frecuencia incluida).
+  const dietGoals = allDiet.filter((g) => goalAppliesOn(g, today));
+  // Metas no-diarias que no aplican hoy: visibles como "programadas" para gestión.
+  // Mensual siempre (recurrente); "un solo día" solo si es a futuro (las pasadas
+  // ya viven en el calendario de su día).
+  const scheduledGoals = allDiet.filter((g) => !goalAppliesOn(g, today) && isUpcomingScheduled(g, today));
   const orderedGoals = reordering
     ? localOrder.map((id) => dietGoals.find((g) => g.id === id)!).filter(Boolean)
     : dietGoals;
-  const dietChecks = checks.filter((c) => c.kind === "diet");
+  const dietChecks = checks.filter((c) => c.kind === "diet" && dietGoals.some((g) => g.id === c.goal_id));
   const done = dietChecks.length;
   const total = dietGoals.length;
 
@@ -360,7 +396,7 @@ export function DietSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, 
 
       {!collapsed && (
         <div>
-          {dietGoals.length === 0 ? (
+          {allDiet.length === 0 ? (
             <p className="text-[12px] text-[var(--color-muted)] py-2">Sin comidas registradas. Agrega una.</p>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -386,6 +422,11 @@ export function DietSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, 
               </SortableContext>
             </DndContext>
           )}
+
+          {/* Metas programadas (no aplican hoy) */}
+          {!reordering && scheduledGoals.map((goal) => (
+            <ScheduledRow key={goal.id} goal={goal} onEdit={() => onEdit(goal)} />
+          ))}
 
           {!reordering && (
             <button
@@ -421,11 +462,14 @@ export function GoalsSection({ goals, checks, onMark, onResubmit, onAdd, onEdit,
   const [reordering, setReordering] = useState(false);
   const [localOrder, setLocalOrder] = useState<string[]>([]);
 
-  const goalGoals = goals.filter((g) => g.kind === "goal");
+  const today = todayStr();
+  const allGoal = goals.filter((g) => g.kind === "goal");
+  const goalGoals = allGoal.filter((g) => goalAppliesOn(g, today));
+  const scheduledGoals = allGoal.filter((g) => !goalAppliesOn(g, today) && isUpcomingScheduled(g, today));
   const orderedGoals = reordering
     ? localOrder.map((id) => goalGoals.find((g) => g.id === id)!).filter(Boolean)
     : goalGoals;
-  const goalChecks = checks.filter((c) => c.kind === "goal");
+  const goalChecks = checks.filter((c) => c.kind === "goal" && goalGoals.some((g) => g.id === c.goal_id));
   const done = goalChecks.length;
   const total = goalGoals.length;
 
@@ -484,7 +528,7 @@ export function GoalsSection({ goals, checks, onMark, onResubmit, onAdd, onEdit,
 
       {!collapsed && (
         <div>
-          {goalGoals.length === 0 ? (
+          {allGoal.length === 0 ? (
             <p className="text-[12px] text-[var(--color-muted)] py-2">Sin metas registradas. Agrega una.</p>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -510,6 +554,11 @@ export function GoalsSection({ goals, checks, onMark, onResubmit, onAdd, onEdit,
               </SortableContext>
             </DndContext>
           )}
+
+          {/* Metas programadas (no aplican hoy) */}
+          {!reordering && scheduledGoals.map((goal) => (
+            <ScheduledRow key={goal.id} goal={goal} onEdit={() => onEdit(goal)} />
+          ))}
 
           {!reordering && (
             <button

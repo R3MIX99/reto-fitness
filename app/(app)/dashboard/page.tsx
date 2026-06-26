@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitials, useGroupsRealtime } from "@/lib/hooks/useGroups";
-import { useGoals, useTodayChecks } from "@/lib/hooks/useChecklist";
+import { useGoals, useTodayChecks, goalAppliesOn, todayStr } from "@/lib/hooks/useChecklist";
 import { useActiveSeasonCount } from "@/lib/hooks/useSeasons";
 import { PlayerCard } from "@/components/player/PlayerCard";
 import { usePrefetchPlayerCards } from "@/lib/hooks/usePlayerCard";
@@ -154,11 +154,12 @@ export default function DashboardPage() {
   if (!gymDone) {
     pendingItems.push({ icon: <Dumbbell size={13} strokeWidth={1.5} className="text-accent" />, label: "Ejercicio de hoy", scrollTo: "ejercicio" });
   }
-  goals.filter((g) => g.kind === "diet").forEach((g) => {
+  const _today = todayStr();
+  goals.filter((g) => g.kind === "diet" && goalAppliesOn(g, _today)).forEach((g) => {
     const done = todayChecks.some((c) => c.goal_id === g.id);
     if (!done) pendingItems.push({ icon: <UtensilsCrossed size={13} strokeWidth={1.5} className="text-warm" />, label: g.title, scrollTo: "dieta" });
   });
-  goals.filter((g) => g.kind === "goal").forEach((g) => {
+  goals.filter((g) => g.kind === "goal" && goalAppliesOn(g, _today)).forEach((g) => {
     const done = todayChecks.some((c) => c.goal_id === g.id);
     if (!done) pendingItems.push({ icon: <Target size={13} strokeWidth={1.5} className="text-warm" />, label: g.title, scrollTo: "metas" });
   });

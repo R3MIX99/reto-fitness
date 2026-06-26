@@ -1,10 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trash2, Timer, AlignLeft, Crown, Mic, Video, Images } from "lucide-react";
+import { Trash2, Timer, AlignLeft, Crown, Mic, Video, Images, Repeat } from "lucide-react";
 import { Drawer as VaulDrawer } from "vaul";
-import type { Goal, GoalKind, GoalConfig, GoalModule } from "@/lib/hooks/useChecklist";
+import type { Goal, GoalKind, GoalConfig, GoalModule, GoalFrequency } from "@/lib/hooks/useChecklist";
 import { usePlan } from "@/lib/hooks/usePlan";
+
+function todayLocalStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 interface GoalDrawerProps {
   open: boolean;
@@ -38,6 +43,9 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
   const [audioOn, setAudioOn] = useState(false);
   const [videoOn, setVideoOn] = useState(false);
   const [beforeAfterOn, setBeforeAfterOn] = useState(false);
+  const [frequency, setFrequency] = useState<GoalFrequency>("daily");
+  const [onceDate, setOnceDate] = useState<string>(todayLocalStr());
+  const [dayOfMonth, setDayOfMonth] = useState<number>(new Date().getDate());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +58,9 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
     setAudioOn(mods.includes("audio"));
     setVideoOn(mods.includes("video"));
     setBeforeAfterOn(mods.includes("before_after"));
+    setFrequency(goal?.config?.frequency ?? "daily");
+    setOnceDate(goal?.config?.once_date ?? todayLocalStr());
+    setDayOfMonth(goal?.config?.day_of_month ?? new Date().getDate());
     setError(null);
   }, [goal, open]);
 
@@ -61,8 +72,18 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
     if (audioOn) modules.push("audio");
     if (videoOn) modules.push("video");
     if (beforeAfterOn) modules.push("before_after");
-    if (modules.length === 0) return null;
-    return { modules, ...(timerOn ? { timer_minutes: Math.max(1, timerMin) } : {}) };
+
+    const freqPart: Partial<GoalConfig> = {};
+    if (frequency === "once") { freqPart.frequency = "once"; freqPart.once_date = onceDate; }
+    else if (frequency === "monthly") { freqPart.frequency = "monthly"; freqPart.day_of_month = Math.min(31, Math.max(1, dayOfMonth)); }
+
+    // Sin módulos y frecuencia diaria → sin config (meta normal).
+    if (modules.length === 0 && frequency === "daily") return null;
+    return {
+      modules,
+      ...(timerOn ? { timer_minutes: Math.max(1, timerMin) } : {}),
+      ...freqPart,
+    };
   }
 
   async function handleSave() {
@@ -172,6 +193,63 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
               {!canCustomize && (
                 <p className="text-[11px] text-[var(--color-muted)] mt-2">
                   Personaliza tus metas con cronómetro y resumen en el plan Pro o Elite.
+                </p>
+              )}
+            </div>
+
+            {/* Frecuencia (Pro/Elite) */}
+            <div className="mb-4">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <Repeat size={13} strokeWidth={1.5} className="text-warm" />
+                <span className="text-[12px] text-[var(--color-muted)]">Frecuencia</span>
+                {!canCustomize && (
+                  <span className="flex items-center gap-1 text-[10px] text-warm border border-warm/40 rounded-full px-2 py-0.5">
+                    <Crown size={10} strokeWidth={1.5} /> Pro
+                  </span>
+                )}
+              </div>
+
+              <div className="flex gap-2" style={{ opacity: canCustomize ? 1 : 0.55 }}>
+                {([
+                  { v: "daily", label: "Diaria" },
+                  { v: "once", label: "Un solo día" },
+                  { v: "monthly", label: "Mensual" },
+                ] as { v: GoalFrequency; label: string }[]).map((opt) => {
+                  const active = frequency === opt.v;
+                  return (
+                    <button key={opt.v}
+                      onClick={() => canCustomize && setFrequency(opt.v)}
+                      className="flex-1 rounded-[10px] py-2 text-[12px] font-medium transition-colors"
+                      style={{
+                        background: active ? "var(--color-warm)" : "var(--color-surface)",
+                        color: active ? "#1a1000" : "var(--color-fg)",
+                        border: active ? "1px solid var(--color-warm)" : "1px solid var(--color-border)",
+                      }}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {canCustomize && frequency === "once" && (
+                <div className="mt-2.5 flex items-center justify-between rounded-[10px] px-3.5 py-2.5" style={{ background: "var(--color-surface)" }}>
+                  <span className="text-[12px] text-[var(--color-muted)]">Fecha</span>
+                  <input type="date" value={onceDate} onChange={(e) => setOnceDate(e.target.value)}
+                    className="text-[13px] bg-transparent outline-none text-right" style={{ colorScheme: "dark" }} />
+                </div>
+              )}
+              {canCustomize && frequency === "monthly" && (
+                <div className="mt-2.5 flex items-center justify-between rounded-[10px] px-3.5 py-2.5" style={{ background: "var(--color-surface)" }}>
+                  <span className="text-[12px] text-[var(--color-muted)]">Día del mes</span>
+                  <input type="number" min={1} max={31} value={dayOfMonth}
+                    onChange={(e) => setDayOfMonth(Math.min(31, Math.max(1, Number(e.target.value))))}
+                    className="w-14 rounded-[8px] px-2 py-1 text-[13px] text-center outline-none"
+                    style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }} />
+                </div>
+              )}
+              {canCustomize && frequency !== "daily" && (
+                <p className="text-[11px] text-[var(--color-muted)] mt-2">
+                  Esta meta solo aparece y cuenta {frequency === "once" ? "ese día" : "ese día de cada mes"}.
                 </p>
               )}
             </div>

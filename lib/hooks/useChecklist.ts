@@ -12,9 +12,15 @@ export type GoalKind = "gym" | "diet" | "goal";
 
 // Metas personalizables (Pro/Elite): módulos de evidencia opcionales.
 export type GoalModule = "timer" | "summary" | "audio" | "video" | "before_after";
+export type GoalFrequency = "daily" | "once" | "monthly";
 export interface GoalConfig {
   modules: GoalModule[];
   timer_minutes?: number;
+  // Frecuencia (Pro/Elite). "daily" = todos los días (por defecto).
+  // "once" = solo en once_date. "monthly" = solo el día day_of_month de cada mes.
+  frequency?: GoalFrequency;
+  once_date?: string;     // "YYYY-MM-DD" cuando frequency = "once"
+  day_of_month?: number;  // 1-31 cuando frequency = "monthly"
 }
 export interface CheckEvidence {
   summary?: string;
@@ -66,7 +72,33 @@ export function goalAppliesOn(goal: Goal, dateStr: string): boolean {
     // Inactiva sin fecha (legado): no aplica a ningún día.
     return false;
   }
+  // Frecuencia: una meta de un solo día / mensual solo aplica en su fecha/día.
+  const freq = goal.config?.frequency ?? "daily";
+  if (freq === "once") {
+    if (!goal.config?.once_date) return false;
+    return goal.config.once_date === dateStr;
+  }
+  if (freq === "monthly") {
+    const dom = goal.config?.day_of_month;
+    if (!dom) return false;
+    return Number(dateStr.slice(8, 10)) === dom;
+  }
   return true;
+}
+
+// Etiqueta legible de la frecuencia de una meta (para metas programadas).
+export function frequencyLabel(goal: Goal): string | null {
+  const cfg = goal.config;
+  if (!cfg || !cfg.frequency || cfg.frequency === "daily") return null;
+  if (cfg.frequency === "once" && cfg.once_date) {
+    const d = new Date(cfg.once_date + "T12:00:00");
+    const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return `Solo el ${d.getDate()} ${MESES[d.getMonth()]}`;
+  }
+  if (cfg.frequency === "monthly" && cfg.day_of_month) {
+    return `Día ${cfg.day_of_month} de cada mes`;
+  }
+  return null;
 }
 
 export interface DailyCheck {
