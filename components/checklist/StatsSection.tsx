@@ -278,19 +278,34 @@ function viewMatchesKind(view: CategoryView, kind: string): boolean {
   return false;
 }
 
-function calcPct(checks: DailyCheck[], view: CategoryView, dietTotalOn: TotalFn, goalsTotalOn: TotalFn): number {
+// Progreso del mes por categoría, medido DESDE que empezaste a registrar (no
+// desde el día 1), para que las tres categorías sean comparables. Devuelve las
+// sesiones completadas y las esperadas en la ventana activa.
+function monthStats(
+  checks: DailyCheck[], view: CategoryView, dietTotalOn: TotalFn, goalsTotalOn: TotalFn,
+): { done: number; expected: number } {
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const today = now.getDate();
-  if (today === 0) return 0;
+  if (today === 0) return { done: 0, expected: 0 };
 
   const nonRejected = checks.filter((c) => c.status !== "rejected");
+
+  // Inicio de la ventana = primer día del mes con algún registro (o hoy si no hay).
+  let startDom = today;
+  for (const c of nonRejected) {
+    if (c.check_date.slice(0, 7) === month) {
+      const d = Number(c.check_date.slice(8, 10));
+      if (d < startDom) startDom = d;
+    }
+  }
   const dayStrs: string[] = [];
-  for (let d = 1; d <= today; d++) dayStrs.push(`${month}-${String(d).padStart(2, "0")}`);
+  for (let d = startDom; d <= today; d++) dayStrs.push(`${month}-${String(d).padStart(2, "0")}`);
+  const inWindow = (ds: string) => dayStrs.includes(ds);
 
   if (view === "general") {
-    const maxPts = today * 13;
     let pts = 0;
+    const maxPts = dayStrs.length * 13;
     for (const ds of dayStrs) {
       const dt = dietTotalOn(ds);
       const gt = goalsTotalOn(ds);
@@ -298,27 +313,29 @@ function calcPct(checks: DailyCheck[], view: CategoryView, dietTotalOn: TotalFn,
       const gymPts = dc.some((c) => c.kind === "gym") ? 3 : 0;
       const dietDone = dc.filter((c) => c.kind === "diet").length;
       const goalDone = dc.filter((c) => c.kind === "goal").length;
-      pts += gymPts + (dt > 0 ? Math.floor((dietDone / dt) * 5) : 0) + (gt > 0 ? Math.floor((goalDone / gt) * 5) : 0);
+      pts += gymPts + (dt > 0 ? Math.min(5, Math.floor((dietDone / dt) * 5)) : 0) + (gt > 0 ? Math.min(5, Math.floor((goalDone / gt) * 5)) : 0);
     }
-    return Math.min(100, Math.round((pts / maxPts) * 100));
+    return { done: pts, expected: maxPts };
   }
   if (view === "ejercicio") {
-    const done = new Set(nonRejected.filter((c) => c.kind === "gym").map((c) => c.check_date)).size;
-    return Math.round((done / today) * 100);
+    const done = new Set(nonRejected.filter((c) => c.kind === "gym" && inWindow(c.check_date)).map((c) => c.check_date)).size;
+    return { done, expected: dayStrs.length };
   }
   if (view === "dieta") {
-    const denom = dayStrs.reduce((sum, ds) => sum + dietTotalOn(ds), 0);
-    if (denom === 0) return 0;
-    const done = nonRejected.filter((c) => c.kind === "diet").length;
-    return Math.min(100, Math.round((done / denom) * 100));
+    const expected = dayStrs.reduce((sum, ds) => sum + dietTotalOn(ds), 0);
+    const done = nonRejected.filter((c) => c.kind === "diet" && inWindow(c.check_date)).length;
+    return { done: Math.min(done, expected), expected };
   }
-  if (view === "metas") {
-    const denom = dayStrs.reduce((sum, ds) => sum + goalsTotalOn(ds), 0);
-    if (denom === 0) return 0;
-    const done = nonRejected.filter((c) => c.kind === "goal").length;
-    return Math.min(100, Math.round((done / denom) * 100));
-  }
-  return 0;
+  // metas
+  const expected = dayStrs.reduce((sum, ds) => sum + goalsTotalOn(ds), 0);
+  const done = nonRejected.filter((c) => c.kind === "goal" && inWindow(c.check_date)).length;
+  return { done: Math.min(done, expected), expected };
+}
+
+function calcPct(checks: DailyCheck[], view: CategoryView, dietTotalOn: TotalFn, goalsTotalOn: TotalFn): number {
+  const { done, expected } = monthStats(checks, view, dietTotalOn, goalsTotalOn);
+  if (expected <= 0) return 0;
+  return Math.min(100, Math.round((done / expected) * 100));
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────
@@ -372,6 +389,15 @@ export function StatsSection({ checks, dietTotalOn, goalsTotalOn, view, onViewCh
 
   const cfg = CATEGORY_CONFIG[view];
   const pct = calcPct(checks, view, dietTotalOn, goalsTotalOn);
+  const stats = monthStats(checks, view, dietTotalOn, goalsTotalOn);
+  const statsLabel =
+    view === "general"
+      ? `${stats.done}/${stats.expected} pts este mes`
+      : view === "ejercicio"
+      ? `${stats.done}/${stats.expected} días entrenados`
+      : view === "dieta"
+      ? `${stats.done}/${stats.expected} comidas registradas`
+      : `${stats.done}/${stats.expected} metas cumplidas`;
 
   return (
     <div>
@@ -425,7 +451,7 @@ export function StatsSection({ checks, dietTotalOn, goalsTotalOn, view, onViewCh
       >
         {/* Bar chart */}
         <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4 mb-3.5">
-          <div className="flex justify-between items-baseline mb-3">
+          <div className="flex justify-between items-baseline mb-1">
             <span className="text-[12px] text-[var(--color-muted)]">
               Progreso de {monthName} · {cfg.label}
             </span>
@@ -433,6 +459,7 @@ export function StatsSection({ checks, dietTotalOn, goalsTotalOn, view, onViewCh
               {pct}%
             </span>
           </div>
+          <p className="text-[11px] text-[var(--color-muted)] mb-3">{statsLabel}</p>
           <BarChart checks={checks} view={view} month={month} dietTotalOn={dietTotalOn} goalsTotalOn={goalsTotalOn} />
         </div>
 
