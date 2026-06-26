@@ -12,6 +12,7 @@ import {
 } from "@/lib/hooks/useChallenges";
 import { CreateChallengeDrawer } from "@/components/grupo/CreateChallengeDrawer";
 import { AttendanceDrawer } from "@/components/grupo/AttendanceDrawer";
+import { ChallengeDetailDrawer } from "@/components/grupo/ChallengeDetailDrawer";
 
 function MemoryThumb({ m }: { m: Memory }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export function ChallengesSection({ groupId, isOwner, members }: { groupId: stri
   const [createOpen, setCreateOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [attendanceFor, setAttendanceFor] = useState<Challenge | null>(null);
+  const [detailFor, setDetailFor] = useState<Challenge | null>(null);
 
   const canCreate = plan?.is_super_admin || plan?.tier === "pro" || plan?.tier === "elite";
   const today = new Date();
@@ -78,7 +80,7 @@ export function ChallengesSection({ groupId, isOwner, members }: { groupId: stri
             return (
               <div key={c.id} className="rounded-[14px] p-3.5"
                 style={{ background: "var(--color-bg-card)", border: isToday ? "1px solid rgba(239,200,139,0.4)" : "1px solid var(--color-border)" }}>
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 cursor-pointer" onClick={() => setDetailFor(c)}>
                   <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: isToday ? "rgba(239,200,139,0.15)" : "var(--color-surface)" }}>
                     <Flag size={16} strokeWidth={1.5} className={isToday ? "text-warm" : "text-[var(--color-muted)]"} />
                   </div>
@@ -93,7 +95,7 @@ export function ChallengesSection({ groupId, isOwner, members }: { groupId: stri
                     </p>
                   </div>
                   {isOwner && (
-                    <button onClick={() => del.mutate({ challengeId: c.id, groupId })} className="flex-shrink-0 p-1">
+                    <button onClick={(e) => { e.stopPropagation(); del.mutate({ challengeId: c.id, groupId }); }} className="flex-shrink-0 p-1">
                       <Trash2 size={14} strokeWidth={1.5} className="text-[var(--color-muted)]" />
                     </button>
                   )}
@@ -121,6 +123,7 @@ export function ChallengesSection({ groupId, isOwner, members }: { groupId: stri
         </>
       )}
 
+      <ChallengeDetailDrawer open={!!detailFor} onClose={() => setDetailFor(null)} challenge={detailFor} />
       <CreateChallengeDrawer open={createOpen} onClose={() => setCreateOpen(false)} groupId={groupId} />
       <UpgradeDrawer open={upgradeOpen} onClose={() => setUpgradeOpen(false)}
         title="Retos grupales: Pro o Elite"

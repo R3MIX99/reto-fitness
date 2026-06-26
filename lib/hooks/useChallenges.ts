@@ -54,6 +54,47 @@ export function scheduleLabel(c: Challenge): string {
   }
 }
 
+// Próxima fecha en que ocurre el reto (o null si ya pasó / no aplica).
+export function nextOccurrence(c: Challenge): Date | null {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  switch (c.recurrence) {
+    case "daily": return today;
+    case "once": {
+      if (!c.challenge_date) return null;
+      const d = new Date(c.challenge_date + "T00:00:00");
+      return d >= today ? d : null;
+    }
+    case "weekly": {
+      const days = c.weekdays ?? [];
+      if (!days.length) return null;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(today); d.setDate(today.getDate() + i);
+        if (days.includes(d.getDay())) return d;
+      }
+      return null;
+    }
+    case "monthly": {
+      if (!c.day_of_month) return null;
+      const d = new Date(today);
+      if (today.getDate() <= c.day_of_month) d.setDate(c.day_of_month);
+      else d.setMonth(d.getMonth() + 1, c.day_of_month);
+      return d;
+    }
+  }
+}
+
+export function formatLongDate(d: Date): string {
+  const s = d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+const RECURRENCE_LABEL: Record<Recurrence, string> = {
+  daily: "Diario", weekly: "Semanal", monthly: "Mensual", once: "Una sola vez",
+};
+export function recurrenceLabel(c: Challenge): string {
+  return RECURRENCE_LABEL[c.recurrence];
+}
+
 // ── Queries ──────────────────────────────────────────────────────────
 
 export function useGroupChallenges(groupId: string | null) {
