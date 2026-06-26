@@ -1,16 +1,16 @@
 "use client";
 
-import { Home, CheckSquare, Plus, Users, ClipboardList } from "lucide-react";
+import { Home, CheckSquare, Plus, Users, Trophy } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { EvidenciaSheet } from "@/components/ui/EvidenciaSheet";
 
 const NAV_LINKS = [
-  { href: "/dashboard",       Icon: Home,          label: "Inicio"     },
-  { href: "/checklist",       Icon: CheckSquare,   label: "Checklist"  },
-  { href: "/grupo",           Icon: Users,         label: "Grupo"      },
-  { href: "/mis-auditorias",  Icon: ClipboardList, label: "Auditorías" },
+  { href: "/dashboard", Icon: Home,        label: "Inicio"    },
+  { href: "/checklist", Icon: CheckSquare, label: "Checklist" },
+  { href: "/grupo",     Icon: Users,       label: "Grupo"     },
+  { href: "/liga",      Icon: Trophy,      label: "Liga"      },
 ] as const;
 
 const LEFT  = NAV_LINKS.slice(0, 2);
@@ -57,7 +57,7 @@ export function BottomNav() {
               key={href}
               href={href}
               aria-label={label}
-              data-tour={href === "/mis-auditorias" ? "nav-audit" : undefined}
+              data-tour={href === "/liga" ? "nav-liga" : undefined}
               className="relative flex flex-col items-center justify-center w-11 h-11 rounded-full transition-transform"
               style={{ transform: active ? "translateY(-4px)" : "none" }}
             >

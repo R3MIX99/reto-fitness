@@ -86,6 +86,93 @@ export function useMyLeagues(groupId: string | undefined) {
   });
 }
 
+export interface LeagueEntry {
+  league: LeagueWithParticipants;
+  myGroupId: string;
+  isOwner: boolean;
+}
+
+/**
+ * Todas las ligas (activas + terminadas) en TODOS los grupos del usuario.
+ * Devuelve también qué grupo del usuario está en cada liga y si es dueño.
+ */
+export function useAllLeagues() {
+  const { user } = useUser();
+  return useQuery({
+    queryKey: ["allLeagues", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<{ active: LeagueEntry[]; finished: LeagueEntry[]; pending: any[] }> => {
+      const supabase = createClient() as any;
+
+      // Grupos del usuario (con owner_id)
+      const { data: memberships, error: me } = await supabase
+        .from("group_members")
+        .select("group_id, groups(id, name, owner_id, invite_code)")
+        .eq("user_id", user!.id);
+      if (me) throw me;
+      const groupIds: string[] = (memberships ?? []).map((m: any) => m.group_id);
+      if (groupIds.length === 0) return { active: [], finished: [], pending: [] };
+
+      const myGroups: Record<string, { name: string; owner_id: string }> = {};
+      (memberships ?? []).forEach((m: any) => {
+        if (m.groups) myGroups[m.group_id] = m.groups;
+      });
+
+      // Participaciones en ligas (como owner o como invitado aceptado)
+      const { data: participations, error: pe } = await supabase
+        .from("league_participants")
+        .select("group_id, status, league:group_leagues(*, participants:league_participants(*, groups(id, name)))")
+        .in("group_id", groupIds)
+        .in("status", ["accepted"]);
+      if (pe) throw pe;
+
+      // También ligas donde mi grupo es owner_group_id
+      const { data: owned, error: oe } = await supabase
+        .from("group_leagues")
+        .select("*, participants:league_participants(*, groups(id, name))")
+        .in("owner_group_id", groupIds);
+      if (oe) throw oe;
+
+      // Invitaciones pendientes (como grupo invitado)
+      const { data: pendingInvites, error: pie } = await supabase
+        .from("league_participants")
+        .select("*, league:group_leagues(id, name, start_date, end_date, owner_group_id, owner_group:groups!group_leagues_owner_group_id_fkey(name))")
+        .in("group_id", groupIds)
+        .eq("status", "pending");
+      if (pie) throw pie;
+
+      const seen = new Set<string>();
+      const entries: LeagueEntry[] = [];
+
+      // Combinar owned + participations
+      const allLeagues: Array<{ league: LeagueWithParticipants; myGroupId: string }> = [];
+
+      (owned ?? []).forEach((l: LeagueWithParticipants) => {
+        allLeagues.push({ league: l, myGroupId: l.owner_group_id });
+      });
+      (participations ?? []).forEach((p: any) => {
+        if (p.league) allLeagues.push({ league: p.league, myGroupId: p.group_id });
+      });
+
+      allLeagues.forEach(({ league, myGroupId }) => {
+        if (seen.has(league.id)) return;
+        seen.add(league.id);
+        entries.push({
+          league,
+          myGroupId,
+          isOwner: myGroups[myGroupId]?.owner_id === user!.id,
+        });
+      });
+
+      return {
+        active: entries.filter((e) => e.league.status === "active"),
+        finished: entries.filter((e) => e.league.status === "finished"),
+        pending: pendingInvites ?? [],
+      };
+    },
+  });
+}
+
 /** Invitaciones pendientes para un grupo del que soy dueño */
 export function usePendingLeagueInvites(groupId: string | undefined) {
   const { user } = useUser();
@@ -189,6 +276,7 @@ export function useCreateLeague() {
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["myLeagues", vars.ownerGroupId] });
+      qc.invalidateQueries({ queryKey: ["allLeagues"] });
     },
   });
 }
@@ -217,6 +305,7 @@ export function useRespondLeagueInvite() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["pendingLeagueInvites", vars.groupId] });
       qc.invalidateQueries({ queryKey: ["myLeagues", vars.groupId] });
+      qc.invalidateQueries({ queryKey: ["allLeagues"] });
     },
   });
 }

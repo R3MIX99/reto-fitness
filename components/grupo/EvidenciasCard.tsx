@@ -36,18 +36,29 @@ export function EvidenciasCard({ pending, onReview, onViewHistory }: EvidenciasC
           : "Todo revisado por esta semana"}
       </p>
 
-      <button
-        onClick={hasPending ? onReview : onViewHistory}
-        className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium rounded-[12px] py-2.5 transition-opacity"
-        style={{
-          background: hasPending ? "#CF5C36" : "var(--color-surface)",
-          color: hasPending ? "white" : "var(--color-muted)",
-          border: hasPending ? "none" : "1px solid var(--color-border)",
-        }}
-      >
-        <ClipboardList size={14} strokeWidth={1.5} />
-        {hasPending ? "Revisar evidencias" : "Ver auditoría"}
-      </button>
+      <div className="flex flex-col gap-2">
+        {hasPending && (
+          <button
+            onClick={onReview}
+            className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium rounded-[12px] py-2.5 bg-[#CF5C36] text-white"
+          >
+            <ClipboardList size={14} strokeWidth={1.5} />
+            Revisar evidencias
+          </button>
+        )}
+        <button
+          onClick={onViewHistory}
+          className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium rounded-[12px] py-2.5 transition-opacity"
+          style={{
+            background: "var(--color-surface)",
+            color: "var(--color-muted)",
+            border: "1px solid var(--color-border)",
+          }}
+        >
+          <ClipboardList size={14} strokeWidth={1.5} />
+          Ver mis auditorías
+        </button>
+      </div>
     </div>
   );
 }
