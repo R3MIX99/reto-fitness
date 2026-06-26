@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Drawer } from "@/components/ui/Drawer";
 import { useCreateChallenge, type Recurrence } from "@/lib/hooks/useChallenges";
 
@@ -30,13 +30,39 @@ export function CreateChallengeDrawer({ open, onClose, groupId }: { open: boolea
     setDayOfMonth(1); setDate(""); setTime(""); setPoints(3); setError(null);
   }
 
-  function toggleDay(v: number) {
-    setWeekdays((prev) => {
-      const next = new Set(prev);
-      if (next.has(v)) next.delete(v); else next.add(v);
-      return next;
-    });
+  // ── Selección de días con swipe (arrastrar para pintar/despintar) ──
+  const dragRef = useRef<{ anchor: number; mode: "add" | "remove"; base: Set<number> } | null>(null);
+
+  function idxFromPoint(x: number, y: number): number | null {
+    const el = document.elementFromPoint(x, y)?.closest("[data-day-idx]") as HTMLElement | null;
+    return el ? Number(el.dataset.dayIdx) : null;
   }
+  function applyRange(anchor: number, j: number, mode: "add" | "remove", base: Set<number>) {
+    const lo = Math.min(anchor, j), hi = Math.max(anchor, j);
+    const next = new Set(base);
+    for (let i = lo; i <= hi; i++) {
+      const v = WEEKDAYS[i].v;
+      if (mode === "add") next.add(v); else next.delete(v);
+    }
+    setWeekdays(next);
+  }
+  function onDayPointerDown(e: React.PointerEvent) {
+    const idx = idxFromPoint(e.clientX, e.clientY);
+    if (idx == null) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const base = new Set(weekdays);
+    const mode: "add" | "remove" = weekdays.has(WEEKDAYS[idx].v) ? "remove" : "add";
+    dragRef.current = { anchor: idx, mode, base };
+    applyRange(idx, idx, mode, base);
+  }
+  function onDayPointerMove(e: React.PointerEvent) {
+    if (!dragRef.current) return;
+    const j = idxFromPoint(e.clientX, e.clientY);
+    if (j == null) return;
+    const { anchor, mode, base } = dragRef.current;
+    applyRange(anchor, j, mode, base);
+  }
+  function endDrag() { dragRef.current = null; }
 
   async function submit() {
     if (!title.trim()) { setError("Ponle un nombre al reto"); return; }
@@ -72,11 +98,14 @@ export function CreateChallengeDrawer({ open, onClose, groupId }: { open: boolea
         />
 
         <label className="text-[12px] text-[var(--color-muted)]">Descripción (opcional)</label>
-        <input
-          value={desc} onChange={(e) => setDesc(e.target.value)}
+        <textarea
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          onInput={(e) => { const t = e.currentTarget; t.style.height = "auto"; t.style.height = `${t.scrollHeight}px`; }}
+          rows={1}
           placeholder="Detalles del reto"
-          className="w-full mt-1 mb-3 rounded-[12px] px-3.5 py-2.5 text-[14px] outline-none"
-          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+          className="w-full mt-1 mb-3 rounded-[12px] px-3.5 py-2.5 text-[14px] outline-none resize-none overflow-hidden leading-snug"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", minHeight: 44 }}
         />
 
         <label className="text-[12px] text-[var(--color-muted)]">Frecuencia</label>
@@ -96,19 +125,26 @@ export function CreateChallengeDrawer({ open, onClose, groupId }: { open: boolea
 
         {recurrence === "weekly" && (
           <>
-            <p className="text-[11px] text-[var(--color-muted)] mb-1.5">Elige uno o varios días</p>
-            <div className="grid grid-cols-7 gap-1.5 mb-3">
-              {WEEKDAYS.map((d) => {
+            <p className="text-[11px] text-[var(--color-muted)] mb-1.5">Elige uno o varios días · puedes deslizar</p>
+            <div
+              className="grid grid-cols-7 gap-1.5 mb-3 select-none"
+              style={{ touchAction: "none" }}
+              onPointerDown={onDayPointerDown}
+              onPointerMove={onDayPointerMove}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+            >
+              {WEEKDAYS.map((d, i) => {
                 const on = weekdays.has(d.v);
                 return (
-                  <button key={d.v} onClick={() => toggleDay(d.v)}
-                    className="rounded-[9px] py-2 text-[11px] font-medium transition-colors"
+                  <div key={d.v} data-day-idx={i}
+                    className="rounded-[9px] py-2 text-[11px] font-medium text-center transition-colors"
                     style={{
                       background: on ? "var(--color-warm)" : "var(--color-surface)",
                       color: on ? "#1a1000" : "var(--color-muted)",
                       border: on ? "none" : "1px solid var(--color-border)",
                     }}
-                  >{d.l}</button>
+                  >{d.l}</div>
                 );
               })}
             </div>
