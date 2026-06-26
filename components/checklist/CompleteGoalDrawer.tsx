@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Camera, Timer, Play, Pause, RotateCcw, Check, Mic, Video } from "lucide-react";
+import { Camera, Timer, Play, Pause, RotateCcw, Check, Video } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
+import { AudioRecorder } from "@/components/ui/AudioRecorder";
 import type { Goal, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 
 function fmt(sec: number): string {
@@ -55,29 +56,27 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
   const [after, setAfter] = useState<File | null>(null);     // "después"
   const [audio, setAudio] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
-  const [urls, setUrls] = useState<{ photo?: string; after?: string; audio?: string }>({});
+  const [urls, setUrls] = useState<{ photo?: string; after?: string }>({});
   const [summary, setSummary] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const audioRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) { setPhoto(null); setAfter(null); setAudio(null); setVideo(null); setSummary(""); setElapsed(0); setRunning(false); setError(null); }
   }, [open]);
 
-  // Previews (object URLs)
+  // Previews (object URLs) — el audio gestiona su propia URL en AudioRecorder
   useEffect(() => {
-    const next: { photo?: string; after?: string; audio?: string } = {};
+    const next: { photo?: string; after?: string } = {};
     if (photo) next.photo = URL.createObjectURL(photo);
     if (after) next.after = URL.createObjectURL(after);
-    if (audio) next.audio = URL.createObjectURL(audio);
     setUrls(next);
     return () => Object.values(next).forEach((u) => u && URL.revokeObjectURL(u));
-  }, [photo, after, audio]);
+  }, [photo, after]);
 
   useEffect(() => {
     if (!running) return;
@@ -167,22 +166,10 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
           </div>
         )}
 
-        {/* Audio */}
+        {/* Audio: grabador nativo (estilo WhatsApp) */}
         {audioMod && (
-          <div className="rounded-[14px] px-3.5 py-3 mb-4" style={{ background: "var(--color-surface)" }}>
-            <button onClick={() => { if (audioRef.current) { audioRef.current.value = ""; audioRef.current.click(); } }}
-              className="w-full flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: audio ? "rgba(34,197,94,0.15)" : "rgba(239,200,139,0.15)" }}>
-                {audio ? <Check size={16} strokeWidth={2} className="text-green-400" /> : <Mic size={16} strokeWidth={1.5} className="text-warm" />}
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-[13px]">{audio ? "Audio grabado" : "Grabar audio"}</p>
-                <p className="text-[11px] text-[var(--color-muted)]">{audio ? "Toca para grabar de nuevo" : "Nota de voz"}</p>
-              </div>
-            </button>
-            {urls.audio && <audio controls src={urls.audio} className="w-full mt-2.5 h-9" />}
-            <input ref={audioRef} type="file" accept="audio/*" capture className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) setAudio(f); }} />
+          <div className="mb-4">
+            <AudioRecorder value={audio} onChange={setAudio} />
           </div>
         )}
 

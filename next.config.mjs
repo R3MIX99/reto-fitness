@@ -18,8 +18,8 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   // No envía el path completo en el Referer al navegar a otros orígenes
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  // Deshabilita micrófono y geolocalización; cámara solo para este origen
-  { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
+  // Cámara y micrófono solo para este origen (grabación de evidencia/audio); geolocalización deshabilitada
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
   // CSP: unsafe-inline/eval son necesarios para Next.js, pero se restringe
   // de dónde se pueden cargar imágenes, conectar y embeber frames.
   {
