@@ -18,7 +18,7 @@ export function CreateChallengeDrawer({ open, onClose, groupId }: { open: boolea
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [recurrence, setRecurrence] = useState<Recurrence>("weekly");
-  const [weekday, setWeekday] = useState(1);
+  const [weekdays, setWeekdays] = useState<Set<number>>(new Set([1]));
   const [dayOfMonth, setDayOfMonth] = useState(1);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -26,18 +26,27 @@ export function CreateChallengeDrawer({ open, onClose, groupId }: { open: boolea
   const [error, setError] = useState<string | null>(null);
 
   function reset() {
-    setTitle(""); setDesc(""); setRecurrence("weekly"); setWeekday(1);
+    setTitle(""); setDesc(""); setRecurrence("weekly"); setWeekdays(new Set([1]));
     setDayOfMonth(1); setDate(""); setTime(""); setPoints(3); setError(null);
+  }
+
+  function toggleDay(v: number) {
+    setWeekdays((prev) => {
+      const next = new Set(prev);
+      if (next.has(v)) next.delete(v); else next.add(v);
+      return next;
+    });
   }
 
   async function submit() {
     if (!title.trim()) { setError("Ponle un nombre al reto"); return; }
+    if (recurrence === "weekly" && weekdays.size === 0) { setError("Elige al menos un día"); return; }
     if (recurrence === "once" && !date) { setError("Elige la fecha del reto"); return; }
     setError(null);
     try {
       await create.mutateAsync({
         groupId, title: title.trim(), description: desc.trim(), recurrence,
-        weekday: recurrence === "weekly" ? weekday : null,
+        weekdays: recurrence === "weekly" ? Array.from(weekdays).sort((a, b) => a - b) : null,
         dayOfMonth: recurrence === "monthly" ? dayOfMonth : null,
         challengeDate: recurrence === "once" ? date : null,
         atTime: time || null, points,
@@ -86,18 +95,24 @@ export function CreateChallengeDrawer({ open, onClose, groupId }: { open: boolea
         </div>
 
         {recurrence === "weekly" && (
-          <div className="grid grid-cols-7 gap-1.5 mb-3">
-            {WEEKDAYS.map((d) => (
-              <button key={d.v} onClick={() => setWeekday(d.v)}
-                className="rounded-[9px] py-2 text-[11px] font-medium transition-colors"
-                style={{
-                  background: weekday === d.v ? "var(--color-warm)" : "var(--color-surface)",
-                  color: weekday === d.v ? "#1a1000" : "var(--color-muted)",
-                  border: weekday === d.v ? "none" : "1px solid var(--color-border)",
-                }}
-              >{d.l}</button>
-            ))}
-          </div>
+          <>
+            <p className="text-[11px] text-[var(--color-muted)] mb-1.5">Elige uno o varios días</p>
+            <div className="grid grid-cols-7 gap-1.5 mb-3">
+              {WEEKDAYS.map((d) => {
+                const on = weekdays.has(d.v);
+                return (
+                  <button key={d.v} onClick={() => toggleDay(d.v)}
+                    className="rounded-[9px] py-2 text-[11px] font-medium transition-colors"
+                    style={{
+                      background: on ? "var(--color-warm)" : "var(--color-surface)",
+                      color: on ? "#1a1000" : "var(--color-muted)",
+                      border: on ? "none" : "1px solid var(--color-border)",
+                    }}
+                  >{d.l}</button>
+                );
+              })}
+            </div>
+          </>
         )}
         {recurrence === "monthly" && (
           <div className="mb-3">

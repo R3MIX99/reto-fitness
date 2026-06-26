@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useProfile } from "@/lib/hooks/useProfile";
+import { useMyGroups, useTodayScore } from "@/lib/hooks/useGroups";
 
 const QUOTES = [
   "Tú puedes. Un día más de constancia te acerca a la cima.",
@@ -22,13 +23,14 @@ function randomQuote(): string {
   return QUOTES[Math.floor(Math.random() * QUOTES.length)];
 }
 
-interface WelcomeSplashProps {
-  pointsToday?: number;
-  maxPoints?: number;
-}
+const MAX_POINTS = 13;
 
-export function WelcomeSplash({ pointsToday = 0, maxPoints = 13 }: WelcomeSplashProps) {
+export function WelcomeSplash() {
   const { displayName } = useProfile();
+  // Puntos reales de hoy del grupo principal (mismo origen que el dashboard)
+  const { data: groups = [] } = useMyGroups();
+  const { data: pointsToday = 0 } = useTodayScore(groups[0]?.id ?? null);
+  const maxPoints = MAX_POINTS;
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
 

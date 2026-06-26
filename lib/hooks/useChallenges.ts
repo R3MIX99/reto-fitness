@@ -12,7 +12,7 @@ export interface Challenge {
   title: string;
   description: string | null;
   recurrence: Recurrence;
-  weekday: number | null;
+  weekdays: number[] | null;
   day_of_month: number | null;
   challenge_date: string | null;
   at_time: string | null;
@@ -20,6 +20,7 @@ export interface Challenge {
 }
 
 const WEEKDAYS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const WEEKDAYS_SHORT = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function localDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -32,7 +33,7 @@ export function todayLocalStr(): string {
 export function occursOn(c: Challenge, date: Date): boolean {
   switch (c.recurrence) {
     case "daily":   return true;
-    case "weekly":  return c.weekday === date.getDay();
+    case "weekly":  return (c.weekdays ?? []).includes(date.getDay());
     case "monthly": return c.day_of_month === date.getDate();
     case "once":    return c.challenge_date === localDateStr(date);
   }
@@ -43,7 +44,11 @@ export function scheduleLabel(c: Challenge): string {
   const t = c.at_time ? ` · ${c.at_time}` : "";
   switch (c.recurrence) {
     case "daily":   return `Cada día${t}`;
-    case "weekly":  return `Cada ${WEEKDAYS[c.weekday ?? 0]}${t}`;
+    case "weekly": {
+      const days = (c.weekdays ?? []).slice().sort((a, b) => a - b);
+      if (days.length === 7) return `Cada día${t}`;
+      return `${days.map((d) => WEEKDAYS_SHORT[d]).join(", ")}${t}`;
+    }
     case "monthly": return `Día ${c.day_of_month} de cada mes${t}`;
     case "once":    return `${c.challenge_date}${t}`;
   }
@@ -129,7 +134,7 @@ export function useCreateChallenge() {
   return useMutation({
     mutationFn: async (input: {
       groupId: string; title: string; description?: string; recurrence: Recurrence;
-      weekday?: number | null; dayOfMonth?: number | null; challengeDate?: string | null;
+      weekdays?: number[] | null; dayOfMonth?: number | null; challengeDate?: string | null;
       atTime?: string | null; points: number;
     }): Promise<void> => {
       const supabase = createClient();
@@ -138,7 +143,7 @@ export function useCreateChallenge() {
         p_title: input.title,
         p_description: input.description ?? null,
         p_recurrence: input.recurrence,
-        p_weekday: input.weekday ?? null,
+        p_weekdays: input.weekdays ?? null,
         p_day_of_month: input.dayOfMonth ?? null,
         p_challenge_date: input.challengeDate ?? null,
         p_at_time: input.atTime ?? null,

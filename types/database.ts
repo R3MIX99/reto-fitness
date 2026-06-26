@@ -69,9 +69,9 @@ export type Database = {
         Relationships: []
       }
       group_challenges: {
-        Row: { active: boolean; at_time: string | null; challenge_date: string | null; created_at: string; created_by: string; day_of_month: number | null; description: string | null; group_id: string; id: string; points: number; recurrence: string; title: string; weekday: number | null }
-        Insert: { active?: boolean; at_time?: string | null; challenge_date?: string | null; created_at?: string; created_by: string; day_of_month?: number | null; description?: string | null; group_id: string; id?: string; points?: number; recurrence: string; title: string; weekday?: number | null }
-        Update: { active?: boolean; at_time?: string | null; challenge_date?: string | null; created_at?: string; created_by?: string; day_of_month?: number | null; description?: string | null; group_id?: string; id?: string; points?: number; recurrence?: string; title?: string; weekday?: number | null }
+        Row: { active: boolean; at_time: string | null; challenge_date: string | null; created_at: string; created_by: string; day_of_month: number | null; description: string | null; group_id: string; id: string; points: number; recurrence: string; title: string; weekday: number | null; weekdays: number[] | null }
+        Insert: { active?: boolean; at_time?: string | null; challenge_date?: string | null; created_at?: string; created_by: string; day_of_month?: number | null; description?: string | null; group_id: string; id?: string; points?: number; recurrence: string; title: string; weekday?: number | null; weekdays?: number[] | null }
+        Update: { active?: boolean; at_time?: string | null; challenge_date?: string | null; created_at?: string; created_by?: string; day_of_month?: number | null; description?: string | null; group_id?: string; id?: string; points?: number; recurrence?: string; title?: string; weekday?: number | null; weekdays?: number[] | null }
         Relationships: []
       }
       daily_checks: {
