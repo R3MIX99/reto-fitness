@@ -18,7 +18,21 @@ function fmt(sec: number): string {
 
 function pickMime(): string {
   if (typeof MediaRecorder === "undefined") return "";
-  const types = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac", "audio/ogg"];
+  // Probador de reproducción: preferimos un formato que el dispositivo pueda
+  // GRABAR y además REPRODUCIR (algunos Android graban webm pero no lo decodifican).
+  let probe: HTMLAudioElement | null = null;
+  try { probe = document.createElement("audio"); } catch { probe = null; }
+  const canPlay = (t: string) => {
+    if (!probe) return true;
+    const base = t.split(";")[0];
+    return probe.canPlayType(t) !== "" || probe.canPlayType(base) !== "";
+  };
+  const types = ["audio/mp4", "audio/aac", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"];
+  // 1ª pasada: grabable Y reproducible.
+  for (const t of types) {
+    try { if (MediaRecorder.isTypeSupported(t) && canPlay(t)) return t; } catch { /* noop */ }
+  }
+  // 2ª pasada: al menos grabable (la previa puede fallar, pero se guarda igual).
   for (const t of types) {
     try { if (MediaRecorder.isTypeSupported(t)) return t; } catch { /* noop */ }
   }
@@ -48,7 +62,6 @@ export function AudioRecorder({
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);        // 0..1 durante reproducción
   const [bars, setBars] = useState<number[]>(() => new Array(BARS).fill(0.08));
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   // Refs de grabación
   const streamRef = useRef<MediaStream | null>(null);
@@ -61,8 +74,20 @@ export function AudioRecorder({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ampHistory = useRef<number[]>([]);            // amplitudes capturadas
 
-  // Reproducción
-  const audioElRef = useRef<HTMLAudioElement | null>(null);
+  // Reproducción (Web Audio: decodifica el blob y lo reproduce; más confiable
+  // que <audio> con grabaciones webm sin duración en el contenedor).
+  const playCtxRef = useRef<AudioContext | null>(null);
+  const bufferRef = useRef<AudioBuffer | null>(null);
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const startedAtRef = useRef(0);        // ctx.currentTime cuando empezó (menos offset)
+  const offsetRef = useRef(0);           // segundos reproducidos (para pausa)
+  const manualStopRef = useRef(false);   // distingue stop manual de fin natural
+  const playRafRef = useRef<number | null>(null);
+
+  const stopPlayRaf = useCallback(() => {
+    if (playRafRef.current) cancelAnimationFrame(playRafRef.current);
+    playRafRef.current = null;
+  }, []);
 
   const stopMeter = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -120,16 +145,36 @@ export function AudioRecorder({
 
   // Limpieza global al desmontar
   useEffect(() => {
-    return () => { teardownRecording(); };
-  }, [teardownRecording]);
+    return () => {
+      teardownRecording();
+      stopPlayRaf();
+      try { sourceRef.current?.stop(); } catch { /* noop */ }
+      sourceRef.current = null;
+      if (playCtxRef.current) { playCtxRef.current.close().catch(() => {}); playCtxRef.current = null; }
+    };
+  }, [teardownRecording, stopPlayRaf]);
 
-  // La URL de reproducción se deriva del archivo (value). Reactiva: el <audio>
-  // siempre recibe la fuente correcta tras grabar o al reabrir con audio previo.
+  // Decodifica el archivo a un AudioBuffer para reproducirlo con Web Audio.
+  // También obtiene la duración real (los webm de MediaRecorder no la traen).
   useEffect(() => {
-    if (!value) { setAudioUrl(null); return; }
-    const u = URL.createObjectURL(value);
-    setAudioUrl(u);
-    return () => URL.revokeObjectURL(u);
+    if (!value) { bufferRef.current = null; return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const buf = await value.arrayBuffer();
+        const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const ctx = playCtxRef.current ?? new Ctx();
+        playCtxRef.current = ctx;
+        const decoded = await ctx.decodeAudioData(buf.slice(0));
+        if (cancelled) return;
+        bufferRef.current = decoded;
+        offsetRef.current = 0;
+        if (isFinite(decoded.duration) && decoded.duration > 0) setDuration(decoded.duration);
+      } catch {
+        if (!cancelled) bufferRef.current = null; // se usará la duración del cronómetro
+      }
+    })();
+    return () => { cancelled = true; };
   }, [value]);
 
   // Si el padre limpia el value (p. ej. al reabrir el drawer), volver a reposo
@@ -232,36 +277,74 @@ export function AudioRecorder({
     setBars(new Array(BARS).fill(0.08));
   }
 
-  function discard() {
-    if (audioElRef.current) { audioElRef.current.pause(); }
+  function stopSource(manual: boolean) {
+    if (sourceRef.current) {
+      manualStopRef.current = manual;
+      try { sourceRef.current.stop(); } catch { /* noop */ }
+      sourceRef.current = null;
+    }
+    stopPlayRaf();
+  }
+
+  function pausePlayback() {
+    const ctx = playCtxRef.current;
+    if (ctx && sourceRef.current) {
+      offsetRef.current = Math.max(0, ctx.currentTime - startedAtRef.current);
+    }
+    stopSource(true);
     setPlaying(false);
+  }
+
+  function discard() {
+    pausePlayback();
+    offsetRef.current = 0;
     setProgress(0);
     setBars(new Array(BARS).fill(0.08));
-    onChange(null); // el efecto de value revoca la URL
+    onChange(null);
     setPhase("idle");
   }
 
   async function togglePlay() {
-    const el = audioElRef.current;
-    if (!el) return;
-    if (playing || !el.paused) {
-      el.pause();
+    if (playing) { pausePlayback(); return; }
+    const ctx = playCtxRef.current;
+    const buffer = bufferRef.current;
+    if (!ctx || !buffer) {
+      setError("Aún se está procesando el audio… intenta de nuevo en un segundo.");
       return;
     }
     setError(null);
     try {
-      if (progress >= 1) { try { el.currentTime = 0; } catch { /* webm sin duración */ } }
-      await el.play();
-    } catch {
-      setError("No se pudo reproducir el audio en este dispositivo.");
-    }
-  }
+      await ctx.resume();
+      const total = isFinite(buffer.duration) ? buffer.duration : duration;
+      let offset = offsetRef.current;
+      if (offset >= total - 0.05) offset = 0; // reiniciar si terminó
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(ctx.destination);
+      src.onended = () => {
+        if (manualStopRef.current) { manualStopRef.current = false; return; }
+        // Fin natural
+        offsetRef.current = 0;
+        setPlaying(false);
+        setProgress(0);
+        stopPlayRaf();
+      };
+      src.start(0, offset);
+      sourceRef.current = src;
+      startedAtRef.current = ctx.currentTime - offset;
+      setPlaying(true);
 
-  // Progreso de reproducción basado en la duración del cronómetro (fiable para webm)
-  function onTimeUpdate() {
-    const el = audioElRef.current;
-    if (!el || duration <= 0) return;
-    setProgress(Math.min(1, el.currentTime / duration));
+      const tick = () => {
+        const c = playCtxRef.current;
+        if (!c) return;
+        const t = c.currentTime - startedAtRef.current;
+        setProgress(total > 0 ? Math.min(1, t / total) : 0);
+        playRafRef.current = requestAnimationFrame(tick);
+      };
+      playRafRef.current = requestAnimationFrame(tick);
+    } catch {
+      setError("No se pudo reproducir el audio en este dispositivo. Guárdalo igual: la evidencia sí queda registrada.");
+    }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -327,16 +410,6 @@ export function AudioRecorder({
           </button>
         </div>
 
-        <audio
-          ref={audioElRef}
-          src={audioUrl ?? undefined}
-          preload="auto"
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-          onTimeUpdate={onTimeUpdate}
-          onEnded={() => { setPlaying(false); setProgress(0); }}
-          className="hidden"
-        />
         {error && <p className="text-[11px] text-red-400 mt-2">{error}</p>}
       </div>
     );
