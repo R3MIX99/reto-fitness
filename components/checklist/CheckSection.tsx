@@ -29,7 +29,7 @@ import { CheckItem } from "./CheckItem";
 // "un solo día" solo si su fecha es futura.
 function isUpcomingScheduled(goal: Goal, today: string): boolean {
   const f = goal.config?.frequency;
-  if (f === "monthly") return true;
+  if (f === "weekly" || f === "monthly") return true; // recurrentes
   if (f === "once") return (goal.config?.once_date ?? "") > today;
   return false;
 }

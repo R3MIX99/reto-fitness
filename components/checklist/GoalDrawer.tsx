@@ -44,6 +44,7 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
   const [videoOn, setVideoOn] = useState(false);
   const [beforeAfterOn, setBeforeAfterOn] = useState(false);
   const [frequency, setFrequency] = useState<GoalFrequency>("daily");
+  const [weekdays, setWeekdays] = useState<number[]>([]);
   const [onceDate, setOnceDate] = useState<string>(todayLocalStr());
   const [dayOfMonth, setDayOfMonth] = useState<number>(new Date().getDate());
   const [saving, setSaving] = useState(false);
@@ -59,6 +60,7 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
     setVideoOn(mods.includes("video"));
     setBeforeAfterOn(mods.includes("before_after"));
     setFrequency(goal?.config?.frequency ?? "daily");
+    setWeekdays(goal?.config?.weekdays ?? []);
     setOnceDate(goal?.config?.once_date ?? todayLocalStr());
     setDayOfMonth(goal?.config?.day_of_month ?? new Date().getDate());
     setError(null);
@@ -74,7 +76,8 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
     if (beforeAfterOn) modules.push("before_after");
 
     const freqPart: Partial<GoalConfig> = {};
-    if (frequency === "once") { freqPart.frequency = "once"; freqPart.once_date = onceDate; }
+    if (frequency === "weekly") { freqPart.frequency = "weekly"; freqPart.weekdays = [...weekdays].sort((a, b) => a - b); }
+    else if (frequency === "once") { freqPart.frequency = "once"; freqPart.once_date = onceDate; }
     else if (frequency === "monthly") { freqPart.frequency = "monthly"; freqPart.day_of_month = Math.min(31, Math.max(1, dayOfMonth)); }
 
     // Sin módulos y frecuencia diaria → sin config (meta normal).
@@ -88,6 +91,10 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
 
   async function handleSave() {
     if (!title.trim()) return;
+    if (canCustomize && frequency === "weekly" && weekdays.length === 0) {
+      setError("Elige al menos un día de la semana.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -209,9 +216,10 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
                 )}
               </div>
 
-              <div className="flex gap-2" style={{ opacity: canCustomize ? 1 : 0.55 }}>
+              <div className="grid grid-cols-2 gap-2" style={{ opacity: canCustomize ? 1 : 0.55 }}>
                 {([
                   { v: "daily", label: "Diaria" },
+                  { v: "weekly", label: "Semanal" },
                   { v: "once", label: "Un solo día" },
                   { v: "monthly", label: "Mensual" },
                 ] as { v: GoalFrequency; label: string }[]).map((opt) => {
@@ -219,7 +227,7 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
                   return (
                     <button key={opt.v}
                       onClick={() => canCustomize && setFrequency(opt.v)}
-                      className="flex-1 rounded-[10px] py-2 text-[12px] font-medium transition-colors"
+                      className="rounded-[10px] py-2 text-[12px] font-medium transition-colors"
                       style={{
                         background: active ? "var(--color-warm)" : "var(--color-surface)",
                         color: active ? "#1a1000" : "var(--color-fg)",
@@ -230,6 +238,34 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
                   );
                 })}
               </div>
+
+              {canCustomize && frequency === "weekly" && (
+                <div className="mt-2.5">
+                  <div className="flex gap-1.5 justify-between">
+                    {([
+                      { d: 1, l: "L" }, { d: 2, l: "M" }, { d: 3, l: "M" }, { d: 4, l: "J" },
+                      { d: 5, l: "V" }, { d: 6, l: "S" }, { d: 0, l: "D" },
+                    ]).map(({ d, l }, i) => {
+                      const on = weekdays.includes(d);
+                      return (
+                        <button key={i}
+                          onClick={() => setWeekdays((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d])}
+                          className="flex-1 aspect-square rounded-full text-[12px] font-medium transition-colors"
+                          style={{
+                            background: on ? "var(--color-warm)" : "var(--color-surface)",
+                            color: on ? "#1a1000" : "var(--color-muted)",
+                            border: on ? "1px solid var(--color-warm)" : "1px solid var(--color-border)",
+                          }}>
+                          {l}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-[var(--color-muted)] mt-2">
+                    Esta meta solo aparece y cuenta los días seleccionados.
+                  </p>
+                </div>
+              )}
 
               {canCustomize && frequency === "once" && (
                 <div className="mt-2.5 flex items-center justify-between rounded-[10px] px-3.5 py-2.5" style={{ background: "var(--color-surface)" }}>
@@ -247,7 +283,7 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
                     style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }} />
                 </div>
               )}
-              {canCustomize && frequency !== "daily" && (
+              {canCustomize && (frequency === "once" || frequency === "monthly") && (
                 <p className="text-[11px] text-[var(--color-muted)] mt-2">
                   Esta meta solo aparece y cuenta {frequency === "once" ? "ese día" : "ese día de cada mes"}.
                 </p>

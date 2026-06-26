@@ -12,13 +12,15 @@ export type GoalKind = "gym" | "diet" | "goal";
 
 // Metas personalizables (Pro/Elite): módulos de evidencia opcionales.
 export type GoalModule = "timer" | "summary" | "audio" | "video" | "before_after";
-export type GoalFrequency = "daily" | "once" | "monthly";
+export type GoalFrequency = "daily" | "weekly" | "once" | "monthly";
 export interface GoalConfig {
   modules: GoalModule[];
   timer_minutes?: number;
   // Frecuencia (Pro/Elite). "daily" = todos los días (por defecto).
+  // "weekly" = solo los días de la semana en weekdays (0=domingo … 6=sábado).
   // "once" = solo en once_date. "monthly" = solo el día day_of_month de cada mes.
   frequency?: GoalFrequency;
+  weekdays?: number[];    // 0-6 (getDay) cuando frequency = "weekly"
   once_date?: string;     // "YYYY-MM-DD" cuando frequency = "once"
   day_of_month?: number;  // 1-31 cuando frequency = "monthly"
 }
@@ -72,8 +74,12 @@ export function goalAppliesOn(goal: Goal, dateStr: string): boolean {
     // Inactiva sin fecha (legado): no aplica a ningún día.
     return false;
   }
-  // Frecuencia: una meta de un solo día / mensual solo aplica en su fecha/día.
+  // Frecuencia: semanal / un solo día / mensual solo aplican en sus días.
   const freq = goal.config?.frequency ?? "daily";
+  if (freq === "weekly") {
+    const wd = new Date(dateStr + "T12:00:00").getDay(); // 0=domingo … 6=sábado
+    return Array.isArray(goal.config?.weekdays) && goal.config!.weekdays!.includes(wd);
+  }
   if (freq === "once") {
     if (!goal.config?.once_date) return false;
     return goal.config.once_date === dateStr;
@@ -90,6 +96,12 @@ export function goalAppliesOn(goal: Goal, dateStr: string): boolean {
 export function frequencyLabel(goal: Goal): string | null {
   const cfg = goal.config;
   if (!cfg || !cfg.frequency || cfg.frequency === "daily") return null;
+  if (cfg.frequency === "weekly" && Array.isArray(cfg.weekdays) && cfg.weekdays.length > 0) {
+    const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const order = [1, 2, 3, 4, 5, 6, 0]; // L M M J V S D
+    const labels = order.filter((d) => cfg.weekdays!.includes(d)).map((d) => DIAS[d]);
+    return labels.join(", ");
+  }
   if (cfg.frequency === "once" && cfg.once_date) {
     const d = new Date(cfg.once_date + "T12:00:00");
     const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
