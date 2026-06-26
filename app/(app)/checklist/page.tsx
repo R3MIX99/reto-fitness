@@ -20,6 +20,7 @@ import {
 import type { Goal, DailyCheck, GoalKind, CategoryView } from "@/lib/hooks/useChecklist";
 import { useResubmitCheck } from "@/lib/hooks/useMyAudits";
 import { useMyGroups } from "@/lib/hooks/useGroups";
+import { useUser } from "@/lib/hooks/useUser";
 import { StatsSection } from "@/components/checklist/StatsSection";
 import { GymSection, DietSection, GoalsSection } from "@/components/checklist/CheckSection";
 import { GoalDrawer } from "@/components/checklist/GoalDrawer";
@@ -221,9 +222,12 @@ function PastDayView({
 
 function ChecklistPageInner() {
   const searchParams = useSearchParams();
+  const { user } = useUser();
   const { data: groups = [] } = useMyGroups();
-  const groupId = groups[0]?.id ?? null;
+  const primaryGroup = groups[0] ?? null;
+  const groupId = primaryGroup?.id ?? null;
   const allGroupIds = groups.map((g) => g.id);
+  const isOwnerOfPrimary = !!primaryGroup && primaryGroup.owner_id === user?.id;
 
   // Refresca en tiempo real cuando un compañero aprueba/rechaza una evidencia
   useChecklistRealtime(groupId);
@@ -352,7 +356,7 @@ function ChecklistPageInner() {
             <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-3">Hoy</p>
 
             {/* Reto grupal del día (si toca) */}
-            <ChallengeTodayCard groupId={groupId} />
+            <ChallengeTodayCard groupId={groupId} isOwner={isOwnerOfPrimary} members={primaryGroup?.members ?? []} />
 
             {/* Gym */}
             <div id="section-gym" data-tour="gym-section">

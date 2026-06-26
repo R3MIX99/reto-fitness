@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Check, Camera } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
+import { PhotoSourceDrawer } from "@/components/checklist/PhotoSourceDrawer";
 import { getInitials, type GroupMemberWithProfile } from "@/lib/hooks/useGroups";
 import { useAttendance, useSetAttendance, useSetMemory, type Challenge } from "@/lib/hooks/useChallenges";
 
@@ -19,11 +20,11 @@ export function AttendanceDrawer({ open, onClose, challenge, date, members }: Pr
   const { data: initial = [] } = useAttendance(open ? challenge.id : null, date);
   const setAtt = useSetAttendance();
   const setMem = useSetMemory();
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [sourceOpen, setSourceOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Inicializa la selección con los asistentes guardados al abrir
@@ -69,9 +70,9 @@ export function AttendanceDrawer({ open, onClose, challenge, date, members }: Pr
           Marca quién asistió · +{challenge.points} pts a cada uno
         </p>
 
-        {/* Foto grupal de recuerdo */}
+        {/* Foto grupal de recuerdo (cámara o galería) */}
         <button
-          onClick={() => fileRef.current?.click()}
+          onClick={() => setSourceOpen(true)}
           className="w-full rounded-[14px] mb-4 overflow-hidden flex items-center justify-center"
           style={{ background: "var(--color-surface)", border: "1px dashed var(--color-border)", minHeight: 120 }}
         >
@@ -82,12 +83,17 @@ export function AttendanceDrawer({ open, onClose, challenge, date, members }: Pr
           ) : (
             <div className="flex flex-col items-center gap-1.5 py-6 text-[var(--color-muted)]">
               <Camera size={22} strokeWidth={1.5} />
-              <span className="text-[12px]">Subir foto grupal de recuerdo</span>
+              <span className="text-[12px]">Tomar foto o elegir de galería</span>
             </div>
           )}
         </button>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) setPhoto(f); }} />
+        <PhotoSourceDrawer
+          open={sourceOpen}
+          onClose={() => setSourceOpen(false)}
+          onFileSelected={(f) => { setPhoto(f); setSourceOpen(false); }}
+          title="Foto de recuerdo"
+          subtitle="Toma una foto del momento o elige una de tu galería"
+        />
 
         {/* Lista de miembros */}
         <div className="flex flex-col gap-1.5 max-h-[38vh] overflow-y-auto no-scrollbar mb-4">

@@ -8,9 +8,11 @@ interface PhotoSourceDrawerProps {
   open: boolean;
   onClose: () => void;
   onFileSelected: (file: File) => void;
+  title?: string;
+  subtitle?: string;
 }
 
-export function PhotoSourceDrawer({ open, onClose, onFileSelected }: PhotoSourceDrawerProps) {
+export function PhotoSourceDrawer({ open, onClose, onFileSelected, title = "Cambiar evidencia", subtitle = "¿Cómo quieres subir la nueva foto?" }: PhotoSourceDrawerProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
@@ -38,9 +40,9 @@ export function PhotoSourceDrawer({ open, onClose, onFileSelected }: PhotoSource
           </div>
 
           <div className="px-5 pb-8">
-            <p className="font-display font-medium text-[17px] mb-1">Cambiar evidencia</p>
+            <p className="font-display font-medium text-[17px] mb-1">{title}</p>
             <p className="text-[13px] mb-5" style={{ color: "var(--color-muted)" }}>
-              ¿Cómo quieres subir la nueva foto?
+              {subtitle}
             </p>
 
             <div className="flex flex-col gap-3">
