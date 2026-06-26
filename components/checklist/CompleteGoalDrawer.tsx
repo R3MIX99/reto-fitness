@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Camera, Timer, Play, Pause, RotateCcw, Check } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
-import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
 import type { Goal, CheckEvidence } from "@/lib/hooks/useChecklist";
 
 function fmt(sec: number): string {
@@ -25,7 +24,7 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
 
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [sourceOpen, setSourceOpen] = useState(false);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [summary, setSummary] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
@@ -73,8 +72,9 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
       <div className="px-5 pb-8 pt-1">
         <p className="font-display font-semibold text-[18px] text-center mb-4">{goal.title}</p>
 
-        {/* Foto (siempre) */}
-        <button onClick={() => setSourceOpen(true)} className="w-full rounded-[14px] mb-4 overflow-hidden flex items-center justify-center"
+        {/* Foto instantánea (solo cámara, sin galería) */}
+        <button onClick={() => { if (cameraRef.current) { cameraRef.current.value = ""; cameraRef.current.click(); } }}
+          className="w-full rounded-[14px] mb-4 overflow-hidden flex items-center justify-center"
           style={{ background: "var(--color-surface)", border: "1px dashed var(--color-border)", minHeight: 120 }}>
           {photoUrl ? (
             <div className="relative w-full" style={{ height: 160 }}>
@@ -83,13 +83,12 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
           ) : (
             <div className="flex flex-col items-center gap-1.5 py-6 text-[var(--color-muted)]">
               <Camera size={22} strokeWidth={1.5} />
-              <span className="text-[12px]">Tomar foto o elegir de galería</span>
+              <span className="text-[12px]">Tomar foto (instantánea)</span>
             </div>
           )}
         </button>
-        <PhotoSourceDrawer open={sourceOpen} onClose={() => setSourceOpen(false)}
-          onFileSelected={(f) => { setPhoto(f); setSourceOpen(false); }}
-          title="Evidencia de la meta" subtitle="Toma una foto o elige una de tu galería" />
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) setPhoto(f); }} />
 
         {/* Cronómetro */}
         {timerMod && (
