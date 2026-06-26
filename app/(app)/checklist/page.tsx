@@ -224,10 +224,8 @@ function ChecklistPageInner() {
   const searchParams = useSearchParams();
   const { user } = useUser();
   const { data: groups = [] } = useMyGroups();
-  const primaryGroup = groups[0] ?? null;
-  const groupId = primaryGroup?.id ?? null;
+  const groupId = groups[0]?.id ?? null;
   const allGroupIds = groups.map((g) => g.id);
-  const isOwnerOfPrimary = !!primaryGroup && primaryGroup.owner_id === user?.id;
 
   // Refresca en tiempo real cuando un compañero aprueba/rechaza una evidencia
   useChecklistRealtime(groupId);
@@ -356,7 +354,7 @@ function ChecklistPageInner() {
             <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-3">Hoy</p>
 
             {/* Reto grupal del día (si toca) */}
-            <ChallengeTodayCard groupId={groupId} isOwner={isOwnerOfPrimary} members={primaryGroup?.members ?? []} />
+            <ChallengeTodayCard groups={groups} userId={user?.id} />
 
             {/* Gym */}
             <div id="section-gym" data-tour="gym-section">

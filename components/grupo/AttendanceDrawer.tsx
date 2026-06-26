@@ -6,7 +6,7 @@ import { Check, Camera } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
 import { PhotoSourceDrawer } from "@/components/checklist/PhotoSourceDrawer";
 import { getInitials, type GroupMemberWithProfile } from "@/lib/hooks/useGroups";
-import { useAttendance, useSetAttendance, useSetMemory, type Challenge } from "@/lib/hooks/useChallenges";
+import { useAttendance, useSetAttendance, useSetMemory, useMemoryForOccurrence, signedMemoryUrl, type Challenge } from "@/lib/hooks/useChallenges";
 
 interface Props {
   open: boolean;
@@ -18,12 +18,14 @@ interface Props {
 
 export function AttendanceDrawer({ open, onClose, challenge, date, members }: Props) {
   const { data: initial = [] } = useAttendance(open ? challenge.id : null, date);
+  const { data: existingPath = null } = useMemoryForOccurrence(open ? challenge.id : null, date);
   const setAtt = useSetAttendance();
   const setMem = useSetMemory();
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [existingUrl, setExistingUrl] = useState<string | null>(null);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,12 +35,23 @@ export function AttendanceDrawer({ open, onClose, challenge, date, members }: Pr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial.join(",")]);
 
+  // Foto nueva (preview local)
   useEffect(() => {
     if (!photo) { setPhotoUrl(null); return; }
     const url = URL.createObjectURL(photo);
     setPhotoUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [photo]);
+
+  // Foto ya subida antes (preview firmado)
+  useEffect(() => {
+    if (existingPath) signedMemoryUrl(existingPath).then(setExistingUrl);
+    else setExistingUrl(null);
+  }, [existingPath]);
+
+  const preview = photoUrl ?? existingUrl;
+  const hasPhoto = !!photo || !!existingPath;
+  const canSave = selected.size > 0 && hasPhoto;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -76,14 +89,14 @@ export function AttendanceDrawer({ open, onClose, challenge, date, members }: Pr
           className="w-full rounded-[14px] mb-4 overflow-hidden flex items-center justify-center"
           style={{ background: "var(--color-surface)", border: "1px dashed var(--color-border)", minHeight: 120 }}
         >
-          {photoUrl ? (
+          {preview ? (
             <div className="relative w-full" style={{ height: 160 }}>
-              <Image src={photoUrl} alt="Recuerdo" fill className="object-cover" unoptimized />
+              <Image src={preview} alt="Recuerdo" fill className="object-cover" unoptimized />
             </div>
           ) : (
             <div className="flex flex-col items-center gap-1.5 py-6 text-[var(--color-muted)]">
               <Camera size={22} strokeWidth={1.5} />
-              <span className="text-[12px]">Tomar foto o elegir de galería</span>
+              <span className="text-[12px]">Tomar foto o elegir de galería (obligatoria)</span>
             </div>
           )}
         </button>
@@ -124,8 +137,13 @@ export function AttendanceDrawer({ open, onClose, challenge, date, members }: Pr
         </div>
 
         {error && <p className="text-[12px] text-red-400 mb-2">{error}</p>}
+        {!canSave && (
+          <p className="text-[11px] text-[var(--color-muted)] text-center mb-2">
+            Selecciona al menos un asistente y sube la foto de recuerdo para guardar.
+          </p>
+        )}
 
-        <button onClick={save} disabled={busy}
+        <button onClick={save} disabled={busy || !canSave}
           className="w-full bg-warm text-accent-dark rounded-pill py-3.5 text-[14px] font-medium disabled:opacity-50">
           {busy ? "Guardando..." : `Guardar asistencia (${selected.size})`}
         </button>

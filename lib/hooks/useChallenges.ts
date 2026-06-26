@@ -97,6 +97,42 @@ export function recurrenceLabel(c: Challenge): string {
 
 // ── Queries ──────────────────────────────────────────────────────────
 
+// Retos activos de varios grupos (para el checklist: el reto puede estar en
+// cualquier grupo del usuario, no solo el primario).
+export function useChallengesForGroups(groupIds: string[]) {
+  return useQuery({
+    queryKey: ["challengesMulti", groupIds.slice().sort().join(",")],
+    enabled: groupIds.length > 0,
+    queryFn: async (): Promise<Challenge[]> => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("group_challenges")
+        .select("id, group_id, title, description, recurrence, weekdays, day_of_month, challenge_date, at_time, points")
+        .in("group_id", groupIds)
+        .eq("active", true) as unknown as { data: Challenge[] | null };
+      return data ?? [];
+    },
+  });
+}
+
+// ¿Ya hay foto de recuerdo de esta ocurrencia? Devuelve el path o null.
+export function useMemoryForOccurrence(challengeId: string | null, date: string) {
+  return useQuery({
+    queryKey: ["memory", challengeId, date],
+    enabled: !!challengeId && !!date,
+    queryFn: async (): Promise<string | null> => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("challenge_memories")
+        .select("photo_path")
+        .eq("challenge_id", challengeId!)
+        .eq("occurrence_date", date)
+        .maybeSingle() as unknown as { data: { photo_path: string } | null };
+      return data?.photo_path ?? null;
+    },
+  });
+}
+
 export function useGroupChallenges(groupId: string | null) {
   return useQuery({
     queryKey: ["challenges", groupId],

@@ -2,23 +2,29 @@
 
 import { useState } from "react";
 import { Flag, Users } from "lucide-react";
-import type { GroupMemberWithProfile } from "@/lib/hooks/useGroups";
-import { useGroupChallenges, occursOn, todayLocalStr, type Challenge } from "@/lib/hooks/useChallenges";
+import type { GroupWithMembers } from "@/lib/hooks/useGroups";
+import { useChallengesForGroups, occursOn, todayLocalStr, type Challenge } from "@/lib/hooks/useChallenges";
 import { ChallengeDetailDrawer } from "@/components/grupo/ChallengeDetailDrawer";
 import { AttendanceDrawer } from "@/components/grupo/AttendanceDrawer";
 
 // Reto grupal del día en el checklist (arriba del ejercicio). Solo el día que toca.
-// Admin: abre el drawer de asistencia. Miembro: abre los detalles.
-export function ChallengeTodayCard({ groupId, isOwner, members }: { groupId: string | null; isOwner: boolean; members: GroupMemberWithProfile[] }) {
-  const { data: challenges = [] } = useGroupChallenges(groupId);
+// Considera TODOS los grupos del usuario. Admin del grupo del reto: abre
+// asistencia. Miembro: abre detalles.
+export function ChallengeTodayCard({ groups, userId }: { groups: GroupWithMembers[]; userId: string | undefined }) {
+  const groupIds = groups.map((g) => g.id);
+  const { data: challenges = [] } = useChallengesForGroups(groupIds);
   const [detailFor, setDetailFor] = useState<Challenge | null>(null);
-  const [attendanceFor, setAttendanceFor] = useState<Challenge | null>(null);
+  const [attendanceFor, setAttendanceFor] = useState<{ challenge: Challenge; members: GroupWithMembers["members"] } | null>(null);
+
+  const groupById = new Map(groups.map((g) => [g.id, g]));
   const today = new Date();
   const todays = challenges.filter((c) => occursOn(c, today));
   if (todays.length === 0) return null;
 
   function open(c: Challenge) {
-    if (isOwner) setAttendanceFor(c);
+    const g = groupById.get(c.group_id);
+    const isOwner = !!g && g.owner_id === userId;
+    if (isOwner && g) setAttendanceFor({ challenge: c, members: g.members });
     else setDetailFor(c);
   }
 
@@ -29,33 +35,34 @@ export function ChallengeTodayCard({ groupId, isOwner, members }: { groupId: str
         <span className="text-[13px] font-medium">Reto de hoy</span>
       </div>
       <div className="flex flex-col gap-2">
-        {todays.map((c) => (
-          <button key={c.id} onClick={() => open(c)} className="flex items-center gap-2.5 text-left w-full">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(239,200,139,0.15)" }}>
-              <Flag size={13} strokeWidth={1.5} className="text-warm" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] truncate">{c.title}{c.at_time ? ` · ${c.at_time}` : ""}</p>
-              {c.description && <p className="text-[11px] text-[var(--color-muted)] truncate">{c.description}</p>}
-            </div>
-            {isOwner
-              ? <span className="flex items-center gap-1 text-[11px] text-warm flex-shrink-0"><Users size={12} strokeWidth={1.5} /> Asistencia</span>
-              : <span className="text-[11px] text-warm flex-shrink-0">+{c.points} pts</span>}
-          </button>
-        ))}
+        {todays.map((c) => {
+          const g = groupById.get(c.group_id);
+          const isOwner = !!g && g.owner_id === userId;
+          return (
+            <button key={c.id} onClick={() => open(c)} className="flex items-center gap-2.5 text-left w-full">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(239,200,139,0.15)" }}>
+                <Flag size={13} strokeWidth={1.5} className="text-warm" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] truncate">{c.title}{c.at_time ? ` · ${c.at_time}` : ""}</p>
+                <p className="text-[11px] text-[var(--color-muted)] truncate">{g?.name ?? ""}{c.description ? ` · ${c.description}` : ""}</p>
+              </div>
+              {isOwner
+                ? <span className="flex items-center gap-1 text-[11px] text-warm flex-shrink-0"><Users size={12} strokeWidth={1.5} /> Asistencia</span>
+                : <span className="text-[11px] text-warm flex-shrink-0">+{c.points} pts</span>}
+            </button>
+          );
+        })}
       </div>
-      <p className="text-[11px] text-[var(--color-muted)] mt-2.5">
-        {isOwner ? "Toca un reto para tomar asistencia y subir la foto." : "Toca un reto para ver los detalles. El administrador toma la asistencia."}
-      </p>
 
       <ChallengeDetailDrawer open={!!detailFor} onClose={() => setDetailFor(null)} challenge={detailFor} />
       {attendanceFor && (
         <AttendanceDrawer
           open={!!attendanceFor}
           onClose={() => setAttendanceFor(null)}
-          challenge={attendanceFor}
+          challenge={attendanceFor.challenge}
           date={todayLocalStr()}
-          members={members}
+          members={attendanceFor.members}
         />
       )}
     </div>
