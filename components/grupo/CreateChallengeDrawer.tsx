@@ -13,7 +13,7 @@ const RECURRENCES: { v: Recurrence; l: string }[] = [
   { v: "once", l: "Una vez" }, { v: "daily", l: "Diario" },
 ];
 
-export function CreateChallengeDrawer({ open, onClose, groupId }: { open: boolean; onClose: () => void; groupId: string }) {
+export function CreateChallengeDrawer({ open, onClose, groupId, onCreated }: { open: boolean; onClose: () => void; groupId: string; onCreated?: () => void }) {
   const create = useCreateChallenge();
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
@@ -79,6 +79,7 @@ export function CreateChallengeDrawer({ open, onClose, groupId }: { open: boolea
       });
       reset();
       onClose();
+      onCreated?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear el reto");
     }

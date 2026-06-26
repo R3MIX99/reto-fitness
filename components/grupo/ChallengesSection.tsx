@@ -6,6 +6,7 @@ import { Flag, Plus, Calendar, Users, Trash2, ImageIcon } from "lucide-react";
 import type { GroupMemberWithProfile } from "@/lib/hooks/useGroups";
 import { usePlan } from "@/lib/hooks/usePlan";
 import { UpgradeDrawer } from "@/components/ui/UpgradeDrawer";
+import { Toast } from "@/components/ui/Toast";
 import {
   useGroupChallenges, useChallengeMemories, useDeleteChallenge, occursOn, scheduleLabel,
   signedMemoryUrl, todayLocalStr, type Challenge, type Memory,
@@ -40,6 +41,7 @@ export function ChallengesSection({ groupId, isOwner, members }: { groupId: stri
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [attendanceFor, setAttendanceFor] = useState<Challenge | null>(null);
   const [detailFor, setDetailFor] = useState<Challenge | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const canCreate = plan?.is_super_admin || plan?.tier === "pro" || plan?.tier === "elite";
   const today = new Date();
@@ -95,7 +97,7 @@ export function ChallengesSection({ groupId, isOwner, members }: { groupId: stri
                     </p>
                   </div>
                   {isOwner && (
-                    <button onClick={(e) => { e.stopPropagation(); del.mutate({ challengeId: c.id, groupId }); }} className="flex-shrink-0 p-1">
+                    <button onClick={(e) => { e.stopPropagation(); del.mutate({ challengeId: c.id, groupId }, { onSuccess: () => setToast("Reto eliminado") }); }} className="flex-shrink-0 p-1">
                       <Trash2 size={14} strokeWidth={1.5} className="text-[var(--color-muted)]" />
                     </button>
                   )}
@@ -124,7 +126,8 @@ export function ChallengesSection({ groupId, isOwner, members }: { groupId: stri
       )}
 
       <ChallengeDetailDrawer open={!!detailFor} onClose={() => setDetailFor(null)} challenge={detailFor} />
-      <CreateChallengeDrawer open={createOpen} onClose={() => setCreateOpen(false)} groupId={groupId} />
+      <CreateChallengeDrawer open={createOpen} onClose={() => setCreateOpen(false)} groupId={groupId} onCreated={() => setToast("Reto creado")} />
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
       <UpgradeDrawer open={upgradeOpen} onClose={() => setUpgradeOpen(false)}
         title="Retos grupales: Pro o Elite"
         message="Crea retos programados (correr, gym en grupo…) con asistencia y puntos. Disponible en Pro y Elite." />
