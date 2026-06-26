@@ -61,6 +61,7 @@ export function AudioRecorder({
   const [paused, setPaused] = useState(false);        // grabación en pausa
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);        // 0..1 durante reproducción
+  const [decoding, setDecoding] = useState(false);    // procesando el audio grabado
   const [bars, setBars] = useState<number[]>(() => new Array(BARS).fill(0.08));
 
   // Refs de grabación
@@ -157,8 +158,10 @@ export function AudioRecorder({
   // Decodifica el archivo a un AudioBuffer para reproducirlo con Web Audio.
   // También obtiene la duración real (los webm de MediaRecorder no la traen).
   useEffect(() => {
-    if (!value) { bufferRef.current = null; return; }
+    if (!value) { bufferRef.current = null; setDecoding(false); return; }
     let cancelled = false;
+    bufferRef.current = null;
+    setDecoding(true);
     (async () => {
       try {
         const buf = await value.arrayBuffer();
@@ -172,6 +175,8 @@ export function AudioRecorder({
         if (isFinite(decoded.duration) && decoded.duration > 0) setDuration(decoded.duration);
       } catch {
         if (!cancelled) bufferRef.current = null; // se usará la duración del cronómetro
+      } finally {
+        if (!cancelled) setDecoding(false);
       }
     })();
     return () => { cancelled = true; };
@@ -390,9 +395,11 @@ export function AudioRecorder({
     return (
       <div className="rounded-[14px] px-3.5 py-3" style={{ background: "var(--color-surface)" }}>
         <div className="flex items-center gap-3">
-          <button onClick={togglePlay}
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-accent">
-            {playing
+          <button onClick={togglePlay} disabled={decoding}
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-accent disabled:opacity-80">
+            {decoding
+              ? <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+              : playing
               ? <Pause size={15} strokeWidth={2} className="text-white" fill="white" />
               : <Play size={15} strokeWidth={2} className="text-white" fill="white" style={{ marginLeft: 1 }} />}
           </button>

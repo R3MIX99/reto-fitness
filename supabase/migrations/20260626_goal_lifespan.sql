@@ -59,12 +59,11 @@ BEGIN
 
   v_base := v_gym_pts + v_diet_pts + v_goal_pts;
 
-  INSERT INTO daily_scores (user_id, group_id, score_date, base_points, bonus_points, penalty_points, total_points)
-  VALUES (p_user_id, p_group_id, p_date, v_base, 0, 0, v_base)
+  -- total_points es una columna GENERADA (base+bonus-penalty): NO escribirla.
+  INSERT INTO daily_scores (user_id, group_id, score_date, base_points, bonus_points, penalty_points)
+  VALUES (p_user_id, p_group_id, p_date, v_base, 0, 0)
   ON CONFLICT (user_id, group_id, score_date)
-  DO UPDATE SET
-    base_points  = v_base,
-    total_points = v_base + daily_scores.bonus_points - daily_scores.penalty_points;
+  DO UPDATE SET base_points = v_base;
 END;
 $$;
 

@@ -171,6 +171,11 @@ export function useResubmitCheck() {
       qc.invalidateQueries({ queryKey: ["dateChecks"] });
       qc.invalidateQueries({ queryKey: ["monthChecks"] });
       qc.invalidateQueries({ queryKey: ["myAudits"] });
+      qc.invalidateQueries({ queryKey: ["leaderboard"] });
+      qc.invalidateQueries({ queryKey: ["globalLeaderboard"] });
+      qc.invalidateQueries({ queryKey: ["seasonLeaderboard"] });
+      qc.invalidateQueries({ queryKey: ["seasonStandings"] });
+      qc.invalidateQueries({ queryKey: ["todayScore"] });
     },
   });
 }

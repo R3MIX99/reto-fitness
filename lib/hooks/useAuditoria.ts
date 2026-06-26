@@ -298,6 +298,9 @@ export function useAuditCheck() {
       qc.invalidateQueries({ queryKey: ["pendingChecks"] });
       qc.invalidateQueries({ queryKey: ["pendingAudits"] });
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
+      qc.invalidateQueries({ queryKey: ["globalLeaderboard"] });
+      qc.invalidateQueries({ queryKey: ["seasonLeaderboard"] });
+      qc.invalidateQueries({ queryKey: ["seasonStandings"] });
       qc.invalidateQueries({ queryKey: ["myAudits"] });
       qc.invalidateQueries({ queryKey: ["streak"] });
     },

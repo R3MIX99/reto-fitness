@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
 import { compressImage } from "./useProfile";
@@ -116,6 +116,24 @@ function monthEnd(offset = 0) {
 }
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
+
+// Invalida TODAS las queries que dependen de los puntos para que el cambio se
+// refleje en el dashboard, la tabla global y las tablas de temporada.
+function invalidateScoreQueries(qc: QueryClient) {
+  for (const k of [
+    "leaderboard", "globalLeaderboard", "seasonLeaderboard", "seasonStandings",
+    "todayScore", "streak", "monthChecks", "playerCard", "myTitles",
+  ]) {
+    qc.invalidateQueries({ queryKey: [k] });
+  }
+}
+
+// Recalcula en el servidor los puntos del usuario (todos sus días con registro)
+// tras crear/borrar una meta, ya que cambia el denominador proporcional.
+async function recalcMyScores() {
+  const supabase = createClient();
+  await (supabase.rpc as Function)("recalc_my_scores", {});
+}
 
 export function useGoals() {
   const { user } = useUser();
@@ -441,10 +459,7 @@ export function useMarkCheck(groupId: string | null) {
     // Tanto en éxito como en error: sincronizar con el servidor
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["todayChecks"] });
-      qc.invalidateQueries({ queryKey: ["monthChecks"] });
-      qc.invalidateQueries({ queryKey: ["leaderboard"] });
-      qc.invalidateQueries({ queryKey: ["todayScore"] });
-      qc.invalidateQueries({ queryKey: ["streak"] });
+      invalidateScoreQueries(qc);
     },
   });
 }
@@ -477,10 +492,13 @@ export function useUpsertGoal() {
           .insert({ user_id: user.id, kind: goal.kind, title: goal.title, position, icon: goal.icon ?? null, group_id: goal.group_id ?? null, config: goal.config ?? null } as never) as unknown as { error: { message: string } | null };
         if (error) throw new Error(error.message);
       }
+      // Crear/editar una meta cambia el denominador → recalcular puntos.
+      await recalcMyScores();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goals"] });
       qc.invalidateQueries({ queryKey: ["goalsHistory"] });
+      invalidateScoreQueries(qc);
     },
   });
 }
@@ -494,10 +512,14 @@ export function useDeleteGoal() {
       // Guardar la fecha de borrado para que la meta deje de contar/mostrarse
       // a partir de hoy, pero siga apareciendo en los días en que estuvo vigente.
       await supabase.from("goals").update({ active: false, deactivated_at: new Date().toISOString() } as never).eq("id", id) as unknown as { error: unknown };
+      // Borrar una meta cambia el denominador → recalcular puntos del usuario
+      // en todos sus días con registro y propagar a las tablas.
+      await recalcMyScores();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goals"] });
       qc.invalidateQueries({ queryKey: ["goalsHistory"] });
+      invalidateScoreQueries(qc);
     },
   });
 }
