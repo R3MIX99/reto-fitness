@@ -8,7 +8,9 @@ import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits, useGroupMe
 import { PendingTransferBanner } from "@/components/grupo/PendingTransferBanner";
 import { PlanGraceBanner } from "@/components/grupo/PlanGraceBanner";
 import { ChallengesSection } from "@/components/grupo/ChallengesSection";
+import { LeagueSection } from "@/components/grupo/LeagueSection";
 import { useUser } from "@/lib/hooks/useUser";
+import { usePlan } from "@/lib/hooks/usePlan";
 import { GrupoCard } from "@/components/grupo/GrupoCard";
 import { EvidenciasCard } from "@/components/grupo/EvidenciasCard";
 import { Leaderboard } from "@/components/grupo/Leaderboard";
@@ -79,6 +81,9 @@ function GrupoPageInner() {
   const { data: pending = 0 } = usePendingAudits(activeGroup ? [activeGroup.id] : []);
 
   // Temporada en curso del grupo activo
+  const { data: plan } = usePlan();
+  const isElite = plan?.tier === "elite" || plan?.is_super_admin === true;
+
   const { data: season = null } = useActiveSeason(activeGroup?.id ?? null);
   const { data: seasonLeaderboard = [] } = useSeasonLeaderboard(season);
 
@@ -337,6 +342,15 @@ function GrupoPageInner() {
           isOwner={activeGroup.owner_id === user?.id}
           members={activeGroup.members}
         />
+
+        {/* Liga entre grupos (Elite) */}
+        <div className="mt-3">
+          <LeagueSection
+            groupId={activeGroup.id}
+            isOwner={activeGroup.owner_id === user?.id}
+            isElite={isElite}
+          />
+        </div>
 
         {/* 5) Historial de temporadas */}
         <div className="mt-3">
