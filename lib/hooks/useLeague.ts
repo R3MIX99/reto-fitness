@@ -238,7 +238,7 @@ export function useGroupPreview(code: string) {
 
 // ── Mutations ──────────────────────────────────────────────────────────────
 
-/** Crear una liga e invitar a otro grupo por código */
+/** Crear una liga e invitar a otro grupo (por group_id ya resuelto desde la preview) */
 export function useCreateLeague() {
   const qc = useQueryClient();
   const { user } = useUser();
@@ -246,25 +246,17 @@ export function useCreateLeague() {
     mutationFn: async ({
       name,
       ownerGroupId,
-      targetGroupCode,
+      targetGroupId,
       startDate,
     }: {
       name: string;
       ownerGroupId: string;
-      targetGroupCode: string;
+      targetGroupId: string;
       startDate: string;
     }) => {
       const supabase = createClient() as any;
 
-      // Buscar el grupo por código
-      const { data: targetGroup, error: ge } = await supabase
-        .from("groups")
-        .select("id, name, owner_id")
-        .eq("invite_code", targetGroupCode.toUpperCase())
-        .maybeSingle();
-      if (ge) throw ge;
-      if (!targetGroup) throw new Error("Código de grupo no encontrado");
-      if (targetGroup.id === ownerGroupId)
+      if (targetGroupId === ownerGroupId)
         throw new Error("No puedes invitar a tu propio grupo");
 
       // Crear la liga
@@ -293,13 +285,13 @@ export function useCreateLeague() {
       // Invitar al otro grupo
       const { error: p2 } = await supabase.from("league_participants").insert({
         league_id: league.id,
-        group_id: targetGroup.id,
+        group_id: targetGroupId,
         invited_by: user!.id,
         status: "pending",
       });
       if (p2) throw p2;
 
-      return { league, targetGroup };
+      return { league };
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["myLeagues", vars.ownerGroupId] });

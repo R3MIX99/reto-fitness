@@ -281,11 +281,12 @@ function StepOtherGroup({
 
   async function handleCreate() {
     setError(null);
+    if (!preview) return;
     try {
       await create.mutateAsync({
         name: name.trim(),
         ownerGroupId: myGroupId,
-        targetGroupCode: code.trim().toUpperCase(),
+        targetGroupId: preview.group_id,
         startDate,
       });
       onCreated?.();
