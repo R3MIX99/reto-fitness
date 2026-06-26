@@ -9,6 +9,7 @@ import {
   useAllLeagues,
   useLeagueStandings,
   useRespondLeagueInvite,
+  useLeagueRealtime,
   type LeagueEntry,
   type LeagueWithParticipants,
 } from "@/lib/hooks/useLeague";
@@ -40,7 +41,7 @@ function StandingsCard({ entry, onOpen }: { entry: LeagueEntry; onOpen: () => vo
             {entry.league.name}
           </p>
           <p className="text-[11px] text-[var(--color-muted)] mt-0.5">
-            Desde {new Date(entry.league.start_date + "T12:00:00").toLocaleDateString("es", {
+            Empieza el {new Date(entry.league.start_date + "T12:00:00").toLocaleDateString("es", {
               day: "numeric", month: "short",
             })}
             {pending.length > 0 && ` · ${pending.length} invitación pendiente`}
@@ -146,6 +147,7 @@ export default function LigaPage() {
   const { data: plan } = usePlan();
   const { data, isLoading } = useAllLeagues();
   const respond = useRespondLeagueInvite();
+  useLeagueRealtime();
 
   const [showCreate, setShowCreate] = useState(false);
   const [createGroupId, setCreateGroupId] = useState<string | null>(null);
@@ -277,7 +279,7 @@ export default function LigaPage() {
                       </strong>
                     </p>
                     <p className="text-xs text-[var(--color-muted)]">
-                      Inicia: {new Date(inv.league?.start_date + "T12:00:00").toLocaleDateString("es", {
+                      Empieza el {new Date(inv.league?.start_date + "T12:00:00").toLocaleDateString("es", {
                         day: "numeric", month: "long", year: "numeric",
                       })}
                     </p>

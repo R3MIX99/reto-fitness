@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
@@ -294,9 +295,17 @@ export function useCreateLeague() {
 
       return { league };
     },
-    onSuccess: (_d, vars) => {
+    onSuccess: (data, vars) => {
       qc.invalidateQueries({ queryKey: ["myLeagues", vars.ownerGroupId] });
       qc.invalidateQueries({ queryKey: ["allLeagues"] });
+      // Notificar al dueño del grupo rival que recibió una invitación
+      if (data?.league) {
+        fetch("/api/leagues/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ leagueId: data.league.id, event: "invited" }),
+        }).catch(() => {});
+      }
     },
   });
 }
@@ -321,13 +330,47 @@ export function useRespondLeagueInvite() {
         p_accept: accept,
       });
       if (error) throw error;
+      // Notificar al creador de la liga vía push
+      fetch("/api/leagues/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leagueId, event: accept ? "accepted" : "rejected" }),
+      }).catch(() => {});
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["pendingLeagueInvites", vars.groupId] });
       qc.invalidateQueries({ queryKey: ["myLeagues", vars.groupId] });
       qc.invalidateQueries({ queryKey: ["allLeagues"] });
+      qc.invalidateQueries({ queryKey: ["leagueStandings", vars.leagueId] });
     },
   });
+}
+
+/**
+ * Realtime: escucha cambios en league_participants e invalida las queries
+ * de liga para ambas partes (creador e invitado) sin necesidad de recargar.
+ */
+export function useLeagueRealtime() {
+  const { user } = useUser();
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+
+    const invalidate = () => {
+      qc.invalidateQueries({ queryKey: ["allLeagues"] });
+      qc.invalidateQueries({ queryKey: ["leagueStandings"] });
+    };
+
+    const channel = supabase
+      .channel(`league-rt-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "league_participants" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "group_leagues" }, invalidate)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, qc]);
 }
 
 /** Crear liga entre dos grupos propios (ambos se insertan como accepted de inmediato) */

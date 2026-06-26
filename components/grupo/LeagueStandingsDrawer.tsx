@@ -22,7 +22,7 @@ export function LeagueStandingsDrawer({ open, onClose, league, myGroupId }: Prop
         <h2 className="font-display font-bold text-lg text-[var(--color-fg)] truncate">{league.name}</h2>
         {/* Estado de la liga */}
         <div className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
-          <span>Desde {new Date(league.start_date + "T12:00:00").toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" })}</span>
+          <span>Empieza el {new Date(league.start_date + "T12:00:00").toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" })}</span>
           {league.end_date && (
             <>
               <span>·</span>
