@@ -56,6 +56,24 @@ export type Database = {
           },
         ]
       }
+      challenge_attendance: {
+        Row: { attended: boolean; challenge_id: string; occurrence_date: string; user_id: string }
+        Insert: { attended?: boolean; challenge_id: string; occurrence_date: string; user_id: string }
+        Update: { attended?: boolean; challenge_id?: string; occurrence_date?: string; user_id?: string }
+        Relationships: []
+      }
+      challenge_memories: {
+        Row: { challenge_id: string; created_at: string; occurrence_date: string; photo_path: string; uploaded_by: string }
+        Insert: { challenge_id: string; created_at?: string; occurrence_date: string; photo_path: string; uploaded_by: string }
+        Update: { challenge_id?: string; created_at?: string; occurrence_date?: string; photo_path?: string; uploaded_by?: string }
+        Relationships: []
+      }
+      group_challenges: {
+        Row: { active: boolean; at_time: string | null; challenge_date: string | null; created_at: string; created_by: string; day_of_month: number | null; description: string | null; group_id: string; id: string; points: number; recurrence: string; title: string; weekday: number | null }
+        Insert: { active?: boolean; at_time?: string | null; challenge_date?: string | null; created_at?: string; created_by: string; day_of_month?: number | null; description?: string | null; group_id: string; id?: string; points?: number; recurrence: string; title: string; weekday?: number | null }
+        Update: { active?: boolean; at_time?: string | null; challenge_date?: string | null; created_at?: string; created_by?: string; day_of_month?: number | null; description?: string | null; group_id?: string; id?: string; points?: number; recurrence?: string; title?: string; weekday?: number | null }
+        Relationships: []
+      }
       daily_checks: {
         Row: {
           check_date: string

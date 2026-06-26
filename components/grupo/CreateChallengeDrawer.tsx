@@ -1,0 +1,145 @@
+"use client";
+
+import { useState } from "react";
+import { Drawer } from "@/components/ui/Drawer";
+import { useCreateChallenge, type Recurrence } from "@/lib/hooks/useChallenges";
+
+const WEEKDAYS = [
+  { v: 1, l: "Lun" }, { v: 2, l: "Mar" }, { v: 3, l: "Mié" }, { v: 4, l: "Jue" },
+  { v: 5, l: "Vie" }, { v: 6, l: "Sáb" }, { v: 0, l: "Dom" },
+];
+const RECURRENCES: { v: Recurrence; l: string }[] = [
+  { v: "weekly", l: "Semanal" }, { v: "monthly", l: "Mensual" },
+  { v: "once", l: "Una vez" }, { v: "daily", l: "Diario" },
+];
+
+export function CreateChallengeDrawer({ open, onClose, groupId }: { open: boolean; onClose: () => void; groupId: string }) {
+  const create = useCreateChallenge();
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [recurrence, setRecurrence] = useState<Recurrence>("weekly");
+  const [weekday, setWeekday] = useState(1);
+  const [dayOfMonth, setDayOfMonth] = useState(1);
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [points, setPoints] = useState(3);
+  const [error, setError] = useState<string | null>(null);
+
+  function reset() {
+    setTitle(""); setDesc(""); setRecurrence("weekly"); setWeekday(1);
+    setDayOfMonth(1); setDate(""); setTime(""); setPoints(3); setError(null);
+  }
+
+  async function submit() {
+    if (!title.trim()) { setError("Ponle un nombre al reto"); return; }
+    if (recurrence === "once" && !date) { setError("Elige la fecha del reto"); return; }
+    setError(null);
+    try {
+      await create.mutateAsync({
+        groupId, title: title.trim(), description: desc.trim(), recurrence,
+        weekday: recurrence === "weekly" ? weekday : null,
+        dayOfMonth: recurrence === "monthly" ? dayOfMonth : null,
+        challengeDate: recurrence === "once" ? date : null,
+        atTime: time || null, points,
+      });
+      reset();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo crear el reto");
+    }
+  }
+
+  return (
+    <Drawer open={open} onClose={onClose}>
+      <div className="px-5 pb-8 pt-1">
+        <p className="font-display font-semibold text-[18px] text-center mb-4">Nuevo reto grupal</p>
+
+        <label className="text-[12px] text-[var(--color-muted)]">Nombre</label>
+        <input
+          value={title} onChange={(e) => setTitle(e.target.value)}
+          placeholder="Ej. Correr 5 km juntos"
+          className="w-full mt-1 mb-3 rounded-[12px] px-3.5 py-2.5 text-[14px] outline-none"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+        />
+
+        <label className="text-[12px] text-[var(--color-muted)]">Descripción (opcional)</label>
+        <input
+          value={desc} onChange={(e) => setDesc(e.target.value)}
+          placeholder="Detalles del reto"
+          className="w-full mt-1 mb-3 rounded-[12px] px-3.5 py-2.5 text-[14px] outline-none"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+        />
+
+        <label className="text-[12px] text-[var(--color-muted)]">Frecuencia</label>
+        <div className="grid grid-cols-4 gap-2 mt-1 mb-3">
+          {RECURRENCES.map((r) => (
+            <button
+              key={r.v} onClick={() => setRecurrence(r.v)}
+              className="rounded-[10px] py-2 text-[12px] font-medium transition-colors"
+              style={{
+                background: recurrence === r.v ? "var(--color-warm)" : "var(--color-surface)",
+                color: recurrence === r.v ? "#1a1000" : "var(--color-muted)",
+                border: recurrence === r.v ? "none" : "1px solid var(--color-border)",
+              }}
+            >{r.l}</button>
+          ))}
+        </div>
+
+        {recurrence === "weekly" && (
+          <div className="grid grid-cols-7 gap-1.5 mb-3">
+            {WEEKDAYS.map((d) => (
+              <button key={d.v} onClick={() => setWeekday(d.v)}
+                className="rounded-[9px] py-2 text-[11px] font-medium transition-colors"
+                style={{
+                  background: weekday === d.v ? "var(--color-warm)" : "var(--color-surface)",
+                  color: weekday === d.v ? "#1a1000" : "var(--color-muted)",
+                  border: weekday === d.v ? "none" : "1px solid var(--color-border)",
+                }}
+              >{d.l}</button>
+            ))}
+          </div>
+        )}
+        {recurrence === "monthly" && (
+          <div className="mb-3">
+            <label className="text-[12px] text-[var(--color-muted)]">Día del mes</label>
+            <input type="number" min={1} max={31} value={dayOfMonth}
+              onChange={(e) => setDayOfMonth(Math.min(31, Math.max(1, Number(e.target.value))))}
+              className="w-full mt-1 rounded-[12px] px-3.5 py-2.5 text-[14px] outline-none"
+              style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }} />
+          </div>
+        )}
+        {recurrence === "once" && (
+          <div className="mb-3">
+            <label className="text-[12px] text-[var(--color-muted)]">Fecha</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+              className="w-full mt-1 rounded-[12px] px-3.5 py-2.5 text-[14px] outline-none"
+              style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }} />
+          </div>
+        )}
+
+        <div className="flex gap-3 mb-4">
+          <div className="flex-1">
+            <label className="text-[12px] text-[var(--color-muted)]">Hora (opcional)</label>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
+              className="w-full mt-1 rounded-[12px] px-3.5 py-2.5 text-[14px] outline-none"
+              style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }} />
+          </div>
+          <div className="w-[110px]">
+            <label className="text-[12px] text-[var(--color-muted)]">Puntos</label>
+            <input type="number" min={1} max={13} value={points}
+              onChange={(e) => setPoints(Math.min(13, Math.max(1, Number(e.target.value))))}
+              className="w-full mt-1 rounded-[12px] px-3.5 py-2.5 text-[14px] outline-none"
+              style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }} />
+          </div>
+        </div>
+
+        {error && <p className="text-[12px] text-red-400 mb-2">{error}</p>}
+
+        <button onClick={submit} disabled={create.isPending}
+          className="w-full bg-warm text-accent-dark rounded-pill py-3.5 text-[14px] font-medium disabled:opacity-50">
+          {create.isPending ? "Creando..." : "Crear reto"}
+        </button>
+      </div>
+    </Drawer>
+  );
+}

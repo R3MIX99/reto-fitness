@@ -24,6 +24,7 @@ import { StatsSection } from "@/components/checklist/StatsSection";
 import { GymSection, DietSection, GoalsSection } from "@/components/checklist/CheckSection";
 import { GoalDrawer } from "@/components/checklist/GoalDrawer";
 import { CheckDetailDrawer } from "@/components/checklist/CheckDetailDrawer";
+import { ChallengeTodayCard } from "@/components/checklist/ChallengeTodayCard";
 
 // ── Past-day read-only view ────────────────────────────────────────────────
 
@@ -349,6 +350,9 @@ function ChecklistPageInner() {
           <>
             {/* Today label */}
             <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-3">Hoy</p>
+
+            {/* Reto grupal del día (si toca) */}
+            <ChallengeTodayCard groupId={groupId} />
 
             {/* Gym */}
             <div id="section-gym" data-tour="gym-section">

@@ -7,6 +7,7 @@ import { Users, Plus } from "lucide-react";
 import { useMyGroups, useLeaderboard, useLast7Days, usePendingAudits, useGroupMembersGlobalLeaderboard, useGroupMembersGlobalLast7Days, useGroupsRealtime } from "@/lib/hooks/useGroups";
 import { PendingTransferBanner } from "@/components/grupo/PendingTransferBanner";
 import { PlanGraceBanner } from "@/components/grupo/PlanGraceBanner";
+import { ChallengesSection } from "@/components/grupo/ChallengesSection";
 import { useUser } from "@/lib/hooks/useUser";
 import { GrupoCard } from "@/components/grupo/GrupoCard";
 import { EvidenciasCard } from "@/components/grupo/EvidenciasCard";
@@ -329,6 +330,13 @@ function GrupoPageInner() {
         {last7.length > 0 && (
           <ComparativaChart data={last7} leaderUserId={leaderEntry?.user_id} />
         )}
+
+        {/* Retos del grupo (Pro/Elite) */}
+        <ChallengesSection
+          groupId={activeGroup.id}
+          isOwner={activeGroup.owner_id === user?.id}
+          members={activeGroup.members}
+        />
 
         {/* 5) Historial de temporadas */}
         <div className="mt-3">
