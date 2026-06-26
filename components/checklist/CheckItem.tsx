@@ -2,15 +2,17 @@
 
 import { useRef, useState } from "react";
 import { Camera, Check, Clock, Pencil, ChevronsUpDown, X, RotateCcw } from "lucide-react";
-import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
+import type { Goal, DailyCheck, GoalKind, CheckEvidence } from "@/lib/hooks/useChecklist";
+import { hasModules } from "@/lib/hooks/useChecklist";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
+import { CompleteGoalDrawer } from "./CompleteGoalDrawer";
 import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
 
 interface CheckItemProps {
   goal: Goal;
   check?: DailyCheck;
-  onMark: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
+  onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence) => Promise<void>;
   onResubmit?: (file: File) => Promise<void>;
   onEdit?: () => void;
   onDetail?: () => void;
@@ -26,8 +28,30 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
   const [isResubmit, setIsResubmit] = useState(false);
   const [progressPhase, setProgressPhase] = useState<"uploading" | "success" | null>(null);
+
+  // Meta personalizable (con módulos) → abre el flujo completo; si no, foto directa.
+  function startCapture() {
+    setError(null);
+    if (hasModules(goal)) setCompleteOpen(true);
+    else inputRef.current?.click();
+  }
+
+  async function handleRichSubmit(file: File, evidence: CheckEvidence) {
+    setProgressPhase("uploading");
+    const start = Date.now();
+    try {
+      await onMark(file, goal.kind, goal.id, evidence);
+    } catch (e) {
+      setProgressPhase(null);
+      throw e;
+    }
+    const elapsed = Date.now() - start;
+    if (elapsed < 1000) await new Promise((r) => setTimeout(r, 1000 - elapsed));
+    setProgressPhase("success");
+  }
 
   const status = check?.status;
   const isDone = !!check;
@@ -97,7 +121,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
           {/* Status circle */}
           {!reordering && (
             <button
-              onClick={() => !isDone && !uploading && (setError(null), inputRef.current?.click())}
+              onClick={() => !isDone && !uploading && startCapture()}
               disabled={isDone || loading || uploading}
               className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
               style={circleStyle}
@@ -181,7 +205,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
               )}
               {!isDone && (
                 <button
-                  onClick={() => { setError(null); inputRef.current?.click(); }}
+                  onClick={startCapture}
                   disabled={loading || uploading}
                   className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-muted)] transition-colors disabled:opacity-40"
                   style={{ background: "var(--color-surface)" }}
@@ -225,6 +249,16 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
           open={sourceOpen}
           onClose={() => setSourceOpen(false)}
           onFileSelected={(file) => handleFileSelect(file, true)}
+        />
+      )}
+
+      {/* Meta personalizable: foto + cronómetro + resumen */}
+      {hasModules(goal) && (
+        <CompleteGoalDrawer
+          open={completeOpen}
+          onClose={() => setCompleteOpen(false)}
+          goal={goal}
+          onSubmit={handleRichSubmit}
         />
       )}
 

@@ -10,6 +10,21 @@ import { compressImage } from "./useProfile";
 
 export type GoalKind = "gym" | "diet" | "goal";
 
+// Metas personalizables (Pro/Elite): módulos de evidencia opcionales.
+export type GoalModule = "timer" | "summary";
+export interface GoalConfig {
+  modules: GoalModule[];
+  timer_minutes?: number;
+}
+export interface CheckEvidence {
+  summary?: string;
+  timer_seconds?: number;
+}
+
+export function hasModules(goal: Goal): boolean {
+  return !!goal.config && Array.isArray(goal.config.modules) && goal.config.modules.length > 0;
+}
+
 export interface Goal {
   id: string;
   title: string;
@@ -19,6 +34,7 @@ export interface Goal {
   reminder_at: string | null;
   active: boolean;
   group_id: string | null;
+  config: GoalConfig | null;
 }
 
 export interface DailyCheck {
@@ -28,6 +44,7 @@ export interface DailyCheck {
   check_date: string;
   status: string;
   evidence_path: string;
+  evidence: CheckEvidence | null;
   group_id: string;
   created_at: string;
 }
@@ -75,10 +92,10 @@ export function useGoals() {
     enabled: !!user,
     queryFn: async (): Promise<Goal[]> => {
       const supabase = createClient();
-      type GoalRow = { id: string; title: string; kind: string; position: number; icon: string | null; reminder_at: string | null; active: boolean; group_id: string | null };
+      type GoalRow = { id: string; title: string; kind: string; position: number; icon: string | null; reminder_at: string | null; active: boolean; group_id: string | null; config: GoalConfig | null };
       const { data } = await supabase
         .from("goals")
-        .select("id, title, kind, position, icon, reminder_at, active, group_id")
+        .select("id, title, kind, position, icon, reminder_at, active, group_id, config")
         .eq("user_id", user!.id)
         .eq("active", true)
         .order("position", { ascending: true }) as unknown as { data: GoalRow[] | null };
@@ -98,10 +115,10 @@ export function useDateChecks(groupIds: string | string[] | null, date: string) 
     refetchOnMount: "always",
     queryFn: async (): Promise<DailyCheck[]> => {
       const supabase = createClient();
-      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string; created_at: string };
+      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; evidence: CheckEvidence | null; group_id: string; created_at: string };
       const { data } = await supabase
         .from("daily_checks")
-        .select("id, goal_id, kind, check_date, status, evidence_path, group_id, created_at")
+        .select("id, goal_id, kind, check_date, status, evidence_path, evidence, group_id, created_at")
         .eq("user_id", user!.id)
         .in("group_id", ids)
         .eq("check_date", date) as unknown as { data: CheckRow[] | null };
@@ -133,10 +150,10 @@ export function useTodayChecks(groupIds: string | string[] | null) {
     refetchOnMount: "always",
     queryFn: async (): Promise<DailyCheck[]> => {
       const supabase = createClient();
-      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string; created_at: string };
+      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; evidence: CheckEvidence | null; group_id: string; created_at: string };
       const { data } = await supabase
         .from("daily_checks")
-        .select("id, goal_id, kind, check_date, status, evidence_path, group_id, created_at")
+        .select("id, goal_id, kind, check_date, status, evidence_path, evidence, group_id, created_at")
         .eq("user_id", user!.id)
         .in("group_id", ids)
         .eq("check_date", todayStr()) as unknown as { data: CheckRow[] | null };
@@ -165,10 +182,10 @@ export function useMonthChecks(groupId: string | null) {
     staleTime: 0,
     queryFn: async (): Promise<DailyCheck[]> => {
       const supabase = createClient();
-      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; group_id: string; created_at: string };
+      type CheckRow = { id: string; goal_id: string | null; kind: string; check_date: string; status: string; evidence_path: string; evidence: CheckEvidence | null; group_id: string; created_at: string };
       const { data } = await supabase
         .from("daily_checks")
-        .select("id, goal_id, kind, check_date, status, evidence_path, group_id, created_at")
+        .select("id, goal_id, kind, check_date, status, evidence_path, evidence, group_id, created_at")
         .eq("user_id", user!.id)
         .eq("group_id", groupId!)
         .gte("check_date", monthStart())
@@ -220,7 +237,7 @@ export function useMarkCheck(groupId: string | null) {
   return useMutation({
     // Optimistic update: muestra el check como "pending" al instante, antes de que
     // el servidor responda. Si falla, revierte al estado anterior.
-    onMutate: async ({ kind, goalId }: { file: File; kind: GoalKind; goalId?: string }) => {
+    onMutate: async ({ kind, goalId }: { file: File; kind: GoalKind; goalId?: string; evidence?: CheckEvidence }) => {
       if (!user || !groupId) return;
       const queryKey = ["todayChecks", user.id, groupId] as const;
       await qc.cancelQueries({ queryKey });
@@ -233,6 +250,7 @@ export function useMarkCheck(groupId: string | null) {
         check_date: todayStr(),
         status: "pending",
         evidence_path: "",
+        evidence: null,
         group_id: groupId,
         created_at: new Date().toISOString(),
       };
@@ -247,7 +265,7 @@ export function useMarkCheck(groupId: string | null) {
       return { prev, queryKey };
     },
 
-    mutationFn: async ({ file, kind, goalId }: { file: File; kind: GoalKind; goalId?: string }) => {
+    mutationFn: async ({ file, kind, goalId, evidence }: { file: File; kind: GoalKind; goalId?: string; evidence?: CheckEvidence }) => {
       if (!user || !groupId) throw new Error("Sin sesión o grupo");
 
       // La evidencia es UNA sola foto, compartida por todos los grupos del usuario:
@@ -302,6 +320,7 @@ export function useMarkCheck(groupId: string | null) {
             kind,
             goal_id: goalId ?? null,
             evidence_path: path,
+            evidence: evidence ?? null,
             check_date: todayStr(),
             status: "pending",
           } as never) as unknown as { error: { message: string } | null };
@@ -351,7 +370,7 @@ export function useUpsertGoal() {
       if (goal.id) {
         const { error } = await supabase
           .from("goals")
-          .update({ title: goal.title, icon: goal.icon ?? null, reminder_at: goal.reminder_at ?? null } as never)
+          .update({ title: goal.title, icon: goal.icon ?? null, reminder_at: goal.reminder_at ?? null, config: goal.config ?? null } as never)
           .eq("id", goal.id) as unknown as { error: { message: string } | null };
         if (error) throw new Error(error.message);
       } else {
@@ -364,7 +383,7 @@ export function useUpsertGoal() {
         const position = (existing?.length ?? 0) + 1;
         const { error } = await supabase
           .from("goals")
-          .insert({ user_id: user.id, kind: goal.kind, title: goal.title, position, icon: goal.icon ?? null, group_id: goal.group_id ?? null } as never) as unknown as { error: { message: string } | null };
+          .insert({ user_id: user.id, kind: goal.kind, title: goal.title, position, icon: goal.icon ?? null, group_id: goal.group_id ?? null, config: goal.config ?? null } as never) as unknown as { error: { message: string } | null };
         if (error) throw new Error(error.message);
       }
     },

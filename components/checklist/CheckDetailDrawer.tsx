@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Drawer as VaulDrawer } from "vaul";
-import { Clock, CheckCircle2, X, Expand, XCircle } from "lucide-react";
+import { Clock, CheckCircle2, X, Expand, XCircle, Timer, AlignLeft } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
@@ -225,6 +225,26 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
                   </div>
                 )}
               </div>
+
+              {/* Evidencia rica (cronómetro / resumen) */}
+              {check?.evidence && (check.evidence.summary || check.evidence.timer_seconds != null) && (
+                <div className="rounded-[14px] px-3.5 py-3 mb-4 space-y-2.5" style={{ background: "var(--color-surface)" }}>
+                  {check.evidence.timer_seconds != null && (
+                    <div className="flex items-center justify-between text-[12px]">
+                      <span className="flex items-center gap-1.5 text-[var(--color-muted)]"><Timer size={13} strokeWidth={1.5} /> Tiempo</span>
+                      <span className="text-[var(--color-fg)]">
+                        {Math.floor(check.evidence.timer_seconds / 60)} min {check.evidence.timer_seconds % 60}s
+                      </span>
+                    </div>
+                  )}
+                  {check.evidence.summary && (
+                    <div>
+                      <p className="text-[11px] text-[var(--color-muted)] mb-1 flex items-center gap-1.5"><AlignLeft size={12} strokeWidth={1.5} /> Resumen</p>
+                      <p className="text-[13px]" style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{check.evidence.summary}</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Bottom action — adapts to status */}
               {isApproved ? (

@@ -78,6 +78,7 @@ export type Database = {
         Row: {
           check_date: string
           created_at: string
+          evidence: Json | null
           evidence_path: string
           goal_id: string | null
           group_id: string
@@ -89,6 +90,7 @@ export type Database = {
         Insert: {
           check_date?: string
           created_at?: string
+          evidence?: Json | null
           evidence_path: string
           goal_id?: string | null
           group_id: string
@@ -100,6 +102,7 @@ export type Database = {
         Update: {
           check_date?: string
           created_at?: string
+          evidence?: Json | null
           evidence_path?: string
           goal_id?: string | null
           group_id?: string
@@ -186,6 +189,7 @@ export type Database = {
       goals: {
         Row: {
           active: boolean
+          config: Json | null
           created_at: string
           group_id: string | null
           icon: string | null
@@ -198,6 +202,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          config?: Json | null
           created_at?: string
           group_id?: string | null
           icon?: string | null
@@ -210,6 +215,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          config?: Json | null
           created_at?: string
           group_id?: string | null
           icon?: string | null

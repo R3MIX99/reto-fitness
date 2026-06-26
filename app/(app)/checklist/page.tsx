@@ -17,7 +17,7 @@ import {
   useChecklistRealtime,
   todayStr,
 } from "@/lib/hooks/useChecklist";
-import type { Goal, DailyCheck, GoalKind, CategoryView } from "@/lib/hooks/useChecklist";
+import type { Goal, DailyCheck, GoalKind, CategoryView, CheckEvidence } from "@/lib/hooks/useChecklist";
 import { useResubmitCheck } from "@/lib/hooks/useMyAudits";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { useUser } from "@/lib/hooks/useUser";
@@ -303,9 +303,9 @@ function ChecklistPageInner() {
     setDrawerOpen(true);
   }
 
-  async function handleMark(file: File, kind: GoalKind, goalId?: string): Promise<void> {
+  async function handleMark(file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence): Promise<void> {
     if (!groupId) throw new Error("Sin grupo activo");
-    await markCheck.mutateAsync({ file, kind, goalId });
+    await markCheck.mutateAsync({ file, kind, goalId, evidence });
   }
 
   async function handleResubmit(check: DailyCheck, file: File): Promise<void> {
