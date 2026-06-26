@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Drawer as VaulDrawer } from "vaul";
-import { Clock, CheckCircle2, X, Expand, XCircle, Timer, AlignLeft } from "lucide-react";
+import { Clock, CheckCircle2, X, Expand, XCircle, Timer, AlignLeft, Mic, Video } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
@@ -92,6 +92,9 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
   const [sourceOpen, setSourceOpen] = useState(false);
 
   const signedUrl = useSignedUrl(check?.evidence_path ?? null);
+  const afterUrl = useSignedUrl(check?.evidence?.after_path ?? null);
+  const audioUrl = useSignedUrl(check?.evidence?.audio_path ?? null);
+  const videoUrl = useSignedUrl(check?.evidence?.video_path ?? null);
 
   useEffect(() => {
     if (signedUrl) setPhotoUrl(signedUrl);
@@ -226,15 +229,37 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
                 )}
               </div>
 
-              {/* Evidencia rica (cronómetro / resumen) */}
-              {check?.evidence && (check.evidence.summary || check.evidence.timer_seconds != null) && (
-                <div className="rounded-[14px] px-3.5 py-3 mb-4 space-y-2.5" style={{ background: "var(--color-surface)" }}>
+              {/* Foto "después" (antes/después) */}
+              {check?.evidence?.after_path && afterUrl && (
+                <div className="mb-4">
+                  <p className="text-[11px] text-[var(--color-muted)] mb-1.5 text-center">Después</p>
+                  <div className="relative rounded-[18px] overflow-hidden aspect-square w-full max-w-[260px] mx-auto" style={{ background: "var(--color-surface)" }}>
+                    <Image src={afterUrl} alt="Después" fill className="object-cover" unoptimized />
+                  </div>
+                </div>
+              )}
+
+              {/* Evidencia rica (cronómetro / resumen / audio / video) */}
+              {check?.evidence && (check.evidence.summary || check.evidence.timer_seconds != null || check.evidence.audio_path || check.evidence.video_path) && (
+                <div className="rounded-[14px] px-3.5 py-3 mb-4 space-y-3" style={{ background: "var(--color-surface)" }}>
                   {check.evidence.timer_seconds != null && (
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="flex items-center gap-1.5 text-[var(--color-muted)]"><Timer size={13} strokeWidth={1.5} /> Tiempo</span>
                       <span className="text-[var(--color-fg)]">
                         {Math.floor(check.evidence.timer_seconds / 60)} min {check.evidence.timer_seconds % 60}s
                       </span>
+                    </div>
+                  )}
+                  {check.evidence.audio_path && (
+                    <div>
+                      <p className="text-[11px] text-[var(--color-muted)] mb-1 flex items-center gap-1.5"><Mic size={12} strokeWidth={1.5} /> Audio</p>
+                      {audioUrl ? <audio controls src={audioUrl} className="w-full h-9" /> : <p className="text-[12px] text-[var(--color-muted)]">Cargando…</p>}
+                    </div>
+                  )}
+                  {check.evidence.video_path && (
+                    <div>
+                      <p className="text-[11px] text-[var(--color-muted)] mb-1 flex items-center gap-1.5"><Video size={12} strokeWidth={1.5} /> Video</p>
+                      {videoUrl ? <video controls src={videoUrl} className="w-full rounded-[10px]" style={{ maxHeight: 240 }} /> : <p className="text-[12px] text-[var(--color-muted)]">Cargando…</p>}
                     </div>
                   )}
                   {check.evidence.summary && (

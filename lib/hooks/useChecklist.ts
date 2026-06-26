@@ -11,7 +11,7 @@ import { compressImage } from "./useProfile";
 export type GoalKind = "gym" | "diet" | "goal";
 
 // Metas personalizables (Pro/Elite): módulos de evidencia opcionales.
-export type GoalModule = "timer" | "summary";
+export type GoalModule = "timer" | "summary" | "audio" | "video" | "before_after";
 export interface GoalConfig {
   modules: GoalModule[];
   timer_minutes?: number;
@@ -19,6 +19,14 @@ export interface GoalConfig {
 export interface CheckEvidence {
   summary?: string;
   timer_seconds?: number;
+  audio_path?: string;
+  video_path?: string;
+  after_path?: string;   // foto "después"; la "antes" es evidence_path
+}
+export interface ExtraFiles {
+  audio?: File;
+  video?: File;
+  after?: File;
 }
 
 export function hasModules(goal: Goal): boolean {
@@ -237,7 +245,7 @@ export function useMarkCheck(groupId: string | null) {
   return useMutation({
     // Optimistic update: muestra el check como "pending" al instante, antes de que
     // el servidor responda. Si falla, revierte al estado anterior.
-    onMutate: async ({ kind, goalId }: { file: File; kind: GoalKind; goalId?: string; evidence?: CheckEvidence }) => {
+    onMutate: async ({ kind, goalId }: { file: File; kind: GoalKind; goalId?: string; evidence?: CheckEvidence; extraFiles?: ExtraFiles }) => {
       if (!user || !groupId) return;
       const queryKey = ["todayChecks", user.id, groupId] as const;
       await qc.cancelQueries({ queryKey });
@@ -265,14 +273,14 @@ export function useMarkCheck(groupId: string | null) {
       return { prev, queryKey };
     },
 
-    mutationFn: async ({ file, kind, goalId, evidence }: { file: File; kind: GoalKind; goalId?: string; evidence?: CheckEvidence }) => {
+    mutationFn: async ({ file, kind, goalId, evidence, extraFiles }: { file: File; kind: GoalKind; goalId?: string; evidence?: CheckEvidence; extraFiles?: ExtraFiles }) => {
       if (!user || !groupId) throw new Error("Sin sesión o grupo");
 
       // La evidencia es UNA sola foto, compartida por todos los grupos del usuario:
       // la ruta no incluye group_id, así que el archivo nunca se duplica.
       const compressed = await compressImage(file, 1080);
-      const ext = "jpg";
-      const path = `${user.id}/${todayStr()}/${kind}${goalId ? `-${goalId}` : ""}.${ext}`;
+      const base = `${user.id}/${todayStr()}/${kind}${goalId ? `-${goalId}` : ""}`;
+      const path = `${base}.jpg`;
 
       const supabase = createClient();
       const { error: uploadError } = await supabase.storage
@@ -280,6 +288,32 @@ export function useMarkCheck(groupId: string | null) {
         .upload(path, compressed, { upsert: true });
 
       if (uploadError) throw uploadError;
+
+      // Evidencia rica: sube archivos extra (audio, video, foto "después") y
+      // guarda sus rutas junto al resumen/cronómetro.
+      const richEvidence: CheckEvidence = { ...(evidence ?? {}) };
+      if (extraFiles?.after) {
+        const afterPath = `${base}-after.jpg`;
+        const afterCompressed = await compressImage(extraFiles.after, 1080);
+        const { error } = await supabase.storage.from("evidencias").upload(afterPath, afterCompressed, { upsert: true });
+        if (error) throw error;
+        richEvidence.after_path = afterPath;
+      }
+      if (extraFiles?.audio) {
+        const ext = extraFiles.audio.name.split(".").pop() || "webm";
+        const audioPath = `${base}-audio.${ext}`;
+        const { error } = await supabase.storage.from("evidencias").upload(audioPath, extraFiles.audio, { upsert: true });
+        if (error) throw error;
+        richEvidence.audio_path = audioPath;
+      }
+      if (extraFiles?.video) {
+        const ext = extraFiles.video.name.split(".").pop() || "mp4";
+        const videoPath = `${base}-video.${ext}`;
+        const { error } = await supabase.storage.from("evidencias").upload(videoPath, extraFiles.video, { upsert: true });
+        if (error) throw error;
+        richEvidence.video_path = videoPath;
+      }
+      const finalEvidence = Object.keys(richEvidence).length > 0 ? richEvidence : null;
 
       // Un check es personal: aplica a TODOS los grupos del usuario. Creamos una
       // fila por grupo (mismo archivo) para que cada grupo lo revise y puntúe por
@@ -320,7 +354,7 @@ export function useMarkCheck(groupId: string | null) {
             kind,
             goal_id: goalId ?? null,
             evidence_path: path,
-            evidence: evidence ?? null,
+            evidence: finalEvidence,
             check_date: todayStr(),
             status: "pending",
           } as never) as unknown as { error: { message: string } | null };

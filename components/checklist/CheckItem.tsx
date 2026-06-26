@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Camera, Check, Clock, Pencil, ChevronsUpDown, X, RotateCcw } from "lucide-react";
-import type { Goal, DailyCheck, GoalKind, CheckEvidence } from "@/lib/hooks/useChecklist";
+import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { hasModules } from "@/lib/hooks/useChecklist";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
@@ -12,7 +12,7 @@ import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
 interface CheckItemProps {
   goal: Goal;
   check?: DailyCheck;
-  onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence) => Promise<void>;
+  onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
   onResubmit?: (file: File) => Promise<void>;
   onEdit?: () => void;
   onDetail?: () => void;
@@ -39,11 +39,11 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
     else inputRef.current?.click();
   }
 
-  async function handleRichSubmit(file: File, evidence: CheckEvidence) {
+  async function handleRichSubmit(file: File, evidence: CheckEvidence, extraFiles?: ExtraFiles) {
     setProgressPhase("uploading");
     const start = Date.now();
     try {
-      await onMark(file, goal.kind, goal.id, evidence);
+      await onMark(file, goal.kind, goal.id, evidence, extraFiles);
     } catch (e) {
       setProgressPhase(null);
       throw e;

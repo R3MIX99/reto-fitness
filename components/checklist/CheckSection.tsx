@@ -21,7 +21,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Goal, DailyCheck, GoalKind, CheckEvidence } from "@/lib/hooks/useChecklist";
+import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { CheckItem } from "./CheckItem";
 
 // ── Sortable wrapper ───────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ function SortableCheckItem({
 }: {
   goal: Goal;
   check?: DailyCheck;
-  onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence) => Promise<void>;
+  onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
   onResubmit?: (file: File) => Promise<void>;
   onEdit: () => void;
   onDetail: () => void;
@@ -282,7 +282,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
 interface DietSectionProps {
   goals: Goal[];
   checks: DailyCheck[];
-  onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence) => Promise<void>;
+  onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
   onResubmit?: (check: DailyCheck, file: File) => Promise<void>;
   onAdd: () => void;
   onEdit: (goal: Goal) => void;
@@ -407,7 +407,7 @@ export function DietSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, 
 interface GoalsSectionProps {
   goals: Goal[];
   checks: DailyCheck[];
-  onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence) => Promise<void>;
+  onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
   onResubmit?: (check: DailyCheck, file: File) => Promise<void>;
   onAdd: () => void;
   onEdit: (goal: Goal) => void;

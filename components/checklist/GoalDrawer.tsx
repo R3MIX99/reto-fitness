@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trash2, Timer, AlignLeft, Crown } from "lucide-react";
+import { Trash2, Timer, AlignLeft, Crown, Mic, Video, Images } from "lucide-react";
 import { Drawer as VaulDrawer } from "vaul";
 import type { Goal, GoalKind, GoalConfig, GoalModule } from "@/lib/hooks/useChecklist";
 import { usePlan } from "@/lib/hooks/usePlan";
@@ -35,6 +35,9 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
   const [timerOn, setTimerOn] = useState(false);
   const [timerMin, setTimerMin] = useState(20);
   const [summaryOn, setSummaryOn] = useState(false);
+  const [audioOn, setAudioOn] = useState(false);
+  const [videoOn, setVideoOn] = useState(false);
+  const [beforeAfterOn, setBeforeAfterOn] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +47,9 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
     setTimerOn(mods.includes("timer"));
     setTimerMin(goal?.config?.timer_minutes ?? 20);
     setSummaryOn(mods.includes("summary"));
+    setAudioOn(mods.includes("audio"));
+    setVideoOn(mods.includes("video"));
+    setBeforeAfterOn(mods.includes("before_after"));
     setError(null);
   }, [goal, open]);
 
@@ -52,6 +58,9 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
     const modules: GoalModule[] = [];
     if (timerOn) modules.push("timer");
     if (summaryOn) modules.push("summary");
+    if (audioOn) modules.push("audio");
+    if (videoOn) modules.push("video");
+    if (beforeAfterOn) modules.push("before_after");
     if (modules.length === 0) return null;
     return { modules, ...(timerOn ? { timer_minutes: Math.max(1, timerMin) } : {}) };
   }
@@ -127,13 +136,37 @@ export function GoalDrawer({ open, goal, defaultKind = "goal", onClose, onSave, 
                   )}
                   <Toggle on={timerOn} onChange={(v) => canCustomize && setTimerOn(v)} />
                 </div>
-                <div className="flex items-center gap-3 py-2.5">
+                <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: "0.5px solid var(--color-border)" }}>
                   <AlignLeft size={15} strokeWidth={1.5} className="text-warm flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px]">Resumen</p>
                     <p className="text-[11px] text-[var(--color-muted)]">Un texto de lo que hiciste</p>
                   </div>
                   <Toggle on={summaryOn} onChange={(v) => canCustomize && setSummaryOn(v)} />
+                </div>
+                <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: "0.5px solid var(--color-border)" }}>
+                  <Mic size={15} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px]">Audio</p>
+                    <p className="text-[11px] text-[var(--color-muted)]">Graba una nota de voz (ej. practicar idioma)</p>
+                  </div>
+                  <Toggle on={audioOn} onChange={(v) => canCustomize && setAudioOn(v)} />
+                </div>
+                <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: "0.5px solid var(--color-border)" }}>
+                  <Video size={15} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px]">Video</p>
+                    <p className="text-[11px] text-[var(--color-muted)]">Graba o sube un video</p>
+                  </div>
+                  <Toggle on={videoOn} onChange={(v) => canCustomize && setVideoOn(v)} />
+                </div>
+                <div className="flex items-center gap-3 py-2.5">
+                  <Images size={15} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px]">Antes y después</p>
+                    <p className="text-[11px] text-[var(--color-muted)]">Dos fotos para comparar</p>
+                  </div>
+                  <Toggle on={beforeAfterOn} onChange={(v) => canCustomize && setBeforeAfterOn(v)} />
                 </div>
               </div>
               {!canCustomize && (
