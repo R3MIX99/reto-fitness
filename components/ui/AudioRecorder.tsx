@@ -8,7 +8,8 @@ import { Mic, Square, Play, Pause, Trash2, X } from "lucide-react";
 // con play/pausa, progreso y borrar. Evita el <input capture> de iOS/Android
 // que genera archivos sin duración.
 
-const BARS = 36;
+const BARS = 36;       // barras del audio ya grabado (forma estática)
+const LIVE_BARS = 9;   // barras fijas del ecualizador en vivo (estilo asistente de voz)
 
 function fmt(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
@@ -62,7 +63,9 @@ export function AudioRecorder({
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);        // 0..1 durante reproducción
   const [decoding, setDecoding] = useState(false);    // procesando el audio grabado
-  const [bars, setBars] = useState<number[]>(() => new Array(BARS).fill(0.08));
+  const [bars, setBars] = useState<number[]>(() => new Array(BARS).fill(0.08));            // grabado (estático)
+  const [liveBars, setLiveBars] = useState<number[]>(() => new Array(LIVE_BARS).fill(0.12)); // ecualizador en vivo
+  const prevLevelsRef = useRef<number[]>(new Array(LIVE_BARS).fill(0.12));
 
   // Refs de grabación
   const streamRef = useRef<MediaStream | null>(null);
@@ -95,33 +98,41 @@ export function AudioRecorder({
     rafRef.current = null;
   }, []);
 
-  // Bucle de medición: lee la amplitud del micrófono y mueve las ondas.
-  // Se agrega una barra nueva cada BAR_INTERVAL_MS para que el desplazamiento
-  // de la onda sea más lento y agradable (no en cada frame ~60fps).
+  // Ecualizador en vivo: barras FIJAS (no se desplazan) que crecen/encogen con
+  // la voz, más altas al centro y más cortas a los lados (estilo asistente de
+  // voz). Se suaviza con interpolación para que no titile.
   const lastBarAtRef = useRef(0);
   const startMeter = useCallback(() => {
     const analyser = analyserRef.current;
-    const data = dataRef.current;
-    if (!analyser || !data) return;
+    if (!analyser) return;
+    const freq = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
+    const prev = prevLevelsRef.current;
     lastBarAtRef.current = 0;
-    const BAR_INTERVAL_MS = 110;
+    const mid = (LIVE_BARS - 1) / 2;
     const tick = (now: number) => {
-      if (now - lastBarAtRef.current >= BAR_INTERVAL_MS) {
+      analyser.getByteFrequencyData(freq);
+      let total = 0;
+      const targets: number[] = new Array(LIVE_BARS);
+      for (let i = 0; i < LIVE_BARS; i++) {
+        // Cada barra mapea a una banda de frecuencia (graves al centro).
+        const bin = Math.max(1, Math.floor(((i + 1) / (LIVE_BARS + 1)) * (freq.length * 0.55)));
+        const val = freq[bin] / 255;
+        total += val;
+        // Peso central: 1 al centro, ~0.4 en los extremos.
+        const d = Math.abs(i - mid) / mid;
+        const weight = 1 - 0.6 * d;
+        targets[i] = Math.min(1, Math.max(0.1, val * 1.9 * weight));
+      }
+      // Suavizado (lerp) hacia el objetivo.
+      for (let i = 0; i < LIVE_BARS; i++) {
+        prev[i] = prev[i] + (targets[i] - prev[i]) * 0.4;
+      }
+      setLiveBars(prev.slice());
+
+      // Para la forma de onda del audio ya grabado: guardar amplitud cada ~110ms.
+      if (now - lastBarAtRef.current >= 110) {
         lastBarAtRef.current = now;
-        analyser.getByteTimeDomainData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) {
-          const v = (data[i] - 128) / 128;
-          sum += v * v;
-        }
-        const rms = Math.sqrt(sum / data.length);
-        const amp = Math.min(1, Math.max(0.06, rms * 2.4));
-        ampHistory.current.push(amp);
-        setBars((prev) => {
-          const next = prev.slice(1);
-          next.push(amp);
-          return next;
-        });
+        ampHistory.current.push(Math.min(1, Math.max(0.1, (total / LIVE_BARS) * 1.9)));
       }
       rafRef.current = requestAnimationFrame(tick);
     };
@@ -237,6 +248,8 @@ export function AudioRecorder({
       setElapsed(0);
       setPaused(false);
       setBars(new Array(BARS).fill(0.08));
+      prevLevelsRef.current = new Array(LIVE_BARS).fill(0.12);
+      setLiveBars(new Array(LIVE_BARS).fill(0.12));
       startMeter();
       startTimer();
       setPhase("recording");
@@ -372,7 +385,7 @@ export function AudioRecorder({
             <X size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
           </button>
 
-          <Waveform bars={bars} progress={1} live={!paused} color={paused ? "var(--color-muted)" : "var(--color-accent)"} />
+          <LiveEqualizer levels={liveBars} color={paused ? "var(--color-muted)" : "var(--color-accent)"} />
 
           <span className="text-[13px] tabular-nums text-[var(--color-fg)] flex-shrink-0 w-10 text-right">{fmt(elapsed)}</span>
 
@@ -446,6 +459,21 @@ export function AudioRecorder({
         </div>
       </button>
       {error && <p className="text-[11px] text-red-400 mt-2">{error}</p>}
+    </div>
+  );
+}
+
+// ── Ecualizador en vivo (barras fijas, crecen con la voz) ───────────────────
+
+function LiveEqualizer({ levels, color }: { levels: number[]; color: string }) {
+  return (
+    <div className="flex-1 flex items-center justify-center gap-[3px] h-9">
+      {levels.map((v, i) => (
+        <div key={i}
+          className="rounded-full transition-[height] duration-100 ease-out"
+          style={{ width: 4, height: `${Math.max(12, v * 100)}%`, background: color }}
+        />
+      ))}
     </div>
   );
 }
