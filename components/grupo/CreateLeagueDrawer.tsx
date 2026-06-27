@@ -10,12 +10,30 @@ import {
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { useUser } from "@/lib/hooks/useUser";
 import {
-  Trophy, Users, Crown, CheckCircle2, AlertCircle, Loader2, ChevronRight,
+  Trophy, Users, Crown, CheckCircle2, AlertCircle, Loader2, ChevronRight, Calendar,
 } from "lucide-react";
+
+const LEAGUE_DURATION_OPTIONS = [
+  { label: "1 sem", weeks: 1 },
+  { label: "2 sem", weeks: 2 },
+  { label: "3 sem", weeks: 3 },
+  { label: "4 sem", weeks: 4 },
+  { label: "2 meses", weeks: 8 },
+] as const;
 
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function addWeeks(dateStr: string, weeks: number): string {
+  const d = new Date(dateStr + "T12:00:00");
+  d.setDate(d.getDate() + weeks * 7);
+  return d.toISOString().slice(0, 10);
+}
+
+function fmtDate(s: string) {
+  return new Date(s + "T12:00:00").toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" });
 }
 
 type Mode = "pick" | "my-groups" | "other-group";
@@ -87,21 +105,15 @@ function StepMyGroups({
   const [selected, setSelected] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState(todayStr());
-  const [duration, setDuration] = useState<"7" | "14" | "30" | "custom">("14");
-  const [customEnd, setCustomEnd] = useState("");
+  const [weeks, setWeeks] = useState(2);
   const [error, setError] = useState<string | null>(null);
+
+  const endDate = addWeeks(startDate, weeks);
 
   function toggleGroup(id: string) {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 2 ? [...prev, id] : [prev[1], id]
     );
-  }
-
-  function calcEndDate(): string | undefined {
-    if (duration === "custom") return customEnd || undefined;
-    const d = new Date(startDate + "T12:00:00");
-    d.setDate(d.getDate() + Number(duration));
-    return d.toISOString().slice(0, 10);
   }
 
   const canCreate = selected.length === 2 && name.trim().length > 0;
@@ -114,7 +126,7 @@ function StepMyGroups({
         groupA: selected[0],
         groupB: selected[1],
         startDate,
-        endDate: calcEndDate(),
+        endDate,
       });
       onCreated?.();
       onClose();
@@ -196,34 +208,32 @@ function StepMyGroups({
         />
       </div>
 
-      {/* Duración */}
+      {/* Duración por semanas */}
       <div className="space-y-2">
         <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Duración</label>
-        <div className="grid grid-cols-4 gap-1.5">
-          {(["7", "14", "30", "custom"] as const).map((opt) => (
+        <div className="grid grid-cols-5 gap-1.5">
+          {LEAGUE_DURATION_OPTIONS.map((opt) => (
             <button
-              key={opt}
-              onClick={() => setDuration(opt)}
-              className={`py-2 rounded-xl text-xs font-display font-semibold transition-all ${
-                duration === opt
+              key={opt.weeks}
+              onClick={() => setWeeks(opt.weeks)}
+              className={`py-2.5 rounded-xl text-xs font-display font-semibold transition-all ${
+                weeks === opt.weeks
                   ? "bg-[var(--color-accent)] text-white"
                   : "bg-white/5 text-[var(--color-muted)]"
               }`}
             >
-              {opt === "custom" ? "Otra" : `${opt}d`}
+              {opt.label}
             </button>
           ))}
         </div>
-        {duration === "custom" && (
-          <input
-            type="date"
-            className="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-[var(--color-fg)] outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-            value={customEnd}
-            min={startDate}
-            onChange={(e) => setCustomEnd(e.target.value)}
-            placeholder="Fecha de fin"
-          />
-        )}
+        {/* Preview de fechas */}
+        <div className="flex items-center gap-2 bg-white/4 rounded-xl px-3 py-2.5">
+          <Calendar className="w-3.5 h-3.5 text-[var(--color-warm)] shrink-0" />
+          <p className="text-xs text-[var(--color-fg)]">
+            {fmtDate(startDate)} → {fmtDate(endDate)}
+            <span className="text-[var(--color-muted)] ml-1">· {weeks} semana{weeks !== 1 ? "s" : ""}</span>
+          </p>
+        </div>
       </div>
 
       {error && <p className="text-xs text-red-400 bg-red-400/10 rounded-xl px-4 py-2">{error}</p>}
@@ -307,16 +317,10 @@ function StepOtherGroup({
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [startDate, setStartDate] = useState(todayStr());
-  const [duration, setDuration] = useState<"7" | "14" | "30" | "custom">("14");
-  const [customEnd, setCustomEnd] = useState("");
+  const [weeks, setWeeks] = useState(2);
   const [error, setError] = useState<string | null>(null);
 
-  function calcEndDate(): string | undefined {
-    if (duration === "custom") return customEnd || undefined;
-    const d = new Date(startDate + "T12:00:00");
-    d.setDate(d.getDate() + Number(duration));
-    return d.toISOString().slice(0, 10);
-  }
+  const endDate = addWeeks(startDate, weeks);
 
   const { data: preview, isFetching: loadingPreview, isError: previewError } = useGroupPreview(code);
 
@@ -342,7 +346,7 @@ function StepOtherGroup({
         ownerGroupId: myGroupId,
         targetGroupId: preview.group_id,
         startDate,
-        endDate: calcEndDate(),
+        endDate,
       });
       onCreated?.();
       onClose();
@@ -446,33 +450,31 @@ function StepOtherGroup({
         />
       </div>
 
-      {/* Duración */}
+      {/* Duración por semanas */}
       <div className="space-y-2">
         <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Duración</label>
-        <div className="grid grid-cols-4 gap-1.5">
-          {(["7", "14", "30", "custom"] as const).map((opt) => (
+        <div className="grid grid-cols-5 gap-1.5">
+          {LEAGUE_DURATION_OPTIONS.map((opt) => (
             <button
-              key={opt}
-              onClick={() => setDuration(opt)}
-              className={`py-2 rounded-xl text-xs font-display font-semibold transition-all ${
-                duration === opt
+              key={opt.weeks}
+              onClick={() => setWeeks(opt.weeks)}
+              className={`py-2.5 rounded-xl text-xs font-display font-semibold transition-all ${
+                weeks === opt.weeks
                   ? "bg-[var(--color-accent)] text-white"
                   : "bg-white/5 text-[var(--color-muted)]"
               }`}
             >
-              {opt === "custom" ? "Otra" : `${opt}d`}
+              {opt.label}
             </button>
           ))}
         </div>
-        {duration === "custom" && (
-          <input
-            type="date"
-            className="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-[var(--color-fg)] outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-            value={customEnd}
-            min={startDate}
-            onChange={(e) => setCustomEnd(e.target.value)}
-          />
-        )}
+        <div className="flex items-center gap-2 bg-white/4 rounded-xl px-3 py-2.5">
+          <Calendar className="w-3.5 h-3.5 text-[var(--color-warm)] shrink-0" />
+          <p className="text-xs text-[var(--color-fg)]">
+            {fmtDate(startDate)} → {fmtDate(endDate)}
+            <span className="text-[var(--color-muted)] ml-1">· {weeks} semana{weeks !== 1 ? "s" : ""}</span>
+          </p>
+        </div>
       </div>
 
       {error && <p className="text-xs text-red-400 bg-red-400/10 rounded-xl px-4 py-2">{error}</p>}
