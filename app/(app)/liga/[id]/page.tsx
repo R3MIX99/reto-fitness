@@ -30,6 +30,33 @@ function fmtPts(n: number) {
   return n.toLocaleString();
 }
 
+function todayLocal() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function parseLocalDate(dateStr: string) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function daysUntil(dateStr: string) {
+  return Math.ceil(
+    (parseLocalDate(dateStr).getTime() - todayLocal().getTime()) / 86_400_000
+  );
+}
+
+type DisplayStatus = "upcoming" | "active" | "finished" | "cancelled";
+
+function getDisplayStatus(status: string, startDate: string): DisplayStatus {
+  if (status === "cancelled") return "cancelled";
+  if (status === "finished") return "finished";
+  if (parseLocalDate(startDate) > todayLocal()) return "upcoming";
+  return "active";
+}
+
 // Construye la serie de la gráfica: acumulado por día para cada grupo
 function buildChartSeries(rows: LeagueGroupDaily[], groupIds: string[]) {
   if (!rows.length) return [];
@@ -141,8 +168,11 @@ export default function BattlePage() {
     );
   }
 
-  const isActive = league.status === "active";
+  const displayStatus = getDisplayStatus(league.status, league.start_date);
+  const isActive = displayStatus === "active";
+  const isUpcoming = displayStatus === "upcoming";
   const isCreator = league.created_by === user?.id;
+  const daysToStart = isUpcoming ? daysUntil(league.start_date) : 0;
   const myGroupId = entry?.myGroupId ?? "";
 
   // Grupos ordenados por standing
@@ -193,15 +223,21 @@ export default function BattlePage() {
         <div className="flex-1 min-w-0">
           <h1 className="font-display font-bold text-xl text-[var(--color-fg)] truncate">{league.name}</h1>
           <p className="text-xs text-[var(--color-muted)] mt-0.5">
-            {fmtDate(league.start_date)}
-            {league.end_date && ` → ${fmtDate(league.end_date)}`}
+            {displayStatus === "upcoming"
+              ? `Empieza el ${fmtDate(league.start_date)}`
+              : `Desde el ${fmtDate(league.start_date)}`}
+            {league.end_date && ` · hasta ${fmtDate(league.end_date)}`}
             {" · "}
             <span className={`font-semibold ${
               isActive ? "text-green-400" :
-              league.status === "cancelled" ? "text-red-400" :
-              "text-[var(--color-warm)]"
+              isUpcoming ? "text-[var(--color-warm)]" :
+              displayStatus === "cancelled" ? "text-red-400" :
+              "text-[var(--color-muted)]"
             }`}>
-              {isActive ? "En curso" : league.status === "cancelled" ? "Cancelada" : "Finalizada"}
+              {isActive ? "En curso"
+                : isUpcoming ? "Próximamente"
+                : displayStatus === "cancelled" ? "Cancelada"
+                : "Finalizada"}
             </span>
           </p>
         </div>
@@ -210,8 +246,17 @@ export default function BattlePage() {
       {/* ─── Hero: Scores VS ─────────────────────────────────────────────── */}
       {standings.length >= 2 ? (
         <>
-          {/* Motivational badge */}
-          {isActive && myGroupId && (
+          {/* Motivational / countdown badge */}
+          {isUpcoming ? (
+            <div className="flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-[var(--color-warm)]/15 text-[var(--color-warm)] text-sm font-display font-bold">
+              <Trophy className="w-4 h-4" />
+              {daysToStart === 1
+                ? "La liga empieza mañana"
+                : daysToStart === 0
+                ? "La liga empieza hoy"
+                : `La liga empieza en ${daysToStart} días`}
+            </div>
+          ) : isActive && myGroupId ? (
             <div className={`flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-display font-bold ${
               myIsLeading
                 ? "bg-green-500/15 text-green-400"
@@ -236,7 +281,7 @@ export default function BattlePage() {
                 </>
               )}
             </div>
-          )}
+          ) : null}
 
           {/* Score card */}
           <div className="bg-[var(--color-bg-card)] rounded-[20px] p-4">

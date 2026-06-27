@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Trophy, Crown, Users, Plus, ChevronRight,
@@ -17,6 +17,37 @@ import { useMyGroups } from "@/lib/hooks/useGroups";
 import { usePlan } from "@/lib/hooks/usePlan";
 import { useUser } from "@/lib/hooks/useUser";
 import { CreateLeagueDrawer } from "@/components/grupo/CreateLeagueDrawer";
+
+// ── Fecha helpers ──────────────────────────────────────────────────────────
+
+function todayLocal() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function parseLocalDate(s: string) {
+  const d = new Date(s + "T00:00:00");
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function daysUntil(s: string) {
+  return Math.ceil((parseLocalDate(s).getTime() - todayLocal().getTime()) / 86_400_000);
+}
+
+function leagueSubtitle(startDate: string, pendingCount: number) {
+  const days = daysUntil(startDate);
+  let dateLabel: string;
+  if (days > 1) dateLabel = `Empieza en ${days} días`;
+  else if (days === 1) dateLabel = "Empieza mañana";
+  else if (days === 0) dateLabel = "Empieza hoy";
+  else {
+    dateLabel = `En curso desde ${new Date(startDate + "T12:00:00").toLocaleDateString("es", { day: "numeric", month: "short" })}`;
+  }
+  if (pendingCount > 0) dateLabel += ` · ${pendingCount} invitación pendiente`;
+  return dateLabel;
+}
 
 // ── Standings inline card ──────────────────────────────────────────────────
 
@@ -40,10 +71,7 @@ function StandingsCard({ entry, onOpen }: { entry: LeagueEntry; onOpen: () => vo
             {entry.league.name}
           </p>
           <p className="text-[11px] text-[var(--color-muted)] mt-0.5">
-            Empieza el {new Date(entry.league.start_date + "T12:00:00").toLocaleDateString("es", {
-              day: "numeric", month: "short",
-            })}
-            {pending.length > 0 && ` · ${pending.length} invitación pendiente`}
+            {leagueSubtitle(entry.league.start_date, pending.length)}
           </p>
         </div>
         <ChevronRight className="w-4 h-4 text-[var(--color-muted)] shrink-0" />
@@ -278,9 +306,9 @@ export default function LigaPage() {
                       </strong>
                     </p>
                     <p className="text-xs text-[var(--color-muted)]">
-                      Empieza el {new Date(inv.league?.start_date + "T12:00:00").toLocaleDateString("es", {
-                        day: "numeric", month: "long", year: "numeric",
-                      })}
+                      {inv.league?.start_date
+                        ? leagueSubtitle(inv.league.start_date, 0)
+                        : ""}
                     </p>
                   </div>
                 </div>
