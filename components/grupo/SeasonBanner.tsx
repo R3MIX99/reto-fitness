@@ -172,7 +172,7 @@ export function SeasonBanner({
         </div>
       </div>
 
-      {/* Recompensa del campeón (solo temporada activa con título configurado) */}
+      {/* Recompensa del campeón */}
       {customTitle && phase.hasStarted && !isReviewing && (() => {
         const isGendered = customTitle.gender_mode === "gendered";
         const textM = customTitle.title_text_male ?? customTitle.title_text ?? "";
@@ -180,21 +180,34 @@ export function SeasonBanner({
         const textD = customTitle.title_text ?? "";
         return (
           <div
-            className="flex items-center gap-2 mb-3 px-3.5 py-2.5 rounded-[12px]"
-            style={{ background: "rgba(239,200,139,0.05)", border: "1px solid rgba(239,200,139,0.15)" }}
+            className="mb-3 rounded-[16px] py-4 px-4 flex flex-col items-center gap-4"
+            style={{ background: "rgba(239,200,139,0.04)", border: "1px solid rgba(239,200,139,0.18)" }}
           >
-            <Crown size={13} strokeWidth={1.5} className="text-warm flex-shrink-0" />
-            <span className="text-[12px] text-[var(--color-muted)] flex-shrink-0">Premio al #1</span>
-            <div className="flex items-center gap-1.5 overflow-hidden">
-              {isGendered ? (
-                <>
-                  {textM && <TitleBadge text={textM} styleId={customTitle.title_style} size="sm" />}
-                  {textF && <TitleBadge text={textF} styleId={customTitle.title_style} size="sm" />}
-                </>
-              ) : (
-                textD && <TitleBadge text={textD} styleId={customTitle.title_style} size="sm" />
-              )}
+            <div className="flex items-center gap-1.5">
+              <Crown size={12} strokeWidth={1.5} className="text-warm" />
+              <span className="text-[11px] uppercase tracking-widest text-[var(--color-muted)]">
+                Premio al #1
+              </span>
             </div>
+
+            {isGendered ? (
+              <div className="flex items-center justify-center gap-6">
+                {textM && (
+                  <div className="flex flex-col items-center gap-2">
+                    <TitleBadge text={textM} styleId={customTitle.title_style} size="lg" />
+                    <span className="text-[10px] text-[var(--color-muted)]">Hombres</span>
+                  </div>
+                )}
+                {textF && (
+                  <div className="flex flex-col items-center gap-2">
+                    <TitleBadge text={textF} styleId={customTitle.title_style} size="lg" />
+                    <span className="text-[10px] text-[var(--color-muted)]">Mujeres</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              textD && <TitleBadge text={textD} styleId={customTitle.title_style} size="lg" />
+            )}
           </div>
         );
       })()}
