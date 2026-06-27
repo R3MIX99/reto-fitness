@@ -1,8 +1,8 @@
 "use client";
 
-import { Crown, Flame, Sparkles, Landmark, Zap, type LucideIcon } from "lucide-react";
+import { Crown, Flame, Sparkles, Landmark, Zap, Check, type LucideIcon } from "lucide-react";
 
-// ── Definición de los 5 estilos ──────────────────────────────────────────────
+// ── Tipos ────────────────────────────────────────────────────────────────────
 
 export type TitleStyleId = "gold" | "fire" | "crystal" | "shadow" | "neon";
 
@@ -14,6 +14,8 @@ export interface TitleStyleDef {
   textStyle: React.CSSProperties;
   borderRadius: string;
 }
+
+// ── 5 estilos ────────────────────────────────────────────────────────────────
 
 export const TITLE_STYLES: TitleStyleDef[] = [
   {
@@ -64,38 +66,68 @@ export const TITLE_STYLES: TitleStyleDef[] = [
     label: "Olympo",
     icon: Landmark,
     badgeStyle: {
-      // Mármol blanco con venas doradas — estilo piedra mítica griega
+      // Mármol marfil con venas doradas visibles (rayos de Zeus)
+      // Capa 3 base: marfil cálido
+      // Capas 2-1: venas doradas angostas y diagonales a distintos ángulos
       background: [
-        "linear-gradient(112deg, rgba(218,175,68,0.18) 0%, transparent 35%, rgba(218,175,68,0.1) 70%, transparent 100%)",
-        "linear-gradient(175deg, rgba(218,175,68,0.08) 0%, transparent 50%)",
-        "linear-gradient(180deg, #fefaf0 0%, #f5e9cc 55%, #f9f3e1 100%)",
+        // Vena principal gruesa — diagonal 68°
+        `linear-gradient(68deg,
+          transparent 0%, transparent 14%,
+          rgba(210,165,45,0.85) 14.2%, rgba(235,190,70,0.55) 15%, rgba(210,165,45,0.25) 15.7%, transparent 16.5%,
+          transparent 42%,
+          rgba(200,158,40,0.6) 42.3%, rgba(225,180,60,0.35) 43%, transparent 43.7%,
+          transparent 100%
+        )`,
+        // Vena secundaria — diagonal opuesta 128°
+        `linear-gradient(128deg,
+          transparent 0%, transparent 28%,
+          rgba(196,148,38,0.7) 28.2%, rgba(220,178,58,0.4) 28.9%, transparent 29.6%,
+          transparent 58%,
+          rgba(190,145,35,0.5) 58.2%, rgba(215,172,55,0.28) 58.9%, transparent 59.5%,
+          transparent 100%
+        )`,
+        // Vena fina rápida — 50°
+        `linear-gradient(50deg,
+          transparent 60%,
+          rgba(205,162,42,0.55) 60.1%, rgba(228,185,65,0.3) 60.6%, transparent 61.1%,
+          transparent 100%
+        )`,
+        // Base marfil cálido
+        `linear-gradient(160deg, #fefaf2 0%, #f4e8c6 25%, #fdf5e0 52%, #ece0bb 78%, #f8f2e3 100%)`,
       ].join(","),
       border: "1.5px solid #C4963A",
       boxShadow: [
-        "0 0 0 3px rgba(196,150,58,0.2)",
-        "0 2px 14px rgba(160,120,30,0.2)",
-        "inset 0 1.5px 0 rgba(255,248,200,0.95)",
-        "inset 0 -1px 0 rgba(180,130,40,0.3)",
+        "0 0 0 3px rgba(196,150,58,0.22)",
+        "0 2px 16px rgba(160,120,30,0.22)",
+        "inset 0 1.5px 0 rgba(255,250,210,0.98)",
+        "inset 0 -1px 0 rgba(180,130,40,0.32)",
       ].join(","),
       animation: "olympoGlow 3.5s ease-in-out infinite",
     },
-    textStyle: { color: "#6B4500", fontWeight: "600" } as React.CSSProperties,
+    textStyle: {
+      color: "#5C3800",
+      fontWeight: "700",
+      fontFamily: "'Cinzel', 'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+      letterSpacing: "0.04em",
+      textShadow: "0 1px 0 rgba(255,245,200,0.8)",
+    } as React.CSSProperties,
     borderRadius: "10px",
   },
   {
     id: "neon",
     label: "Neón",
     icon: Zap,
-    // Renderizado especial en TitleBadge (glow viajero); estos valores son ignorados
     badgeStyle: {},
     textStyle: { color: "#00FFFF" },
     borderRadius: "4px",
   },
 ];
 
-// ── Inyección de CSS + SVG (una sola vez por sesión) ─────────────────────────
+// ── CSS + fuente Cinzel ───────────────────────────────────────────────────────
 
-const BADGE_KEYFRAMES = `
+const BADGE_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
+
 @keyframes titleGoldShimmer {
   0%   { background-position: 200% center; }
   100% { background-position: -200% center; }
@@ -110,25 +142,34 @@ const BADGE_KEYFRAMES = `
 }
 @keyframes olympoGlow {
   0%,100% {
-    box-shadow: 0 0 0 3px rgba(196,150,58,0.18), 0 2px 10px rgba(160,120,30,0.15),
-                inset 0 1.5px 0 rgba(255,248,200,0.95), inset 0 -1px 0 rgba(180,130,40,0.3);
+    box-shadow:
+      0 0 0 3px rgba(196,150,58,0.18), 0 2px 10px rgba(160,120,30,0.15),
+      inset 0 1.5px 0 rgba(255,250,210,0.98), inset 0 -1px 0 rgba(180,130,40,0.32);
   }
   50% {
-    box-shadow: 0 0 0 3px rgba(218,175,68,0.45), 0 2px 22px rgba(196,150,58,0.35),
-                inset 0 1.5px 0 rgba(255,252,220,1), inset 0 -1px 0 rgba(196,150,58,0.5);
+    box-shadow:
+      0 0 0 3px rgba(218,175,68,0.5), 0 2px 24px rgba(196,150,58,0.4),
+      inset 0 1.5px 0 rgba(255,252,220,1), inset 0 -1px 0 rgba(196,150,58,0.55);
   }
 }
 `;
 
 let injected = false;
-
 function ensureInjections() {
   if (injected || typeof document === "undefined") return;
   injected = true;
   const style = document.createElement("style");
-  style.textContent = BADGE_KEYFRAMES;
+  style.textContent = BADGE_CSS;
   document.head.appendChild(style);
 }
+
+// ── Tamaños ──────────────────────────────────────────────────────────────────
+
+const SIZE_MAP = {
+  sm: { icon: 11, font: "11px", pad: "2px 8px" },
+  md: { icon: 13, font: "12px", pad: "4px 12px" },
+  lg: { icon: 15, font: "14px", pad: "6px 16px" },
+} as const;
 
 // ── TitleBadge ───────────────────────────────────────────────────────────────
 
@@ -139,18 +180,17 @@ export function TitleBadge({
 }: {
   text: string;
   styleId: TitleStyleId;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 }) {
   ensureInjections();
 
   const def = TITLE_STYLES.find((s) => s.id === styleId) ?? TITLE_STYLES[0];
   const Icon = def.icon;
-  const iconSize = size === "sm" ? 11 : 13;
-  const fontSize = size === "sm" ? "11px" : "12px";
-  const padding = size === "sm" ? "2px 8px" : "4px 12px";
+  const { icon: iconSize, font: fontSize, pad: padding } = SIZE_MAP[size];
 
-  // ── Neón: glow que recorre el borde en loop ──────────────────────────────
+  // ── Neón: glow que recorre el borde ─────────────────────────────────────
   if (styleId === "neon") {
+    const innerBorderRadius = size === "lg" ? "3px" : "2px";
     return (
       <span
         style={{
@@ -162,7 +202,6 @@ export function TitleBadge({
           flexShrink: 0,
         }}
       >
-        {/* Gradiente cónico giratorio → crea el efecto "glow que viaja" */}
         <span
           aria-hidden="true"
           style={{
@@ -172,7 +211,6 @@ export function TitleBadge({
             animation: "neonSpin 2.4s linear infinite",
           }}
         />
-        {/* Fondo interior que tapa el centro del gradiente giratorio */}
         <span
           style={{
             position: "relative",
@@ -180,27 +218,21 @@ export function TitleBadge({
             alignItems: "center",
             gap: "6px",
             background: "#03030f",
-            borderRadius: "2px",
+            borderRadius: innerBorderRadius,
             padding,
             fontSize,
             fontWeight: 500,
             whiteSpace: "nowrap",
           }}
         >
-          <Icon
-            size={iconSize}
-            strokeWidth={2}
-            style={{ color: "#00FFFF", filter: "drop-shadow(0 0 4px #00FFFF)" }}
-          />
-          <span style={{ color: "#00FFFF", textShadow: "0 0 8px rgba(0,255,255,0.8)" }}>
-            {text}
-          </span>
+          <Icon size={iconSize} strokeWidth={2} style={{ color: "#00FFFF", filter: "drop-shadow(0 0 4px #00FFFF)" }} />
+          <span style={{ color: "#00FFFF", textShadow: "0 0 8px rgba(0,255,255,0.8)" }}>{text}</span>
         </span>
       </span>
     );
   }
 
-  // ── Resto de estilos ─────────────────────────────────────────────────────
+  // ── Resto ────────────────────────────────────────────────────────────────
   return (
     <span
       className="inline-flex items-center gap-1.5 font-medium whitespace-nowrap"
@@ -217,7 +249,7 @@ export function TitleBadge({
   );
 }
 
-// ── TitleStylePicker ─────────────────────────────────────────────────────────
+// ── TitleStylePicker — previews grandes, una fila por estilo ─────────────────
 
 export function TitleStylePicker({
   value,
@@ -229,27 +261,45 @@ export function TitleStylePicker({
   previewText?: string;
 }) {
   ensureInjections();
+  const displayText = previewText && previewText.trim().length >= 3 ? previewText.trim() : undefined;
+
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-2">
       {TITLE_STYLES.map((def) => {
         const isSelected = def.id === value;
         return (
           <button
             key={def.id}
             onClick={() => onChange(def.id)}
-            className="flex flex-col items-center gap-1.5 p-2 rounded-[10px] transition-all"
+            className="flex items-center gap-3 rounded-[12px] px-3 py-3 transition-all text-left w-full"
             style={{
-              border: isSelected ? "1.5px solid var(--color-warm)" : "1.5px solid var(--color-border)",
-              background: isSelected ? "rgba(239,200,139,0.08)" : "var(--color-surface)",
-              minWidth: 68,
+              border: isSelected
+                ? "1.5px solid var(--color-warm)"
+                : "1.5px solid var(--color-border)",
+              background: isSelected ? "rgba(239,200,139,0.07)" : "var(--color-surface)",
             }}
           >
-            <TitleBadge
-              text={previewText || def.label}
-              styleId={def.id}
-              size="sm"
-            />
-            <span className="text-[10px] text-[var(--color-muted)]">{def.label}</span>
+            {/* Badge a tamaño grande para verlo bien */}
+            <div className="flex-shrink-0">
+              <TitleBadge
+                text={displayText || def.label}
+                styleId={def.id}
+                size="lg"
+              />
+            </div>
+
+            {/* Nombre del estilo */}
+            <span className="flex-1 text-[13px] font-medium">{def.label}</span>
+
+            {/* Check cuando está seleccionado */}
+            {isSelected && (
+              <span
+                className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                style={{ background: "var(--color-warm)" }}
+              >
+                <Check size={12} strokeWidth={2.5} style={{ color: "#1a0f00" }} />
+              </span>
+            )}
           </button>
         );
       })}

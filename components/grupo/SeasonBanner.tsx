@@ -322,7 +322,7 @@ function StartSeasonDrawer({
                 <TitleStylePicker
                   value={titleStyle}
                   onChange={setTitleStyle}
-                  previewText={titleText.trim().slice(0, 12)}
+                  previewText={titleText.trim()}
                 />
               </>
             )}
@@ -481,7 +481,7 @@ function ManageSeasonDrawer({
                 {titleText.trim().length >= 3 && (
                   <>
                     <label className="text-[12px] text-[var(--color-muted)] mb-2 block">Estilo del badge</label>
-                    <TitleStylePicker value={titleStyle} onChange={setTitleStyle} previewText={titleText.trim().slice(0, 12)} />
+                    <TitleStylePicker value={titleStyle} onChange={setTitleStyle} previewText={titleText.trim()} />
                   </>
                 )}
               </div>
@@ -609,7 +609,7 @@ function ManageSeasonDrawer({
                 {titleText.trim().length >= 3 && (
                   <>
                     <label className="text-[12px] text-[var(--color-muted)] mb-2 block">Estilo del badge</label>
-                    <TitleStylePicker value={titleStyle} onChange={setTitleStyle} previewText={titleText.trim().slice(0, 12)} />
+                    <TitleStylePicker value={titleStyle} onChange={setTitleStyle} previewText={titleText.trim()} />
                   </>
                 )}
               </div>
