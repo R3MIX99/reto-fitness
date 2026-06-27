@@ -62,33 +62,28 @@ export const TITLE_STYLES: TitleStyleDef[] = [
   {
     id: "shadow",
     label: "Sombra",
+    // filter: url(#shadow-squiggly) aplicado inline en TitleBadge
     icon: Star,
     badgeStyle: {
       background: "linear-gradient(135deg,#0f0f1a,#1a1a2e)",
-      border: "1px solid rgba(192,192,192,0.5)",
+      border: "1px solid rgba(192,192,192,0.55)",
       boxShadow: "0 0 14px rgba(192,192,192,0.25), inset 0 1px 0 rgba(255,255,255,0.06)",
     },
     textStyle: { color: "#C0C0C0" },
-    borderRadius: "6px",
+    borderRadius: "8px",
   },
   {
     id: "neon",
     label: "Neón",
     icon: Zap,
-    badgeStyle: {
-      background: "transparent",
-      border: "1.5px solid #00FFFF",
-      boxShadow: "0 0 8px #00FFFF, 0 0 20px rgba(0,255,255,0.2), inset 0 0 8px rgba(0,255,255,0.05)",
-    },
-    textStyle: {
-      color: "#00FFFF",
-      textShadow: "0 0 8px rgba(0,255,255,0.8)",
-    },
+    // Renderizado especial en TitleBadge (glow viajero); estos valores son ignorados
+    badgeStyle: {},
+    textStyle: { color: "#00FFFF" },
     borderRadius: "4px",
   },
 ];
 
-// ── Keyframes (inyectados una sola vez) ──────────────────────────────────────
+// ── Inyección de CSS + SVG (una sola vez por sesión) ─────────────────────────
 
 const BADGE_KEYFRAMES = `
 @keyframes titleGoldShimmer {
@@ -99,18 +94,41 @@ const BADGE_KEYFRAMES = `
   0%,100% { box-shadow: 0 0 8px rgba(249,115,22,0.4); }
   50%      { box-shadow: 0 0 18px rgba(249,115,22,0.75); }
 }
+@keyframes neonSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 `;
 
-let keyframesInjected = false;
-function ensureKeyframes() {
-  if (keyframesInjected || typeof document === "undefined") return;
-  keyframesInjected = true;
-  const s = document.createElement("style");
-  s.textContent = BADGE_KEYFRAMES;
-  document.head.appendChild(s);
+let injected = false;
+
+function ensureInjections() {
+  if (injected || typeof document === "undefined") return;
+  injected = true;
+
+  // Keyframes CSS
+  const style = document.createElement("style");
+  style.textContent = BADGE_KEYFRAMES;
+  document.head.appendChild(style);
+
+  // Filtro SVG para el borde "curly" de Sombra
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("style", "display:none;position:absolute;width:0;height:0");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = `
+    <defs>
+      <filter id="shadow-squiggly" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="turbulence" baseFrequency="0.07 0.02"
+          numOctaves="3" result="noise" seed="5"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise"
+          scale="3" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  `;
+  document.body.appendChild(svg);
 }
 
-// ── TitleBadge: renderiza el badge con texto y estilo ────────────────────────
+// ── TitleBadge ───────────────────────────────────────────────────────────────
 
 export function TitleBadge({
   text,
@@ -121,19 +139,92 @@ export function TitleBadge({
   styleId: TitleStyleId;
   size?: "sm" | "md";
 }) {
-  ensureKeyframes();
+  ensureInjections();
+
   const def = TITLE_STYLES.find((s) => s.id === styleId) ?? TITLE_STYLES[0];
   const Icon = def.icon;
   const iconSize = size === "sm" ? 11 : 13;
   const fontSize = size === "sm" ? "11px" : "12px";
+  const padding = size === "sm" ? "2px 8px" : "4px 12px";
 
+  // ── Neón: glow que recorre el borde en loop ──────────────────────────────
+  if (styleId === "neon") {
+    return (
+      <span
+        style={{
+          position: "relative",
+          display: "inline-flex",
+          padding: "1.5px",
+          borderRadius: "4px",
+          overflow: "hidden",
+          flexShrink: 0,
+        }}
+      >
+        {/* Gradiente cónico giratorio → crea el efecto "glow que viaja" */}
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: "-70%",
+            background: "conic-gradient(from 0deg, transparent 0%, #00FFFF 9%, rgba(0,255,255,0.4) 13%, transparent 18%)",
+            animation: "neonSpin 2.4s linear infinite",
+          }}
+        />
+        {/* Fondo interior que tapa el centro del gradiente giratorio */}
+        <span
+          style={{
+            position: "relative",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            background: "#03030f",
+            borderRadius: "2px",
+            padding,
+            fontSize,
+            fontWeight: 500,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <Icon
+            size={iconSize}
+            strokeWidth={2}
+            style={{ color: "#00FFFF", filter: "drop-shadow(0 0 4px #00FFFF)" }}
+          />
+          <span style={{ color: "#00FFFF", textShadow: "0 0 8px rgba(0,255,255,0.8)" }}>
+            {text}
+          </span>
+        </span>
+      </span>
+    );
+  }
+
+  // ── Sombra: borde curly via SVG filter ──────────────────────────────────
+  if (styleId === "shadow") {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 font-medium whitespace-nowrap"
+        style={{
+          ...def.badgeStyle,
+          borderRadius: def.borderRadius,
+          padding,
+          fontSize,
+          filter: "url(#shadow-squiggly)",
+        }}
+      >
+        <Icon size={iconSize} strokeWidth={2} style={def.textStyle} />
+        <span style={def.textStyle}>{text}</span>
+      </span>
+    );
+  }
+
+  // ── Resto de estilos ─────────────────────────────────────────────────────
   return (
     <span
       className="inline-flex items-center gap-1.5 font-medium whitespace-nowrap"
       style={{
         ...def.badgeStyle,
         borderRadius: def.borderRadius,
-        padding: size === "sm" ? "2px 8px" : "4px 12px",
+        padding,
         fontSize,
       }}
     >
@@ -143,7 +234,7 @@ export function TitleBadge({
   );
 }
 
-// ── TitleStylePicker: selector visual de los 5 estilos ───────────────────────
+// ── TitleStylePicker ─────────────────────────────────────────────────────────
 
 export function TitleStylePicker({
   value,
@@ -154,7 +245,7 @@ export function TitleStylePicker({
   onChange: (id: TitleStyleId) => void;
   previewText?: string;
 }) {
-  ensureKeyframes();
+  ensureInjections();
   return (
     <div className="flex flex-wrap gap-2">
       {TITLE_STYLES.map((def) => {
