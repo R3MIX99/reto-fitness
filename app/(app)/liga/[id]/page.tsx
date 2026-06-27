@@ -70,8 +70,8 @@ const STYLES = `
 .animate-sc   { animation: scoreReveal 0.6s cubic-bezier(0.22,1,0.36,1) both; }
 .animate-bp   { animation: badgePop 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
 .animate-sp   { animation: statPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
-.animate-glow { animation: glowPulse 2.4s ease-in-out infinite; }
-.animate-wg   { animation: winnerGlow 2s ease-in-out infinite; }
+.animate-glow { animation: glowPulse 2.4s ease-in-out 2; }
+.animate-wg   { animation: winnerGlow 2s ease-in-out 2; }
 .shimmer-text {
   background: linear-gradient(90deg, #EFC88B 0%, #fff8e7 40%, #EFC88B 60%, #CF5C36 100%);
   background-size: 200% auto;
@@ -187,7 +187,7 @@ export default function BattlePage() {
   const { data: leaguesData, isLoading: loadingLeagues } = useAllLeagues();
   const { data: standings = [] } = useLeagueStandings(id);
   const { data: topPlayers = [] } = useLeagueTopPlayers(id);
-  const { data: dailyRows = [] } = useLeagueGroupDaily(id);
+  const { data: dailyRows = [], isLoading: loadingDaily, error: dailyError } = useLeagueGroupDaily(id);
   const cancelLeague = useCancelLeague();
 
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -457,20 +457,41 @@ export default function BattlePage() {
               ))}
             </div>
 
-            {/* Gráfica comparativa ── fade */}
-            {chartData.length > 0 && (
-              <div className="animate-su bg-[var(--color-bg-card)] rounded-[20px] p-4 space-y-3" style={delay(880)}>
-                <div className="flex items-center justify-between">
-                  <p className="font-display font-semibold text-sm text-[var(--color-fg)]">Puntos por día</p>
-                  <div className="flex items-center gap-3">
-                    {standings.map((s, i) => (
-                      <div key={s.group_id} className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: GROUP_COLORS[i] }} />
-                        <span className="text-[10px] text-[var(--color-muted)] truncate max-w-[60px]">{s.group_name}</span>
-                      </div>
-                    ))}
-                  </div>
+            {/* Gráfica comparativa ── siempre visible */}
+            <div className="animate-su bg-[var(--color-bg-card)] rounded-[20px] p-4 space-y-3" style={delay(880)}>
+              <div className="flex items-center justify-between">
+                <p className="font-display font-semibold text-sm text-[var(--color-fg)]">Puntos por día</p>
+                <div className="flex items-center gap-3">
+                  {standings.map((s, i) => (
+                    <div key={s.group_id} className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: GROUP_COLORS[i] }} />
+                      <span className="text-[10px] text-[var(--color-muted)] truncate max-w-[64px]">{s.group_name}</span>
+                    </div>
+                  ))}
                 </div>
+              </div>
+
+              {loadingDaily ? (
+                <div className="h-[140px] flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full border-2 border-[var(--color-warm)] border-t-transparent animate-spin" />
+                </div>
+              ) : dailyError ? (
+                <div className="h-[100px] flex flex-col items-center justify-center gap-2 text-center">
+                  <p className="text-xs text-red-400">Error al cargar la gráfica.</p>
+                  <p className="text-[11px] text-[var(--color-muted)] max-w-[220px]">
+                    Asegúrate de haber aplicado la migración <span className="font-mono text-[10px]">20260626_league_battle.sql</span> en Supabase.
+                  </p>
+                </div>
+              ) : chartData.length === 0 ? (
+                <div className="h-[100px] flex flex-col items-center justify-center gap-1.5 text-center">
+                  <TrendingUp className="w-6 h-6 text-[var(--color-muted)]" />
+                  <p className="text-xs text-[var(--color-muted)]">
+                    {isUpcoming
+                      ? "Los datos aparecerán cuando la liga empiece."
+                      : "Aún no hay puntos acumulados en esta liga."}
+                  </p>
+                </div>
+              ) : (
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -509,8 +530,8 @@ export default function BattlePage() {
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* ¿Por qué va ganando? ── slide up */}
             {diff !== 0 && groupA && groupB && (
