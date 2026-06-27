@@ -2,51 +2,6 @@
 
 import { Crown, Flame, Sparkles, Landmark, Zap, Check, type LucideIcon } from "lucide-react";
 
-// ── Mármol Olympo: SVG elegante, venas delgadas y orgánicas ─────────────────
-// Curvas cúbicas (C) para naturalidad; 3 capas por vena para efecto metálico
-
-const MARBLE_SVG = [
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" preserveAspectRatio="xMidYMid slice">`,
-
-  // ── Base: blanco puro Carrara ──────────────────────────────────────────────
-  `<rect width="200" height="40" fill="#FFFFFF"/>`,
-
-  // ── Venas grises del mármol (tenues, casi invisibles) ─────────────────────
-  `<path d="M0 29 C55 24,110 33,200 27" fill="none" stroke="#C8C3BA" stroke-width="0.28" opacity="0.38"/>`,
-  `<path d="M33 0 C33.4 14,33.8 28,34.2 40" fill="none" stroke="#CCCAB8" stroke-width="0.22" opacity="0.3"/>`,
-  `<path d="M128 0 C126 14,124 27,127 40" fill="none" stroke="#C5C0B5" stroke-width="0.2" opacity="0.28"/>`,
-
-  // ── Vena dorada principal — diagonal con doble curva ──────────────────────
-  // sombra (da profundidad a la grieta)
-  `<path d="M0 11 C38 7,72 14,98 12 C130 10,162 7,200 17" fill="none" stroke="#8A6008" stroke-width="2" opacity="0.5"/>`,
-  // cuerpo dorado brillante
-  `<path d="M0 11 C38 7,72 14,98 12 C130 10,162 7,200 17" fill="none" stroke="#D4A020" stroke-width="1"/>`,
-  // reflejo luminoso (hilo de luz)
-  `<path d="M0 10.6 C38 6.6,72 13.6,98 11.6 C130 9.6,162 6.6,200 16.6" fill="none" stroke="#FFF0A0" stroke-width="0.28" opacity="0.65"/>`,
-
-  // ── Rama de la vena principal ─────────────────────────────────────────────
-  `<path d="M98 12 C98.5 22,99 32,99.5 40" fill="none" stroke="#9A7010" stroke-width="1.4" opacity="0.6"/>`,
-  `<path d="M98 12 C98.5 22,99 32,99.5 40" fill="none" stroke="#E8C030" stroke-width="0.55"/>`,
-  `<path d="M98 11.7 C98.5 21.7,99 31.7,99.5 39.7" fill="none" stroke="#FFF0A0" stroke-width="0.18" opacity="0.55"/>`,
-
-  // ── Vena secundaria derecha (casi vertical, más gruesa) ───────────────────
-  `<path d="M160 0 C162 12,165 24,166 34 C166.5 38,166 40,166 40" fill="none" stroke="#8A6008" stroke-width="2.6" opacity="0.45"/>`,
-  `<path d="M160 0 C162 12,165 24,166 34 C166.5 38,166 40,166 40" fill="none" stroke="#C89820" stroke-width="1.4"/>`,
-  `<path d="M160 0 C162 12,165 24,166 34 C166.5 38,166 40,166 40" fill="none" stroke="#FFF5B0" stroke-width="0.35" opacity="0.6"/>`,
-
-  // bifurcación lateral de la vena secundaria
-  `<path d="M165 25 C172 28,180 28,188 26" fill="none" stroke="#B88C18" stroke-width="0.75" opacity="0.7"/>`,
-  `<path d="M165 25 C172 28,180 28,188 26" fill="none" stroke="#F0D040" stroke-width="0.3" opacity="0.55"/>`,
-
-  // ── Venas finas acento ─────────────────────────────────────────────────────
-  `<path d="M0 4 C14 7,24 10,32 13" fill="none" stroke="#C09020" stroke-width="0.5" opacity="0.6"/>`,
-  `<path d="M0 4 C14 7,24 10,32 13" fill="none" stroke="#F0C830" stroke-width="0.2" opacity="0.5"/>`,
-
-  `</svg>`,
-].join("");
-
-const MARBLE_URI = `data:image/svg+xml,${encodeURIComponent(MARBLE_SVG)}`;
-
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
 export type TitleStyleId = "gold" | "fire" | "crystal" | "shadow" | "neon";
@@ -60,7 +15,7 @@ export interface TitleStyleDef {
   borderRadius: string;
 }
 
-// ── 5 estilos ────────────────────────────────────────────────────────────────
+// ── Estilos ──────────────────────────────────────────────────────────────────
 
 export const TITLE_STYLES: TitleStyleDef[] = [
   {
@@ -107,30 +62,13 @@ export const TITLE_STYLES: TitleStyleDef[] = [
     borderRadius: "14px",
   },
   {
+    // Olympo: se renderiza con rama especial — badgeStyle/textStyle no se usan directamente
     id: "shadow",
     label: "Olympo",
     icon: Landmark,
-    badgeStyle: {
-      backgroundImage: `url("${MARBLE_URI}")`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      border: "1.5px solid #C4963A",
-      boxShadow: [
-        "0 0 0 3px rgba(196,150,58,0.22)",
-        "0 2px 16px rgba(160,120,30,0.22)",
-        "inset 0 1.5px 0 rgba(255,250,210,0.98)",
-        "inset 0 -1px 0 rgba(180,130,40,0.32)",
-      ].join(","),
-      animation: "olympoGlow 3.5s ease-in-out infinite",
-    },
-    textStyle: {
-      color: "#5C3800",
-      fontWeight: "700",
-      fontFamily: "'Cinzel', 'Palatino Linotype', 'Book Antiqua', Palatino, serif",
-      letterSpacing: "0.04em",
-      textShadow: "0 1px 0 rgba(255,245,200,0.8)",
-    } as React.CSSProperties,
-    borderRadius: "10px",
+    badgeStyle: {},
+    textStyle: {},
+    borderRadius: "12px",
   },
   {
     id: "neon",
@@ -142,9 +80,14 @@ export const TITLE_STYLES: TitleStyleDef[] = [
   },
 ];
 
-// ── CSS + fuente Cinzel ───────────────────────────────────────────────────────
+// ── CSS global inyectado una vez ──────────────────────────────────────────────
 
 const BADGE_CSS = `
+@font-face {
+  font-family: 'GodOfWar';
+  src: url('/fonts/GodOfWar.ttf') format('truetype');
+  font-display: swap;
+}
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
 
 @keyframes titleGoldShimmer {
@@ -159,17 +102,14 @@ const BADGE_CSS = `
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-@keyframes olympoGlow {
-  0%,100% {
-    box-shadow:
-      0 0 0 3px rgba(196,150,58,0.18), 0 2px 10px rgba(160,120,30,0.15),
-      inset 0 1.5px 0 rgba(255,250,210,0.98), inset 0 -1px 0 rgba(180,130,40,0.32);
-  }
-  50% {
-    box-shadow:
-      0 0 0 3px rgba(218,175,68,0.5), 0 2px 24px rgba(196,150,58,0.4),
-      inset 0 1.5px 0 rgba(255,252,220,1), inset 0 -1px 0 rgba(196,150,58,0.55);
-  }
+@keyframes olympoShimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes olympoRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 `;
 
@@ -185,10 +125,53 @@ function ensureInjections() {
 // ── Tamaños ──────────────────────────────────────────────────────────────────
 
 const SIZE_MAP = {
-  sm: { icon: 11, font: "11px", pad: "2px 8px" },
-  md: { icon: 13, font: "12px", pad: "4px 12px" },
-  lg: { icon: 15, font: "14px", pad: "6px 16px" },
+  sm: { icon: 11, font: "11px", pad: "2px 8px",  glowR: "11px", bodyR: "9px",  cornerSz: 9,  cornerOff: 2 },
+  md: { icon: 13, font: "12px", pad: "4px 12px", glowR: "13px", bodyR: "11px", cornerSz: 11, cornerOff: 2 },
+  lg: { icon: 15, font: "14px", pad: "6px 20px", glowR: "14px", bodyR: "12px", cornerSz: 13, cornerOff: 3 },
 } as const;
+
+// ── Ornamento de esquina (estilo griego anidado) ──────────────────────────────
+
+function GreekCorner({ rotation, size }: { rotation: number; size: number }) {
+  const s = size;
+  const sw = s <= 9 ? 1.2 : 1.5;  // stroke-width proporcional
+  const inner = Math.round(s * 0.27); // distancia del borde al L interior
+  const dot = Math.round(s * 0.47);   // posición del punto central
+  return (
+    <svg
+      width={s}
+      height={s}
+      viewBox={`0 0 ${s} ${s}`}
+      fill="none"
+      style={{ transform: `rotate(${rotation}deg)`, display: "block" }}
+      aria-hidden="true"
+    >
+      {/* L exterior */}
+      <path
+        d={`M1 ${s - 1} L1 1 L${s - 1} 1`}
+        stroke="rgba(255,255,255,0.78)"
+        strokeWidth={sw}
+        strokeLinecap="square"
+        strokeLinejoin="miter"
+      />
+      {/* L interior (eco griego) */}
+      <path
+        d={`M${inner + 2} ${s - inner - 2} L${inner + 2} ${inner + 2} L${s - inner - 2} ${inner + 2}`}
+        stroke="rgba(255,255,255,0.45)"
+        strokeWidth={sw * 0.7}
+        strokeLinecap="square"
+      />
+      {/* Punto central */}
+      <rect
+        x={dot - 0.75}
+        y={dot - 0.75}
+        width={1.5}
+        height={1.5}
+        fill="rgba(255,255,255,0.35)"
+      />
+    </svg>
+  );
+}
 
 // ── TitleBadge ───────────────────────────────────────────────────────────────
 
@@ -205,7 +188,111 @@ export function TitleBadge({
 
   const def = TITLE_STYLES.find((s) => s.id === styleId) ?? TITLE_STYLES[0];
   const Icon = def.icon;
-  const { icon: iconSize, font: fontSize, pad: padding } = SIZE_MAP[size];
+  const sz = SIZE_MAP[size];
+
+  // ── Olympo: badge especial con luz viajera ───────────────────────────────
+  if (styleId === "shadow") {
+    return (
+      <span style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
+
+        {/* Anillo de luz que gira por el borde */}
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: "-2px",
+            borderRadius: sz.glowR,
+            overflow: "hidden",
+            zIndex: 0,
+          }}
+        >
+          <span
+            style={{
+              position: "absolute",
+              inset: "-100%",
+              background: [
+                "conic-gradient(from 0deg,",
+                "  transparent 0%,",
+                "  transparent 62%,",
+                "  rgba(160,110,0,0.45) 72%,",
+                "  rgba(255,230,100,0.85) 80%,",
+                "  rgba(255,255,255,1) 85%,",
+                "  rgba(255,230,100,0.85) 90%,",
+                "  rgba(160,110,0,0.45) 96%,",
+                "  transparent 100%",
+                ")",
+              ].join(""),
+              animation: "olympoRotate 2.8s linear infinite",
+            }}
+          />
+        </span>
+
+        {/* Cuerpo del badge: fondo plata-dorado animado */}
+        <span
+          style={{
+            position: "relative",
+            zIndex: 1,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: sz.pad,
+            borderRadius: sz.bodyR,
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            backgroundImage: [
+              "linear-gradient(135deg,",
+              "  #C0C0C0 0%,",
+              "  #EFEFEF 15%,",
+              "  #D8A820 30%,",
+              "  #FFD700 46%,",
+              "  #FFFFFF 58%,",
+              "  #C8C8C8 72%,",
+              "  #D4A020 85%,",
+              "  #E8E8E8 100%",
+              ")",
+            ].join(""),
+            backgroundSize: "300% 300%",
+            animation: "olympoShimmer 3.5s ease-in-out infinite",
+          }}
+        >
+          {/* Ornamentos griegos en cada esquina */}
+          <span style={{ position: "absolute", top: sz.cornerOff, left: sz.cornerOff + 1 }}>
+            <GreekCorner rotation={0}   size={sz.cornerSz} />
+          </span>
+          <span style={{ position: "absolute", top: sz.cornerOff, right: sz.cornerOff + 1 }}>
+            <GreekCorner rotation={90}  size={sz.cornerSz} />
+          </span>
+          <span style={{ position: "absolute", bottom: sz.cornerOff, left: sz.cornerOff + 1 }}>
+            <GreekCorner rotation={-90} size={sz.cornerSz} />
+          </span>
+          <span style={{ position: "absolute", bottom: sz.cornerOff, right: sz.cornerOff + 1 }}>
+            <GreekCorner rotation={180} size={sz.cornerSz} />
+          </span>
+
+          {/* Texto con fuente God of War */}
+          <span
+            style={{
+              position: "relative",
+              zIndex: 1,
+              fontFamily: "'GodOfWar', 'Cinzel', serif",
+              fontSize: sz.font,
+              fontWeight: "400",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.96)",
+              textShadow: [
+                "0 0 8px rgba(255,255,255,0.75)",
+                "0 0 18px rgba(255,200,0,0.35)",
+                "0 1px 3px rgba(0,0,0,0.45)",
+              ].join(","),
+            }}
+          >
+            {text}
+          </span>
+        </span>
+      </span>
+    );
+  }
 
   // ── Neón: glow que recorre el borde ─────────────────────────────────────
   if (styleId === "neon") {
@@ -238,37 +325,37 @@ export function TitleBadge({
             gap: "6px",
             background: "#03030f",
             borderRadius: innerBorderRadius,
-            padding,
-            fontSize,
+            padding: sz.pad,
+            fontSize: sz.font,
             fontWeight: 500,
             whiteSpace: "nowrap",
           }}
         >
-          <Icon size={iconSize} strokeWidth={2} style={{ color: "#00FFFF", filter: "drop-shadow(0 0 4px #00FFFF)" }} />
+          <Icon size={sz.icon} strokeWidth={2} style={{ color: "#00FFFF", filter: "drop-shadow(0 0 4px #00FFFF)" }} />
           <span style={{ color: "#00FFFF", textShadow: "0 0 8px rgba(0,255,255,0.8)" }}>{text}</span>
         </span>
       </span>
     );
   }
 
-  // ── Resto ────────────────────────────────────────────────────────────────
+  // ── Resto de estilos ─────────────────────────────────────────────────────
   return (
     <span
       className="inline-flex items-center gap-1.5 font-medium whitespace-nowrap"
       style={{
         ...def.badgeStyle,
         borderRadius: def.borderRadius,
-        padding,
-        fontSize,
+        padding: sz.pad,
+        fontSize: sz.font,
       }}
     >
-      <Icon size={iconSize} strokeWidth={2} style={def.textStyle} />
+      <Icon size={sz.icon} strokeWidth={2} style={def.textStyle} />
       <span style={def.textStyle}>{text}</span>
     </span>
   );
 }
 
-// ── TitleStylePicker — previews grandes, una fila por estilo ─────────────────
+// ── TitleStylePicker ─────────────────────────────────────────────────────────
 
 export function TitleStylePicker({
   value,
@@ -298,7 +385,6 @@ export function TitleStylePicker({
               background: isSelected ? "rgba(239,200,139,0.07)" : "var(--color-surface)",
             }}
           >
-            {/* Badge a tamaño grande para verlo bien */}
             <div className="flex-shrink-0">
               <TitleBadge
                 text={displayText || def.label}
@@ -306,11 +392,7 @@ export function TitleStylePicker({
                 size="lg"
               />
             </div>
-
-            {/* Nombre del estilo */}
             <span className="flex-1 text-[13px] font-medium">{def.label}</span>
-
-            {/* Check cuando está seleccionado */}
             {isSelected && (
               <span
                 className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
