@@ -2,6 +2,45 @@
 
 import { Crown, Flame, Sparkles, Landmark, Zap, Check, type LucideIcon } from "lucide-react";
 
+// ── Mármol Olympo: SVG con venas doradas líquidas ────────────────────────────
+// Tres trazos superpuestos por vena (oscuro + brillante + reflejo) → efecto metálico
+
+const MARBLE_SVG = [
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" preserveAspectRatio="xMidYMid slice">`,
+  // Base blanca brillante (mármol de Carrara)
+  `<rect width="200" height="40" fill="#FAFAFA"/>`,
+  // Venas grises del mármol (finas, mármol natural)
+  `<path d="M0 31 Q55 26 100 33 Q145 40 200 28" fill="none" stroke="#C5C0B8" stroke-width="0.45" opacity="0.5"/>`,
+  `<path d="M28 0 Q29 17 30 40" fill="none" stroke="#C8C3BA" stroke-width="0.32" opacity="0.4"/>`,
+  `<path d="M130 0 Q128 13 126 25 Q124 34 128 40" fill="none" stroke="#C2BDB2" stroke-width="0.28" opacity="0.38"/>`,
+  `<path d="M80 0 Q82 8 78 18 Q74 28 76 40" fill="none" stroke="#CEC9BF" stroke-width="0.25" opacity="0.3"/>`,
+  // ── Vena dorada principal (río horizontal con curva) ──────────────────────
+  // Capa 1: base oscura — ancho (profundidad de la grieta)
+  `<path d="M-5 13 Q32 9 65 15 Q88 19 104 17 Q142 11 200 21" fill="none" stroke="#9A6C10" stroke-width="4.5" opacity="0.55"/>`,
+  // Capa 2: dorado medio — brillante
+  `<path d="M-5 13 Q32 9 65 15 Q88 19 104 17 Q142 11 200 21" fill="none" stroke="#D4A020" stroke-width="2.8" opacity="0.85"/>`,
+  // Capa 3: reflejo luminoso — fino
+  `<path d="M-5 12.5 Q32 8.5 65 14.5 Q88 18.5 104 16.5 Q142 10.5 200 20.5" fill="none" stroke="#FAE050" stroke-width="1" opacity="0.55"/>`,
+  // ── Rama de la vena principal (hacia abajo) ───────────────────────────────
+  `<path d="M65 15 Q67 25 68 40" fill="none" stroke="#9A6C10" stroke-width="3.2" opacity="0.5"/>`,
+  `<path d="M65 15 Q67 25 68 40" fill="none" stroke="#D0A020" stroke-width="2" opacity="0.8"/>`,
+  `<path d="M65 15 Q67 25 68 40" fill="none" stroke="#F5D040" stroke-width="0.8" opacity="0.5"/>`,
+  // ── Vena secundaria gruesa (lado derecho, casi vertical) ─────────────────
+  `<path d="M157 -3 Q161 11 165 22 Q169 34 166 43" fill="none" stroke="#9A6C10" stroke-width="5" opacity="0.5"/>`,
+  `<path d="M157 -3 Q161 11 165 22 Q169 34 166 43" fill="none" stroke="#C89820" stroke-width="3.2" opacity="0.8"/>`,
+  `<path d="M157 -3 Q161 11 165 22 Q169 34 166 43" fill="none" stroke="#F8DA40" stroke-width="1.2" opacity="0.5"/>`,
+  // Pequeña bifurcación de la vena secundaria
+  `<path d="M165 22 Q172 27 182 29" fill="none" stroke="#C09020" stroke-width="2" opacity="0.7"/>`,
+  `<path d="M165 22 Q172 27 182 29" fill="none" stroke="#F0CA38" stroke-width="0.8" opacity="0.5"/>`,
+  // ── Venas finas decorativas ───────────────────────────────────────────────
+  `<path d="M0 5 Q14 8 24 14 Q26 17 25 25" fill="none" stroke="#D0A020" stroke-width="0.9" opacity="0.65"/>`,
+  `<path d="M104 17 Q108 29 109 40" fill="none" stroke="#C09020" stroke-width="1.2" opacity="0.55"/>`,
+  `<path d="M104 17 Q108 29 109 40" fill="none" stroke="#E8C030" stroke-width="0.5" opacity="0.4"/>`,
+  `</svg>`,
+].join("");
+
+const MARBLE_URI = `data:image/svg+xml,${encodeURIComponent(MARBLE_SVG)}`;
+
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
 export type TitleStyleId = "gold" | "fire" | "crystal" | "shadow" | "neon";
@@ -66,35 +105,9 @@ export const TITLE_STYLES: TitleStyleDef[] = [
     label: "Olympo",
     icon: Landmark,
     badgeStyle: {
-      // Mármol marfil con venas doradas visibles (rayos de Zeus)
-      // Capa 3 base: marfil cálido
-      // Capas 2-1: venas doradas angostas y diagonales a distintos ángulos
-      background: [
-        // Vena principal gruesa — diagonal 68°
-        `linear-gradient(68deg,
-          transparent 0%, transparent 14%,
-          rgba(210,165,45,0.85) 14.2%, rgba(235,190,70,0.55) 15%, rgba(210,165,45,0.25) 15.7%, transparent 16.5%,
-          transparent 42%,
-          rgba(200,158,40,0.6) 42.3%, rgba(225,180,60,0.35) 43%, transparent 43.7%,
-          transparent 100%
-        )`,
-        // Vena secundaria — diagonal opuesta 128°
-        `linear-gradient(128deg,
-          transparent 0%, transparent 28%,
-          rgba(196,148,38,0.7) 28.2%, rgba(220,178,58,0.4) 28.9%, transparent 29.6%,
-          transparent 58%,
-          rgba(190,145,35,0.5) 58.2%, rgba(215,172,55,0.28) 58.9%, transparent 59.5%,
-          transparent 100%
-        )`,
-        // Vena fina rápida — 50°
-        `linear-gradient(50deg,
-          transparent 60%,
-          rgba(205,162,42,0.55) 60.1%, rgba(228,185,65,0.3) 60.6%, transparent 61.1%,
-          transparent 100%
-        )`,
-        // Base marfil cálido
-        `linear-gradient(160deg, #fefaf2 0%, #f4e8c6 25%, #fdf5e0 52%, #ece0bb 78%, #f8f2e3 100%)`,
-      ].join(","),
+      backgroundImage: `url("${MARBLE_URI}")`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
       border: "1.5px solid #C4963A",
       boxShadow: [
         "0 0 0 3px rgba(196,150,58,0.22)",
