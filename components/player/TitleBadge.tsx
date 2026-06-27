@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown, Flame, Sparkles, Star, Zap, type LucideIcon } from "lucide-react";
+import { Crown, Flame, Sparkles, Landmark, Zap, type LucideIcon } from "lucide-react";
 
 // ── Definición de los 5 estilos ──────────────────────────────────────────────
 
@@ -61,16 +61,26 @@ export const TITLE_STYLES: TitleStyleDef[] = [
   },
   {
     id: "shadow",
-    label: "Sombra",
-    // filter: url(#shadow-squiggly) aplicado inline en TitleBadge
-    icon: Star,
+    label: "Olympo",
+    icon: Landmark,
     badgeStyle: {
-      background: "linear-gradient(135deg,#0f0f1a,#1a1a2e)",
-      border: "1px solid rgba(192,192,192,0.55)",
-      boxShadow: "0 0 14px rgba(192,192,192,0.25), inset 0 1px 0 rgba(255,255,255,0.06)",
+      // Mármol blanco con venas doradas — estilo piedra mítica griega
+      background: [
+        "linear-gradient(112deg, rgba(218,175,68,0.18) 0%, transparent 35%, rgba(218,175,68,0.1) 70%, transparent 100%)",
+        "linear-gradient(175deg, rgba(218,175,68,0.08) 0%, transparent 50%)",
+        "linear-gradient(180deg, #fefaf0 0%, #f5e9cc 55%, #f9f3e1 100%)",
+      ].join(","),
+      border: "1.5px solid #C4963A",
+      boxShadow: [
+        "0 0 0 3px rgba(196,150,58,0.2)",
+        "0 2px 14px rgba(160,120,30,0.2)",
+        "inset 0 1.5px 0 rgba(255,248,200,0.95)",
+        "inset 0 -1px 0 rgba(180,130,40,0.3)",
+      ].join(","),
+      animation: "olympoGlow 3.5s ease-in-out infinite",
     },
-    textStyle: { color: "#C0C0C0" },
-    borderRadius: "8px",
+    textStyle: { color: "#6B4500", fontWeight: "600" } as React.CSSProperties,
+    borderRadius: "10px",
   },
   {
     id: "neon",
@@ -98,6 +108,16 @@ const BADGE_KEYFRAMES = `
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+@keyframes olympoGlow {
+  0%,100% {
+    box-shadow: 0 0 0 3px rgba(196,150,58,0.18), 0 2px 10px rgba(160,120,30,0.15),
+                inset 0 1.5px 0 rgba(255,248,200,0.95), inset 0 -1px 0 rgba(180,130,40,0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(218,175,68,0.45), 0 2px 22px rgba(196,150,58,0.35),
+                inset 0 1.5px 0 rgba(255,252,220,1), inset 0 -1px 0 rgba(196,150,58,0.5);
+  }
+}
 `;
 
 let injected = false;
@@ -105,27 +125,9 @@ let injected = false;
 function ensureInjections() {
   if (injected || typeof document === "undefined") return;
   injected = true;
-
-  // Keyframes CSS
   const style = document.createElement("style");
   style.textContent = BADGE_KEYFRAMES;
   document.head.appendChild(style);
-
-  // Filtro SVG para el borde "curly" de Sombra
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("style", "display:none;position:absolute;width:0;height:0");
-  svg.setAttribute("aria-hidden", "true");
-  svg.innerHTML = `
-    <defs>
-      <filter id="shadow-squiggly" x="-20%" y="-20%" width="140%" height="140%">
-        <feTurbulence type="turbulence" baseFrequency="0.07 0.02"
-          numOctaves="3" result="noise" seed="5"/>
-        <feDisplacementMap in="SourceGraphic" in2="noise"
-          scale="3" xChannelSelector="R" yChannelSelector="G"/>
-      </filter>
-    </defs>
-  `;
-  document.body.appendChild(svg);
 }
 
 // ── TitleBadge ───────────────────────────────────────────────────────────────
@@ -194,25 +196,6 @@ export function TitleBadge({
             {text}
           </span>
         </span>
-      </span>
-    );
-  }
-
-  // ── Sombra: borde curly via SVG filter ──────────────────────────────────
-  if (styleId === "shadow") {
-    return (
-      <span
-        className="inline-flex items-center gap-1.5 font-medium whitespace-nowrap"
-        style={{
-          ...def.badgeStyle,
-          borderRadius: def.borderRadius,
-          padding,
-          fontSize,
-          filter: "url(#shadow-squiggly)",
-        }}
-      >
-        <Icon size={iconSize} strokeWidth={2} style={def.textStyle} />
-        <span style={def.textStyle}>{text}</span>
       </span>
     );
   }
