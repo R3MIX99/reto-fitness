@@ -2,40 +2,46 @@
 
 import { Crown, Flame, Sparkles, Landmark, Zap, Check, type LucideIcon } from "lucide-react";
 
-// ── Mármol Olympo: SVG con venas doradas líquidas ────────────────────────────
-// Tres trazos superpuestos por vena (oscuro + brillante + reflejo) → efecto metálico
+// ── Mármol Olympo: SVG elegante, venas delgadas y orgánicas ─────────────────
+// Curvas cúbicas (C) para naturalidad; 3 capas por vena para efecto metálico
 
 const MARBLE_SVG = [
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" preserveAspectRatio="xMidYMid slice">`,
-  // Base blanca brillante (mármol de Carrara)
-  `<rect width="200" height="40" fill="#FAFAFA"/>`,
-  // Venas grises del mármol (finas, mármol natural)
-  `<path d="M0 31 Q55 26 100 33 Q145 40 200 28" fill="none" stroke="#C5C0B8" stroke-width="0.45" opacity="0.5"/>`,
-  `<path d="M28 0 Q29 17 30 40" fill="none" stroke="#C8C3BA" stroke-width="0.32" opacity="0.4"/>`,
-  `<path d="M130 0 Q128 13 126 25 Q124 34 128 40" fill="none" stroke="#C2BDB2" stroke-width="0.28" opacity="0.38"/>`,
-  `<path d="M80 0 Q82 8 78 18 Q74 28 76 40" fill="none" stroke="#CEC9BF" stroke-width="0.25" opacity="0.3"/>`,
-  // ── Vena dorada principal (río horizontal con curva) ──────────────────────
-  // Capa 1: base oscura — ancho (profundidad de la grieta)
-  `<path d="M-5 13 Q32 9 65 15 Q88 19 104 17 Q142 11 200 21" fill="none" stroke="#9A6C10" stroke-width="4.5" opacity="0.55"/>`,
-  // Capa 2: dorado medio — brillante
-  `<path d="M-5 13 Q32 9 65 15 Q88 19 104 17 Q142 11 200 21" fill="none" stroke="#D4A020" stroke-width="2.8" opacity="0.85"/>`,
-  // Capa 3: reflejo luminoso — fino
-  `<path d="M-5 12.5 Q32 8.5 65 14.5 Q88 18.5 104 16.5 Q142 10.5 200 20.5" fill="none" stroke="#FAE050" stroke-width="1" opacity="0.55"/>`,
-  // ── Rama de la vena principal (hacia abajo) ───────────────────────────────
-  `<path d="M65 15 Q67 25 68 40" fill="none" stroke="#9A6C10" stroke-width="3.2" opacity="0.5"/>`,
-  `<path d="M65 15 Q67 25 68 40" fill="none" stroke="#D0A020" stroke-width="2" opacity="0.8"/>`,
-  `<path d="M65 15 Q67 25 68 40" fill="none" stroke="#F5D040" stroke-width="0.8" opacity="0.5"/>`,
-  // ── Vena secundaria gruesa (lado derecho, casi vertical) ─────────────────
-  `<path d="M157 -3 Q161 11 165 22 Q169 34 166 43" fill="none" stroke="#9A6C10" stroke-width="5" opacity="0.5"/>`,
-  `<path d="M157 -3 Q161 11 165 22 Q169 34 166 43" fill="none" stroke="#C89820" stroke-width="3.2" opacity="0.8"/>`,
-  `<path d="M157 -3 Q161 11 165 22 Q169 34 166 43" fill="none" stroke="#F8DA40" stroke-width="1.2" opacity="0.5"/>`,
-  // Pequeña bifurcación de la vena secundaria
-  `<path d="M165 22 Q172 27 182 29" fill="none" stroke="#C09020" stroke-width="2" opacity="0.7"/>`,
-  `<path d="M165 22 Q172 27 182 29" fill="none" stroke="#F0CA38" stroke-width="0.8" opacity="0.5"/>`,
-  // ── Venas finas decorativas ───────────────────────────────────────────────
-  `<path d="M0 5 Q14 8 24 14 Q26 17 25 25" fill="none" stroke="#D0A020" stroke-width="0.9" opacity="0.65"/>`,
-  `<path d="M104 17 Q108 29 109 40" fill="none" stroke="#C09020" stroke-width="1.2" opacity="0.55"/>`,
-  `<path d="M104 17 Q108 29 109 40" fill="none" stroke="#E8C030" stroke-width="0.5" opacity="0.4"/>`,
+
+  // ── Base: blanco puro Carrara ──────────────────────────────────────────────
+  `<rect width="200" height="40" fill="#FFFFFF"/>`,
+
+  // ── Venas grises del mármol (tenues, casi invisibles) ─────────────────────
+  `<path d="M0 29 C55 24,110 33,200 27" fill="none" stroke="#C8C3BA" stroke-width="0.28" opacity="0.38"/>`,
+  `<path d="M33 0 C33.4 14,33.8 28,34.2 40" fill="none" stroke="#CCCAB8" stroke-width="0.22" opacity="0.3"/>`,
+  `<path d="M128 0 C126 14,124 27,127 40" fill="none" stroke="#C5C0B5" stroke-width="0.2" opacity="0.28"/>`,
+
+  // ── Vena dorada principal — diagonal con doble curva ──────────────────────
+  // sombra (da profundidad a la grieta)
+  `<path d="M0 11 C38 7,72 14,98 12 C130 10,162 7,200 17" fill="none" stroke="#8A6008" stroke-width="2" opacity="0.5"/>`,
+  // cuerpo dorado brillante
+  `<path d="M0 11 C38 7,72 14,98 12 C130 10,162 7,200 17" fill="none" stroke="#D4A020" stroke-width="1"/>`,
+  // reflejo luminoso (hilo de luz)
+  `<path d="M0 10.6 C38 6.6,72 13.6,98 11.6 C130 9.6,162 6.6,200 16.6" fill="none" stroke="#FFF0A0" stroke-width="0.28" opacity="0.65"/>`,
+
+  // ── Rama de la vena principal ─────────────────────────────────────────────
+  `<path d="M98 12 C98.5 22,99 32,99.5 40" fill="none" stroke="#9A7010" stroke-width="1.4" opacity="0.6"/>`,
+  `<path d="M98 12 C98.5 22,99 32,99.5 40" fill="none" stroke="#E8C030" stroke-width="0.55"/>`,
+  `<path d="M98 11.7 C98.5 21.7,99 31.7,99.5 39.7" fill="none" stroke="#FFF0A0" stroke-width="0.18" opacity="0.55"/>`,
+
+  // ── Vena secundaria derecha (casi vertical, más gruesa) ───────────────────
+  `<path d="M160 0 C162 12,165 24,166 34 C166.5 38,166 40,166 40" fill="none" stroke="#8A6008" stroke-width="2.6" opacity="0.45"/>`,
+  `<path d="M160 0 C162 12,165 24,166 34 C166.5 38,166 40,166 40" fill="none" stroke="#C89820" stroke-width="1.4"/>`,
+  `<path d="M160 0 C162 12,165 24,166 34 C166.5 38,166 40,166 40" fill="none" stroke="#FFF5B0" stroke-width="0.35" opacity="0.6"/>`,
+
+  // bifurcación lateral de la vena secundaria
+  `<path d="M165 25 C172 28,180 28,188 26" fill="none" stroke="#B88C18" stroke-width="0.75" opacity="0.7"/>`,
+  `<path d="M165 25 C172 28,180 28,188 26" fill="none" stroke="#F0D040" stroke-width="0.3" opacity="0.55"/>`,
+
+  // ── Venas finas acento ─────────────────────────────────────────────────────
+  `<path d="M0 4 C14 7,24 10,32 13" fill="none" stroke="#C09020" stroke-width="0.5" opacity="0.6"/>`,
+  `<path d="M0 4 C14 7,24 10,32 13" fill="none" stroke="#F0C830" stroke-width="0.2" opacity="0.5"/>`,
+
   `</svg>`,
 ].join("");
 
