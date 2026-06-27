@@ -13,12 +13,12 @@ import {
   Trophy, Users, Crown, CheckCircle2, AlertCircle, Loader2, ChevronRight, Calendar,
 } from "lucide-react";
 
-const LEAGUE_DURATION_OPTIONS = [
-  { label: "1 sem", weeks: 1 },
-  { label: "2 sem", weeks: 2 },
-  { label: "3 sem", weeks: 3 },
-  { label: "4 sem", weeks: 4 },
-  { label: "2 meses", weeks: 8 },
+const LEAGUE_MONTH_OPTIONS = [
+  { label: "1 mes",   months: 1 },
+  { label: "2 meses", months: 2 },
+  { label: "3 meses", months: 3 },
+  { label: "4 meses", months: 4 },
+  { label: "5 meses", months: 5 },
 ] as const;
 
 function todayStr() {
@@ -26,14 +26,107 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function addWeeks(dateStr: string, weeks: number): string {
+function addMonths(dateStr: string, months: number): string {
   const d = new Date(dateStr + "T12:00:00");
-  d.setDate(d.getDate() + weeks * 7);
+  d.setMonth(d.getMonth() + months);
   return d.toISOString().slice(0, 10);
 }
 
 function fmtDate(s: string) {
   return new Date(s + "T12:00:00").toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// ── Selector de duración compartido ──────────────────────────────────────────
+type DurationValue = { kind: "months"; months: number } | { kind: "custom"; endDate: string };
+
+function DurationPicker({
+  startDate,
+  value,
+  onChange,
+}: {
+  startDate: string;
+  value: DurationValue;
+  onChange: (v: DurationValue) => void;
+}) {
+  const isCustom = value.kind === "custom";
+  const endDate =
+    value.kind === "months"
+      ? addMonths(startDate, value.months)
+      : value.endDate;
+
+  // Label legible para el preview
+  let durationLabel = "";
+  if (value.kind === "months") {
+    durationLabel = `${value.months} mes${value.months !== 1 ? "es" : ""}`;
+  } else {
+    const diff = Math.round(
+      (new Date(value.endDate + "T12:00:00").getTime() - new Date(startDate + "T12:00:00").getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+    durationLabel = `${diff} día${diff !== 1 ? "s" : ""}`;
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Duración</label>
+      {/* Grid 3 cols: 5 meses + personalizado */}
+      <div className="grid grid-cols-3 gap-1.5">
+        {LEAGUE_MONTH_OPTIONS.map((opt) => {
+          const active = value.kind === "months" && value.months === opt.months;
+          return (
+            <button
+              key={opt.months}
+              onClick={() => onChange({ kind: "months", months: opt.months })}
+              className={`py-2.5 rounded-xl text-xs font-display font-semibold transition-all ${
+                active
+                  ? "bg-[var(--color-accent)] text-white"
+                  : "bg-white/5 text-[var(--color-muted)]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+        <button
+          onClick={() =>
+            onChange({
+              kind: "custom",
+              endDate: value.kind === "months" ? addMonths(startDate, value.months) : value.endDate,
+            })
+          }
+          className={`py-2.5 rounded-xl text-xs font-display font-semibold transition-all ${
+            isCustom
+              ? "bg-[var(--color-warm)] text-[#4A1B0C]"
+              : "bg-white/5 text-[var(--color-muted)]"
+          }`}
+        >
+          Personalizado
+        </button>
+      </div>
+
+      {/* Date picker para fecha fin (solo en modo personalizado) */}
+      {isCustom && (
+        <input
+          type="date"
+          min={startDate}
+          className="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-[var(--color-fg)] outline-none focus:ring-1 focus:ring-[var(--color-warm)]"
+          value={value.endDate}
+          onChange={(e) =>
+            onChange({ kind: "custom", endDate: e.target.value || startDate })
+          }
+        />
+      )}
+
+      {/* Preview de fechas */}
+      <div className="flex items-center gap-2 bg-white/4 rounded-xl px-3 py-2.5">
+        <Calendar className="w-3.5 h-3.5 text-[var(--color-warm)] shrink-0" />
+        <p className="text-xs text-[var(--color-fg)]">
+          {fmtDate(startDate)} → {fmtDate(endDate)}
+          <span className="text-[var(--color-muted)] ml-1">· {durationLabel}</span>
+        </p>
+      </div>
+    </div>
+  );
 }
 
 type Mode = "pick" | "my-groups" | "other-group";
@@ -105,10 +198,11 @@ function StepMyGroups({
   const [selected, setSelected] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState(todayStr());
-  const [weeks, setWeeks] = useState(2);
+  const [duration, setDuration] = useState<DurationValue>({ kind: "months", months: 1 });
   const [error, setError] = useState<string | null>(null);
 
-  const endDate = addWeeks(startDate, weeks);
+  const endDate =
+    duration.kind === "months" ? addMonths(startDate, duration.months) : duration.endDate;
 
   function toggleGroup(id: string) {
     setSelected((prev) =>
@@ -208,33 +302,7 @@ function StepMyGroups({
         />
       </div>
 
-      {/* Duración por semanas */}
-      <div className="space-y-2">
-        <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Duración</label>
-        <div className="grid grid-cols-5 gap-1.5">
-          {LEAGUE_DURATION_OPTIONS.map((opt) => (
-            <button
-              key={opt.weeks}
-              onClick={() => setWeeks(opt.weeks)}
-              className={`py-2.5 rounded-xl text-xs font-display font-semibold transition-all ${
-                weeks === opt.weeks
-                  ? "bg-[var(--color-accent)] text-white"
-                  : "bg-white/5 text-[var(--color-muted)]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        {/* Preview de fechas */}
-        <div className="flex items-center gap-2 bg-white/4 rounded-xl px-3 py-2.5">
-          <Calendar className="w-3.5 h-3.5 text-[var(--color-warm)] shrink-0" />
-          <p className="text-xs text-[var(--color-fg)]">
-            {fmtDate(startDate)} → {fmtDate(endDate)}
-            <span className="text-[var(--color-muted)] ml-1">· {weeks} semana{weeks !== 1 ? "s" : ""}</span>
-          </p>
-        </div>
-      </div>
+      <DurationPicker startDate={startDate} value={duration} onChange={setDuration} />
 
       {error && <p className="text-xs text-red-400 bg-red-400/10 rounded-xl px-4 py-2">{error}</p>}
 
@@ -317,10 +385,11 @@ function StepOtherGroup({
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [startDate, setStartDate] = useState(todayStr());
-  const [weeks, setWeeks] = useState(2);
+  const [duration, setDuration] = useState<DurationValue>({ kind: "months", months: 1 });
   const [error, setError] = useState<string | null>(null);
 
-  const endDate = addWeeks(startDate, weeks);
+  const endDate =
+    duration.kind === "months" ? addMonths(startDate, duration.months) : duration.endDate;
 
   const { data: preview, isFetching: loadingPreview, isError: previewError } = useGroupPreview(code);
 
@@ -450,32 +519,7 @@ function StepOtherGroup({
         />
       </div>
 
-      {/* Duración por semanas */}
-      <div className="space-y-2">
-        <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Duración</label>
-        <div className="grid grid-cols-5 gap-1.5">
-          {LEAGUE_DURATION_OPTIONS.map((opt) => (
-            <button
-              key={opt.weeks}
-              onClick={() => setWeeks(opt.weeks)}
-              className={`py-2.5 rounded-xl text-xs font-display font-semibold transition-all ${
-                weeks === opt.weeks
-                  ? "bg-[var(--color-accent)] text-white"
-                  : "bg-white/5 text-[var(--color-muted)]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 bg-white/4 rounded-xl px-3 py-2.5">
-          <Calendar className="w-3.5 h-3.5 text-[var(--color-warm)] shrink-0" />
-          <p className="text-xs text-[var(--color-fg)]">
-            {fmtDate(startDate)} → {fmtDate(endDate)}
-            <span className="text-[var(--color-muted)] ml-1">· {weeks} semana{weeks !== 1 ? "s" : ""}</span>
-          </p>
-        </div>
-      </div>
+      <DurationPicker startDate={startDate} value={duration} onChange={setDuration} />
 
       {error && <p className="text-xs text-red-400 bg-red-400/10 rounded-xl px-4 py-2">{error}</p>}
 
