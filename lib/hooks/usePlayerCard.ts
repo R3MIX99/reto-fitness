@@ -97,23 +97,38 @@ export async function fetchPlayerCard(userId: string, groupId: string): Promise<
 
         // Títulos personalizados para victorias de #1
         const champSeasonIds = champAsc.map((w) => w.season_id);
-        type CustomTitleRow = { season_id: string; title_text: string; title_style: string };
+        type CustomTitleRow = {
+          season_id: string;
+          title_text: string | null;
+          title_text_male: string | null;
+          title_text_female: string | null;
+          title_style: string;
+          gender_mode: string;
+        };
         const customTitleMap = new Map<string, CustomTitleRow>();
         if (champSeasonIds.length) {
           const { data: customTitles } = await supabase
             .from("season_custom_titles")
-            .select("season_id, title_text, title_style")
+            .select("season_id, title_text, title_text_male, title_text_female, title_style, gender_mode")
             .in("season_id", champSeasonIds) as unknown as { data: CustomTitleRow[] | null };
           for (const ct of customTitles ?? []) customTitleMap.set(ct.season_id, ct);
         }
 
         wins = rawWins.map((w) => {
           const ct = w.rank === 1 ? customTitleMap.get(w.season_id) : undefined;
+          let ctText: string | null = null;
+          if (ct) {
+            if (ct.gender_mode === "gendered") {
+              ctText = (gender === "female" ? ct.title_text_female : ct.title_text_male) ?? ct.title_text;
+            } else {
+              ctText = ct.title_text;
+            }
+          }
           return {
             ...w,
             is_legend_unlock: w.season_id === legendUnlockId,
-            title: ct ? `${ct.title_text} · Temp ${w.season_number}` : w.title,
-            custom_title_text: ct?.title_text ?? null,
+            title: ctText ? `${ctText} · Temp ${w.season_number}` : w.title,
+            custom_title_text: ctText ?? null,
             custom_title_style: ct?.title_style ?? null,
           };
         });
@@ -252,12 +267,19 @@ export function useMyTitles() {
 
       // Títulos personalizados para victorias de #1
       const champIds = champAscGlobal.map((s) => s.id);
-      type CustomTitleRow = { season_id: string; title_text: string; title_style: string };
+      type CustomTitleRow = {
+        season_id: string;
+        title_text: string | null;
+        title_text_male: string | null;
+        title_text_female: string | null;
+        title_style: string;
+        gender_mode: string;
+      };
       const customTitleMap = new Map<string, CustomTitleRow>();
       if (champIds.length) {
         const { data: customTitles } = await supabase
           .from("season_custom_titles")
-          .select("season_id, title_text, title_style")
+          .select("season_id, title_text, title_text_male, title_text_female, title_style, gender_mode")
           .in("season_id", champIds) as unknown as { data: CustomTitleRow[] | null };
         for (const ct of customTitles ?? []) customTitleMap.set(ct.season_id, ct);
       }
@@ -265,6 +287,14 @@ export function useMyTitles() {
       return sorted.map((s) => {
         const rank = rankBySeason.get(s.id)!;
         const ct = rank === 1 ? customTitleMap.get(s.id) : undefined;
+        let ctText: string | null = null;
+        if (ct) {
+          if (ct.gender_mode === "gendered") {
+            ctText = (gender === "female" ? ct.title_text_female : ct.title_text_male) ?? ct.title_text;
+          } else {
+            ctText = ct.title_text;
+          }
+        }
         const defaultTitle = `${seasonTitle(rank, gender)} · Temp ${s.season_number}`;
         return {
           season_id: s.id,
@@ -272,11 +302,11 @@ export function useMyTitles() {
           season_name: s.name,
           end_date: s.end_date,
           rank,
-          title: ct ? `${ct.title_text} · Temp ${s.season_number}` : defaultTitle,
+          title: ctText ? `${ctText} · Temp ${s.season_number}` : defaultTitle,
           group_id: s.group_id,
           group_name: groupNames.get(s.group_id) ?? "Grupo",
           is_legend_unlock: s.id === legendUnlockId,
-          custom_title_text: ct?.title_text ?? null,
+          custom_title_text: ctText ?? null,
           custom_title_style: ct?.title_style ?? null,
         };
       });
