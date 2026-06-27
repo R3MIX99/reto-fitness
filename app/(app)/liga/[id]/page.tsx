@@ -255,7 +255,6 @@ export default function BattlePage() {
   const cancelLeague = useCancelLeague();
 
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [cancelToast, setCancelToast] = useState(false);
 
   const allEntries = [
     ...(leaguesData?.active ?? []),
@@ -309,9 +308,8 @@ export default function BattlePage() {
   const handleCancel = async () => {
     try {
       await cancelLeague.mutateAsync(id);
-      setConfirmCancel(false);
-      setCancelToast(true);
-      setTimeout(() => router.replace("/liga"), 2400);
+      // Navegar de inmediato; el toast de confirmación aparece en /liga
+      router.replace("/liga?cancelled=1");
     } catch {
       setConfirmCancel(false);
     }
@@ -321,21 +319,6 @@ export default function BattlePage() {
     <>
       {/* Keyframes inyectados una sola vez */}
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
-
-      {/* Toast de cancelación */}
-      {cancelToast && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center px-8 pointer-events-none" style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}>
-          <div className="animate-toast flex flex-col items-center gap-4 rounded-3xl px-10 py-8 text-center" style={{ background: "#110404", border: "1px solid rgba(239,68,68,0.35)", boxShadow: "0 24px 64px rgba(0,0,0,0.7)" }}>
-            <div className="animate-ring w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center">
-              <ShieldOff className="w-8 h-8 text-red-400" />
-            </div>
-            <div className="space-y-1">
-              <p className="font-display font-bold text-lg text-[var(--color-fg)]">Liga cancelada</p>
-              <p className="text-xs text-[var(--color-muted)]">La liga fue cancelada y ya no está activa.</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="px-4 pt-6 pb-28 space-y-4">
 

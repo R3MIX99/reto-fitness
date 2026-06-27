@@ -151,7 +151,7 @@ const CREATED_STYLES = `
 .text-slide-3 { animation: textSlide 0.5s cubic-bezier(0.22,1,0.36,1) 0.9s both; }
 `;
 
-type Mode = "pick" | "my-groups" | "other-group" | "created";
+type Mode = "pick" | "my-groups" | "other-group";
 
 interface Props {
   open: boolean;
@@ -554,79 +554,6 @@ function StepOtherGroup({
   );
 }
 
-// ── Pantalla de éxito post-creación ───────────────────────────────────────
-function StepCreated({
-  leagueName,
-  isMyGroups,
-  onClose,
-}: {
-  leagueName: string;
-  isMyGroups: boolean;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: CREATED_STYLES }} />
-      <div className="px-5 pb-10 pt-4 flex flex-col items-center text-center gap-6">
-        {/* Icono animado */}
-        <div className="relative flex items-center justify-center mt-2">
-          {/* Aro pulsante */}
-          <div
-            className="ring-expand absolute w-24 h-24 rounded-full"
-            style={{ border: "2px solid rgba(207,92,54,0.5)" }}
-          />
-          {/* Círculo principal */}
-          <div className="check-bounce w-20 h-20 rounded-full flex items-center justify-center" style={{ background: "rgba(207,92,54,0.15)", border: "2px solid rgba(207,92,54,0.4)" }}>
-            <CheckCircle2 className="w-10 h-10 text-[var(--color-accent)]" strokeWidth={1.5} />
-          </div>
-        </div>
-
-        {/* Textos */}
-        <div className="space-y-2">
-          <p className="text-slide-1 font-display font-bold text-2xl text-[var(--color-fg)]">
-            ¡Liga creada!
-          </p>
-          <p className="text-slide-2 font-display font-semibold text-base text-[var(--color-warm)] leading-snug px-2">
-            {leagueName}
-          </p>
-        </div>
-
-        {/* Estado */}
-        <div className="text-slide-3 w-full rounded-2xl px-5 py-4 space-y-1.5" style={{ background: isMyGroups ? "rgba(34,197,94,0.08)" : "rgba(239,200,139,0.08)", border: isMyGroups ? "1px solid rgba(34,197,94,0.25)" : "1px solid rgba(239,200,139,0.25)" }}>
-          {isMyGroups ? (
-            <>
-              <div className="flex items-center justify-center gap-2">
-                <Swords className="w-4 h-4 text-green-400" strokeWidth={1.5} />
-                <p className="font-display font-semibold text-sm text-green-400">¡La batalla ya está activa!</p>
-              </div>
-              <p className="text-xs text-[var(--color-muted)]">
-                Ambos grupos ya están compitiendo. Que gane el mejor.
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-center gap-2">
-                <Clock className="w-4 h-4 text-[var(--color-warm)]" strokeWidth={1.5} />
-                <p className="font-display font-semibold text-sm text-[var(--color-warm)]">Esperando al oponente</p>
-              </div>
-              <p className="text-xs text-[var(--color-muted)]">
-                La invitación fue enviada. La liga empieza cuando el grupo rival acepte el reto.
-              </p>
-            </>
-          )}
-        </div>
-
-        <button
-          onClick={onClose}
-          className="w-full py-3.5 rounded-2xl bg-[var(--color-accent)] text-white font-display font-semibold text-sm"
-        >
-          Listo
-        </button>
-      </div>
-    </>
-  );
-}
-
 // ── Contenedor principal ───────────────────────────────────────────────────
 export function CreateLeagueDrawer({ open, onClose, groupId, onCreated }: Props) {
   const [mode, setMode] = useState<Mode>("pick");
@@ -634,32 +561,115 @@ export function CreateLeagueDrawer({ open, onClose, groupId, onCreated }: Props)
 
   function handleClose() {
     setMode("pick");
-    setCreatedInfo(null);
     onClose();
   }
 
   function handleCreated(name: string, isMyGroups: boolean) {
     onCreated?.();
+    // Cerrar drawer de inmediato; el modal aparece por encima
+    setMode("pick");
+    onClose();
     setCreatedInfo({ name, isMyGroups });
-    setMode("created");
+  }
+
+  function closeModal() {
+    setCreatedInfo(null);
   }
 
   return (
-    <Drawer open={open} onClose={handleClose}>
-      <div className="overflow-y-auto" style={{ maxHeight: "80dvh" }}>
-        {mode === "pick" && (
-          <StepPick onPick={(m) => setMode(m)} />
-        )}
-        {mode === "my-groups" && (
-          <StepMyGroups onBack={() => setMode("pick")} onCreated={handleCreated} onClose={handleClose} />
-        )}
-        {mode === "other-group" && (
-          <StepOtherGroup ownerGroupId={groupId} onBack={() => setMode("pick")} onCreated={handleCreated} onClose={handleClose} />
-        )}
-        {mode === "created" && createdInfo && (
-          <StepCreated leagueName={createdInfo.name} isMyGroups={createdInfo.isMyGroups} onClose={handleClose} />
-        )}
-      </div>
-    </Drawer>
+    <>
+      {/* Drawer de creación */}
+      <Drawer open={open} onClose={handleClose}>
+        <div className="overflow-y-auto" style={{ maxHeight: "80dvh" }}>
+          {mode === "pick" && (
+            <StepPick onPick={(m) => setMode(m)} />
+          )}
+          {mode === "my-groups" && (
+            <StepMyGroups onBack={() => setMode("pick")} onCreated={handleCreated} onClose={handleClose} />
+          )}
+          {mode === "other-group" && (
+            <StepOtherGroup ownerGroupId={groupId} onBack={() => setMode("pick")} onCreated={handleCreated} onClose={handleClose} />
+          )}
+        </div>
+      </Drawer>
+
+      {/* Modal de éxito — flota por encima de todo, fuera del drawer */}
+      {createdInfo && (
+        <>
+          <style dangerouslySetInnerHTML={{ __html: CREATED_STYLES }} />
+          <div
+            className="fixed inset-0 z-[500] flex items-center justify-center px-6"
+            style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(8px)" }}
+          >
+            <div
+              className="check-bounce w-full max-w-sm rounded-3xl px-8 py-10 flex flex-col items-center text-center gap-6"
+              style={{ background: "#0e0e0e", border: "1px solid rgba(255,255,255,0.09)", boxShadow: "0 32px 80px rgba(0,0,0,0.8)" }}
+            >
+              {/* Icono animado */}
+              <div className="relative flex items-center justify-center">
+                <div
+                  className="ring-expand absolute w-28 h-28 rounded-full"
+                  style={{ border: "2px solid rgba(207,92,54,0.45)" }}
+                />
+                <div
+                  className="w-24 h-24 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(207,92,54,0.12)", border: "2px solid rgba(207,92,54,0.35)" }}
+                >
+                  <CheckCircle2 className="w-12 h-12 text-[var(--color-accent)]" strokeWidth={1.5} />
+                </div>
+              </div>
+
+              {/* Textos */}
+              <div className="space-y-2">
+                <p className="text-slide-1 font-display font-bold text-2xl text-[var(--color-fg)]">
+                  ¡Liga creada!
+                </p>
+                <p className="text-slide-2 font-display font-semibold text-base text-[var(--color-warm)] leading-snug">
+                  {createdInfo.name}
+                </p>
+              </div>
+
+              {/* Estado contextual */}
+              <div
+                className="text-slide-3 w-full rounded-2xl px-5 py-4 space-y-1.5"
+                style={{
+                  background: createdInfo.isMyGroups ? "rgba(34,197,94,0.08)" : "rgba(239,200,139,0.08)",
+                  border: createdInfo.isMyGroups ? "1px solid rgba(34,197,94,0.25)" : "1px solid rgba(239,200,139,0.25)",
+                }}
+              >
+                {createdInfo.isMyGroups ? (
+                  <>
+                    <div className="flex items-center justify-center gap-2">
+                      <Swords className="w-4 h-4 text-green-400" strokeWidth={1.5} />
+                      <p className="font-display font-semibold text-sm text-green-400">¡La batalla ya está activa!</p>
+                    </div>
+                    <p className="text-xs text-[var(--color-muted)]">
+                      Ambos grupos ya están compitiendo. Que gane el mejor.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-center gap-2">
+                      <Clock className="w-4 h-4 text-[var(--color-warm)]" strokeWidth={1.5} />
+                      <p className="font-display font-semibold text-sm text-[var(--color-warm)]">Esperando al oponente</p>
+                    </div>
+                    <p className="text-xs text-[var(--color-muted)]">
+                      La invitación fue enviada. La liga empieza cuando el grupo rival acepte el reto.
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <button
+                onClick={closeModal}
+                className="w-full py-3.5 rounded-2xl bg-[var(--color-accent)] text-white font-display font-semibold text-sm"
+              >
+                Listo
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }

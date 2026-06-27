@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Trophy, Crown, Users, Plus, ChevronRight,
-  Check, X, Swords,
+  Check, X, Swords, ShieldOff,
 } from "lucide-react";
 import {
   useAllLeagues,
@@ -168,13 +168,83 @@ function FinishedLeagueCard({ entry, onOpen }: { entry: LeagueEntry; onOpen: () 
 
 // ── Main page ──────────────────────────────────────────────────────────────
 
+// ── Keyframes para el toast de cancelación ────────────────────────────────
+const CANCEL_STYLES = `
+@keyframes toastPop {
+  0%   { opacity: 0; transform: translateY(32px) scale(0.88); }
+  55%  { transform: translateY(-6px) scale(1.03); }
+  80%  { transform: translateY(2px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes ringPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+  70%  { box-shadow: 0 0 0 20px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+.toast-pop  { animation: toastPop 0.6s cubic-bezier(0.22,1,0.36,1) both; }
+.ring-pulse { animation: ringPulse 1.4s ease-out 0.4s 2; }
+`;
+
+function CancelToast({ onDone }: { onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2600);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: CANCEL_STYLES }} />
+      <div
+        className="fixed inset-0 z-[400] flex items-center justify-center px-8 pointer-events-none"
+        style={{ background: "rgba(0,0,0,0.60)", backdropFilter: "blur(6px)" }}
+      >
+        <div
+          className="toast-pop flex flex-col items-center gap-4 rounded-3xl px-10 py-8 text-center"
+          style={{
+            background: "#120303",
+            border: "1px solid rgba(239,68,68,0.35)",
+            boxShadow: "0 28px 72px rgba(0,0,0,0.75)",
+          }}
+        >
+          <div className="ring-pulse w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center">
+            <ShieldOff className="w-8 h-8 text-red-400" strokeWidth={1.5} />
+          </div>
+          <div className="space-y-1">
+            <p className="font-display font-bold text-lg text-[var(--color-fg)]">Liga cancelada</p>
+            <p className="text-xs text-[var(--color-muted)]">La liga fue cancelada y ya no está activa.</p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function LigaPage() {
+  return (
+    <Suspense fallback={null}>
+      <LigaInner />
+    </Suspense>
+  );
+}
+
+function LigaInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [showCancelToast, setShowCancelToast] = useState(
+    searchParams.get("cancelled") === "1"
+  );
+
+  function dismissCancelToast() {
+    setShowCancelToast(false);
+    // Limpiar el param de la URL sin recargar
+    router.replace("/liga");
+  }
+
   const { user } = useUser();
   const { data: groups = [] } = useMyGroups();
   const { data: plan } = usePlan();
   const { data, isLoading } = useAllLeagues();
   const respond = useRespondLeagueInvite();
-  const router = useRouter();
   useLeagueRealtime();
 
   const [showCreate, setShowCreate] = useState(false);
@@ -206,6 +276,7 @@ export default function LigaPage() {
     if (isElite && ownedGroups.length > 0) {
       return (
         <>
+          {showCancelToast && <CancelToast onDone={dismissCancelToast} />}
           <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center gap-5">
             <div className="w-20 h-20 rounded-3xl bg-[var(--color-warm)]/15 flex items-center justify-center">
               <Swords className="w-9 h-9 text-[var(--color-warm)]" />
@@ -244,6 +315,8 @@ export default function LigaPage() {
 
     // Miembro sin liga
     return (
+      <>
+        {showCancelToast && <CancelToast onDone={dismissCancelToast} />}
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center gap-5">
         <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center">
           <Swords className="w-9 h-9 text-[var(--color-muted)]" />
@@ -259,12 +332,14 @@ export default function LigaPage() {
           </p>
         </div>
       </div>
+      </>
     );
   }
 
   // ── Main content ─────────────────────────────────────────────────────────
   return (
     <>
+      {showCancelToast && <CancelToast onDone={dismissCancelToast} />}
       <div className="px-4 pt-6 pb-28 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
