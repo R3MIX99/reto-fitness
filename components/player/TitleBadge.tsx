@@ -125,53 +125,10 @@ function ensureInjections() {
 // ── Tamaños ──────────────────────────────────────────────────────────────────
 
 const SIZE_MAP = {
-  sm: { icon: 11, font: "11px", pad: "2px 8px",  glowR: "11px", bodyR: "9px",  cornerSz: 9,  cornerOff: 2 },
-  md: { icon: 13, font: "12px", pad: "4px 12px", glowR: "13px", bodyR: "11px", cornerSz: 11, cornerOff: 2 },
-  lg: { icon: 15, font: "14px", pad: "6px 20px", glowR: "14px", bodyR: "12px", cornerSz: 13, cornerOff: 3 },
+  sm: { icon: 11, font: "11px", pad: "2px 8px",  glowR: "6px",  bodyR: "4px"  },
+  md: { icon: 13, font: "12px", pad: "4px 12px", glowR: "7px",  bodyR: "5px"  },
+  lg: { icon: 15, font: "14px", pad: "6px 20px", glowR: "8px",  bodyR: "6px"  },
 } as const;
-
-// ── Ornamento de esquina (estilo griego anidado) ──────────────────────────────
-
-function GreekCorner({ rotation, size }: { rotation: number; size: number }) {
-  const s = size;
-  const sw = s <= 9 ? 1.2 : 1.5;  // stroke-width proporcional
-  const inner = Math.round(s * 0.27); // distancia del borde al L interior
-  const dot = Math.round(s * 0.47);   // posición del punto central
-  return (
-    <svg
-      width={s}
-      height={s}
-      viewBox={`0 0 ${s} ${s}`}
-      fill="none"
-      style={{ transform: `rotate(${rotation}deg)`, display: "block" }}
-      aria-hidden="true"
-    >
-      {/* L exterior */}
-      <path
-        d={`M1 ${s - 1} L1 1 L${s - 1} 1`}
-        stroke="rgba(255,255,255,0.78)"
-        strokeWidth={sw}
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-      />
-      {/* L interior (eco griego) */}
-      <path
-        d={`M${inner + 2} ${s - inner - 2} L${inner + 2} ${inner + 2} L${s - inner - 2} ${inner + 2}`}
-        stroke="rgba(255,255,255,0.45)"
-        strokeWidth={sw * 0.7}
-        strokeLinecap="square"
-      />
-      {/* Punto central */}
-      <rect
-        x={dot - 0.75}
-        y={dot - 0.75}
-        width={1.5}
-        height={1.5}
-        fill="rgba(255,255,255,0.35)"
-      />
-    </svg>
-  );
-}
 
 // ── TitleBadge ───────────────────────────────────────────────────────────────
 
@@ -255,21 +212,7 @@ export function TitleBadge({
             animation: "olympoShimmer 3.5s ease-in-out infinite",
           }}
         >
-          {/* Ornamentos griegos en cada esquina */}
-          <span style={{ position: "absolute", top: sz.cornerOff, left: sz.cornerOff + 1 }}>
-            <GreekCorner rotation={0}   size={sz.cornerSz} />
-          </span>
-          <span style={{ position: "absolute", top: sz.cornerOff, right: sz.cornerOff + 1 }}>
-            <GreekCorner rotation={90}  size={sz.cornerSz} />
-          </span>
-          <span style={{ position: "absolute", bottom: sz.cornerOff, left: sz.cornerOff + 1 }}>
-            <GreekCorner rotation={-90} size={sz.cornerSz} />
-          </span>
-          <span style={{ position: "absolute", bottom: sz.cornerOff, right: sz.cornerOff + 1 }}>
-            <GreekCorner rotation={180} size={sz.cornerSz} />
-          </span>
-
-          {/* Texto con fuente God of War */}
+            {/* Texto con fuente God of War + glow */}
           <span
             style={{
               position: "relative",
@@ -279,11 +222,13 @@ export function TitleBadge({
               fontWeight: "400",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              color: "rgba(255,255,255,0.96)",
+              color: "rgba(255,255,255,0.97)",
               textShadow: [
-                "0 0 8px rgba(255,255,255,0.75)",
-                "0 0 18px rgba(255,200,0,0.35)",
-                "0 1px 3px rgba(0,0,0,0.45)",
+                "0 0 6px rgba(255,255,255,0.9)",
+                "0 0 14px rgba(255,255,255,0.7)",
+                "0 0 28px rgba(255,220,80,0.55)",
+                "0 0 48px rgba(255,180,0,0.3)",
+                "0 1px 3px rgba(0,0,0,0.5)",
               ].join(","),
             }}
           >
