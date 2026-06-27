@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Trophy, X, Calendar, Check, Crown, Sparkles, Medal } from "lucide-react";
 import { usePlayerCard, useEquipTitle, type PlayerWin } from "@/lib/hooks/usePlayerCard";
+import { TitleBadge, type TitleStyleId } from "@/components/player/TitleBadge";
 
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 function fmt(dateStr: string | null): string {
@@ -128,7 +129,18 @@ export function PlayerCard({
           {/* Título equipado */}
           <div className="flex justify-center mb-4">
             {data?.equipped ? (() => {
-              const r = data.equipped.rank;
+              const eq = data.equipped;
+              // Título personalizado (solo #1 puede tenerlo)
+              if (eq.custom_title_text && eq.custom_title_style) {
+                return (
+                  <TitleBadge
+                    text={`${eq.custom_title_text} · Temp ${eq.season_number}`}
+                    styleId={eq.custom_title_style as TitleStyleId}
+                  />
+                );
+              }
+              // Badge por defecto (campeón / legendario / subcampeón / tercer lugar)
+              const r = eq.rank;
               const bg = legend ? "linear-gradient(90deg,#F472B6,#A78BFA)" : MEDAL[r] ?? "#EFC88B";
               const fg = legend ? "#fff" : r === 3 ? "#fff" : "#1a0f08";
               const Icon = legend ? Sparkles : r === 1 ? Crown : Medal;
@@ -138,7 +150,7 @@ export function PlayerCard({
                   style={{ color: fg, background: bg }}
                 >
                   <Icon size={12} strokeWidth={2} />
-                  {data.equipped.title}
+                  {eq.title}
                 </span>
               );
             })() : (
@@ -180,7 +192,9 @@ export function PlayerCard({
                           ? (w.is_legend_unlock ? "rgba(244,114,182,0.1)" : "rgba(239,200,139,0.12)")
                           : "var(--color-surface)",
                         border: `1px solid ${
-                          w.is_legend_unlock
+                          w.custom_title_style
+                            ? isEquipped ? "rgba(239,200,139,0.5)" : "rgba(239,200,139,0.2)"
+                            : w.is_legend_unlock
                             ? isEquipped ? "rgba(244,114,182,0.6)" : "rgba(244,114,182,0.4)"
                             : isEquipped ? "rgba(239,200,139,0.4)" : "var(--color-border)"
                         }`,
@@ -189,7 +203,17 @@ export function PlayerCard({
                     >
                       <Trophy size={14} strokeWidth={1.5} className="flex-shrink-0" style={{ color: w.is_legend_unlock ? "#F472B6" : (MEDAL[w.rank] ?? "var(--color-warm)") }} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium truncate">{w.title}</p>
+                        {w.custom_title_text && w.custom_title_style ? (
+                          <div className="mb-0.5">
+                            <TitleBadge
+                              text={w.custom_title_text}
+                              styleId={w.custom_title_style as TitleStyleId}
+                              size="sm"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-[13px] font-medium truncate">{w.title}</p>
+                        )}
                         <p className="text-[11px]" style={{ color: w.is_legend_unlock ? "#F472B6" : "var(--color-muted)" }}>{w.season_name} · {fmt(w.end_date)}</p>
                       </div>
                       {isEquipped && <Check size={15} strokeWidth={2} className="flex-shrink-0" style={{ color: w.is_legend_unlock ? "#F472B6" : "var(--color-warm)" }} />}

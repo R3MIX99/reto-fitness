@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trophy, Calendar, Clock, Flag, ChevronRight, Settings2, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Trophy, Calendar, Clock, Flag, ChevronRight, Settings2, Pencil, Trash2, AlertTriangle, Crown } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
 import {
   useActiveSeason,
@@ -15,6 +15,9 @@ import {
   DURATION_OPTIONS,
   type Season,
 } from "@/lib/hooks/useSeasons";
+import { usePlan } from "@/lib/hooks/usePlan";
+import { useSetSeasonCustomTitle, useSeasonCustomTitle } from "@/lib/hooks/useCustomTitle";
+import { TitleStylePicker, TitleBadge, type TitleStyleId } from "@/components/player/TitleBadge";
 
 // Número de display de una temporada: cuenta solo las no-canceladas en orden cronológico
 function useSeasonDisplayName(groupId: string, season: Season | null | undefined): string | null {
@@ -251,19 +254,34 @@ function StartSeasonDrawer({
   onClose: () => void;
 }) {
   const startSeason = useStartSeason();
+  const setCustomTitle = useSetSeasonCustomTitle();
+  const { data: plan } = usePlan();
+  const isElite = plan?.tier === "elite" || plan?.is_super_admin === true;
+
   const [weeks, setWeeks] = useState<number>(4);
   const [startDate, setStartDate] = useState<string>(localDateStr(new Date()));
   const [error, setError] = useState<string | null>(null);
+  const [titleText, setTitleText] = useState("");
+  const [titleStyle, setTitleStyle] = useState<TitleStyleId>("gold");
 
   async function handleStart() {
     setError(null);
     try {
-      await startSeason.mutateAsync({ groupId, durationWeeks: weeks, startDate });
+      const seasonId = await startSeason.mutateAsync({ groupId, durationWeeks: weeks, startDate });
+      if (isElite && titleText.trim().length >= 3) {
+        await setCustomTitle.mutateAsync({
+          seasonId,
+          titleText: titleText.trim(),
+          titleStyle,
+        });
+      }
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo iniciar la temporada");
     }
   }
+
+  const isPending = startSeason.isPending || setCustomTitle.isPending;
 
   return (
     <Drawer open={open} onClose={onClose}>
@@ -275,16 +293,56 @@ function StartSeasonDrawer({
 
         <ScheduleFields startDate={startDate} setStartDate={setStartDate} weeks={weeks} setWeeks={setWeeks} />
 
+        {/* Título personalizado del campeón (solo Elite) */}
+        {isElite && (
+          <div className="mb-4 rounded-[14px] p-4" style={{ background: "rgba(239,200,139,0.06)", border: "1px solid rgba(239,200,139,0.2)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Crown size={14} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+              <p className="text-[13px] font-medium">Título del campeón</p>
+              <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: "rgba(239,200,139,0.15)", color: "var(--color-warm)" }}>Elite</span>
+            </div>
+            <p className="text-[11px] text-[var(--color-muted)] mb-3">
+              El #1 de esta temporada recibirá este título permanentemente en su tarjeta de jugador.
+            </p>
+
+            <label className="text-[12px] text-[var(--color-muted)] mb-1.5 block">Texto del título</label>
+            <input
+              type="text"
+              placeholder="Ej: El Imbatible, La Reina, El Bestia…"
+              value={titleText}
+              onChange={(e) => setTitleText(e.target.value.slice(0, 40))}
+              maxLength={40}
+              className="w-full bg-[var(--color-surface)] rounded-[10px] px-3.5 py-2.5 text-[14px] text-[var(--color-fg)] outline-none mb-3 border"
+              style={{ borderColor: "var(--color-border)" }}
+            />
+
+            {titleText.trim().length >= 3 && (
+              <>
+                <label className="text-[12px] text-[var(--color-muted)] mb-2 block">Estilo del badge</label>
+                <TitleStylePicker
+                  value={titleStyle}
+                  onChange={setTitleStyle}
+                  previewText={titleText.trim().slice(0, 12)}
+                />
+              </>
+            )}
+
+            {titleText.trim().length > 0 && titleText.trim().length < 3 && (
+              <p className="text-[11px] text-[var(--color-muted)]">Mínimo 3 caracteres</p>
+            )}
+          </div>
+        )}
+
         {error && <p className="text-[12px] text-red-400 mb-3">{error}</p>}
 
         <button
           onClick={handleStart}
-          disabled={startSeason.isPending}
+          disabled={isPending}
           className="w-full flex items-center justify-center gap-1.5 bg-accent text-white text-[14px] font-medium rounded-pill py-3.5 disabled:opacity-50"
         >
           <Flag size={15} strokeWidth={1.5} />
-          {startSeason.isPending ? "Iniciando…" : "Iniciar temporada"}
-          {!startSeason.isPending && <ChevronRight size={15} strokeWidth={1.5} />}
+          {isPending ? "Iniciando…" : "Iniciar temporada"}
+          {!isPending && <ChevronRight size={15} strokeWidth={1.5} />}
         </button>
       </div>
     </Drawer>
@@ -309,17 +367,42 @@ function ManageSeasonDrawer({
   const updateSeason = useUpdateScheduledSeason();
   const deleteSeason = useDeleteScheduledSeason();
   const cancelSeason = useCancelSeason();
+  const setCustomTitle = useSetSeasonCustomTitle();
+  const { data: existingCustomTitle } = useSeasonCustomTitle(season.id);
+  const { data: plan } = usePlan();
+  const isElite = plan?.tier === "elite" || plan?.is_super_admin === true;
 
   const [editing, setEditing] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
   const [weeks, setWeeks] = useState<number>(season.duration_weeks);
   const [startDate, setStartDate] = useState<string>(season.start_date);
   const [reason, setReason] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmStop, setConfirmStop] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [titleText, setTitleText] = useState(existingCustomTitle?.title_text ?? "");
+  const [titleStyle, setTitleStyle] = useState<TitleStyleId>(existingCustomTitle?.title_style ?? "gold");
+
+  // Sync cuando se carga el título existente
+  if (existingCustomTitle && titleText === "" && existingCustomTitle.title_text) {
+    setTitleText(existingCustomTitle.title_text);
+    setTitleStyle(existingCustomTitle.title_style);
+  }
+
+  async function handleSaveTitle() {
+    if (titleText.trim().length < 3) return;
+    setError(null);
+    try {
+      await setCustomTitle.mutateAsync({ seasonId: season.id, titleText: titleText.trim(), titleStyle });
+      setEditingTitle(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo guardar el título");
+    }
+  }
 
   function reset() {
     setEditing(false);
+    setEditingTitle(false);
     setConfirmDelete(false);
     setConfirmStop(false);
     setReason("");
@@ -374,7 +457,53 @@ function ManageSeasonDrawer({
 
         {/* ── Temporada AÚN NO empieza: editar o cancelar programación ── */}
         {notStarted ? (
-          editing ? (
+          editingTitle ? (
+            /* Sub-vista: editar título del campeón */
+            <>
+              <div className="rounded-[14px] p-4 mb-4" style={{ background: "rgba(239,200,139,0.06)", border: "1px solid rgba(239,200,139,0.2)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Crown size={14} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+                  <p className="text-[13px] font-medium">Título del campeón</p>
+                </div>
+                <p className="text-[11px] text-[var(--color-muted)] mb-3">
+                  El #1 de esta temporada recibirá este título permanentemente en su tarjeta de jugador.
+                </p>
+                <label className="text-[12px] text-[var(--color-muted)] mb-1.5 block">Texto del título</label>
+                <input
+                  type="text"
+                  placeholder="Ej: El Imbatible, La Reina…"
+                  value={titleText}
+                  onChange={(e) => setTitleText(e.target.value.slice(0, 40))}
+                  maxLength={40}
+                  className="w-full bg-[var(--color-surface)] rounded-[10px] px-3.5 py-2.5 text-[14px] text-[var(--color-fg)] outline-none mb-3 border"
+                  style={{ borderColor: "var(--color-border)" }}
+                />
+                {titleText.trim().length >= 3 && (
+                  <>
+                    <label className="text-[12px] text-[var(--color-muted)] mb-2 block">Estilo del badge</label>
+                    <TitleStylePicker value={titleStyle} onChange={setTitleStyle} previewText={titleText.trim().slice(0, 12)} />
+                  </>
+                )}
+              </div>
+              {error && <p className="text-[12px] text-red-400 mb-3">{error}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setEditingTitle(false); setError(null); }}
+                  className="flex-1 text-[13px] text-[var(--color-muted)] rounded-pill py-3 border"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  Atrás
+                </button>
+                <button
+                  onClick={handleSaveTitle}
+                  disabled={setCustomTitle.isPending || titleText.trim().length < 3}
+                  className="flex-1 bg-accent text-white text-[13px] font-medium rounded-pill py-3 disabled:opacity-50"
+                >
+                  {setCustomTitle.isPending ? "Guardando…" : "Guardar título"}
+                </button>
+              </div>
+            </>
+          ) : editing ? (
             <>
               <ScheduleFields startDate={startDate} setStartDate={setStartDate} weeks={weeks} setWeeks={setWeeks} />
               {error && <p className="text-[12px] text-red-400 mb-3">{error}</p>}
@@ -432,6 +561,19 @@ function ManageSeasonDrawer({
                 <Pencil size={15} strokeWidth={1.5} className="text-warm" />
                 Editar fecha y duración
               </button>
+              {isElite && (
+                <button
+                  onClick={() => setEditingTitle(true)}
+                  className="w-full flex items-center gap-2.5 rounded-[12px] px-4 py-3.5 text-[14px]"
+                  style={{ background: "var(--color-surface)" }}
+                >
+                  <Crown size={15} strokeWidth={1.5} className="text-warm" />
+                  <span className="flex-1 text-left">Título del campeón</span>
+                  {existingCustomTitle && (
+                    <span className="text-[11px] text-warm truncate max-w-[100px]">{existingCustomTitle.title_text}</span>
+                  )}
+                </button>
+              )}
               <button
                 onClick={() => setConfirmDelete(true)}
                 className="w-full flex items-center gap-2.5 rounded-[12px] px-4 py-3.5 text-[14px] text-red-400"
@@ -443,8 +585,53 @@ function ManageSeasonDrawer({
             </div>
           )
         ) : (
-          /* ── Temporada EN CURSO: terminar anticipadamente (sin títulos) ── */
-          confirmStop ? (
+          /* ── Temporada EN CURSO ── */
+          editingTitle ? (
+            <>
+              <div className="rounded-[14px] p-4 mb-4" style={{ background: "rgba(239,200,139,0.06)", border: "1px solid rgba(239,200,139,0.2)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Crown size={14} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+                  <p className="text-[13px] font-medium">Título del campeón</p>
+                </div>
+                <p className="text-[11px] text-[var(--color-muted)] mb-3">
+                  El #1 de esta temporada recibirá este título permanentemente en su tarjeta de jugador.
+                </p>
+                <label className="text-[12px] text-[var(--color-muted)] mb-1.5 block">Texto del título</label>
+                <input
+                  type="text"
+                  placeholder="Ej: El Imbatible, La Reina…"
+                  value={titleText}
+                  onChange={(e) => setTitleText(e.target.value.slice(0, 40))}
+                  maxLength={40}
+                  className="w-full bg-[var(--color-surface)] rounded-[10px] px-3.5 py-2.5 text-[14px] text-[var(--color-fg)] outline-none mb-3 border"
+                  style={{ borderColor: "var(--color-border)" }}
+                />
+                {titleText.trim().length >= 3 && (
+                  <>
+                    <label className="text-[12px] text-[var(--color-muted)] mb-2 block">Estilo del badge</label>
+                    <TitleStylePicker value={titleStyle} onChange={setTitleStyle} previewText={titleText.trim().slice(0, 12)} />
+                  </>
+                )}
+              </div>
+              {error && <p className="text-[12px] text-red-400 mb-3">{error}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setEditingTitle(false); setError(null); }}
+                  className="flex-1 text-[13px] text-[var(--color-muted)] rounded-pill py-3 border"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  Atrás
+                </button>
+                <button
+                  onClick={handleSaveTitle}
+                  disabled={setCustomTitle.isPending || titleText.trim().length < 3}
+                  className="flex-1 bg-accent text-white text-[13px] font-medium rounded-pill py-3 disabled:opacity-50"
+                >
+                  {setCustomTitle.isPending ? "Guardando…" : "Guardar título"}
+                </button>
+              </div>
+            </>
+          ) : confirmStop ? (
             <>
               <div className="rounded-[12px] p-3.5 mb-4 flex items-start gap-2.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}>
                 <AlertTriangle size={16} strokeWidth={1.5} className="text-red-400 flex-shrink-0 mt-0.5" />
@@ -481,14 +668,29 @@ function ManageSeasonDrawer({
               </div>
             </>
           ) : (
-            <button
-              onClick={() => setConfirmStop(true)}
-              className="w-full flex items-center gap-2.5 rounded-[12px] px-4 py-3.5 text-[14px] text-red-400"
-              style={{ background: "rgba(239,68,68,0.08)" }}
-            >
-              <Flag size={15} strokeWidth={1.5} />
-              Terminar temporada antes de tiempo
-            </button>
+            <div className="flex flex-col gap-2">
+              {isElite && (
+                <button
+                  onClick={() => setEditingTitle(true)}
+                  className="w-full flex items-center gap-2.5 rounded-[12px] px-4 py-3.5 text-[14px]"
+                  style={{ background: "var(--color-surface)" }}
+                >
+                  <Crown size={15} strokeWidth={1.5} className="text-warm" />
+                  <span className="flex-1 text-left">Título del campeón</span>
+                  {existingCustomTitle && (
+                    <span className="text-[11px] text-warm truncate max-w-[100px]">{existingCustomTitle.title_text}</span>
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => setConfirmStop(true)}
+                className="w-full flex items-center gap-2.5 rounded-[12px] px-4 py-3.5 text-[14px] text-red-400"
+                style={{ background: "rgba(239,68,68,0.08)" }}
+              >
+                <Flag size={15} strokeWidth={1.5} />
+                Terminar temporada antes de tiempo
+              </button>
+            </div>
           )
         )}
       </div>

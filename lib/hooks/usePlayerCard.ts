@@ -13,9 +13,11 @@ export interface PlayerWin {
   season_number: number;
   season_name: string;
   end_date: string;
-  rank: number;           // 1, 2 o 3
-  title: string;          // p. ej. "El más fuerte · Temp 1", "Subcampeón · Temp 1"
-  is_legend_unlock: boolean; // true SOLO en la victoria que cruzó el umbral de 3 campeonatos
+  rank: number;               // 1, 2 o 3
+  title: string;              // texto del título (custom si lo hay, o por defecto)
+  is_legend_unlock: boolean;  // true SOLO en la victoria que cruzó el umbral de 3 campeonatos
+  custom_title_text?: string | null;
+  custom_title_style?: string | null;
 }
 
 export interface PlayerCardData {
@@ -93,7 +95,28 @@ export async function fetchPlayerCard(userId: string, groupId: string): Promise<
           .sort((a, b) => a.season_number - b.season_number);
         const legendUnlockId = champAsc.length >= 3 ? champAsc[2].season_id : null;
 
-        wins = rawWins.map((w) => ({ ...w, is_legend_unlock: w.season_id === legendUnlockId }));
+        // Títulos personalizados para victorias de #1
+        const champSeasonIds = champAsc.map((w) => w.season_id);
+        type CustomTitleRow = { season_id: string; title_text: string; title_style: string };
+        const customTitleMap = new Map<string, CustomTitleRow>();
+        if (champSeasonIds.length) {
+          const { data: customTitles } = await supabase
+            .from("season_custom_titles")
+            .select("season_id, title_text, title_style")
+            .in("season_id", champSeasonIds) as unknown as { data: CustomTitleRow[] | null };
+          for (const ct of customTitles ?? []) customTitleMap.set(ct.season_id, ct);
+        }
+
+        wins = rawWins.map((w) => {
+          const ct = w.rank === 1 ? customTitleMap.get(w.season_id) : undefined;
+          return {
+            ...w,
+            is_legend_unlock: w.season_id === legendUnlockId,
+            title: ct ? `${ct.title_text} · Temp ${w.season_number}` : w.title,
+            custom_title_text: ct?.title_text ?? null,
+            custom_title_style: ct?.title_style ?? null,
+          };
+        });
       }
 
       // El nivel (oro/legendario) y el conteo de "títulos ganados" cuentan solo
@@ -222,24 +245,39 @@ export function useMyTitles() {
       const sorted = seasonList.sort((a, b) => b.season_number - a.season_number);
 
       // La 3.ª victoria de campeonato desbloquea el nivel legendario
-      // Usar season_number ascendente: es el orden cronológico definitivo
       const champAscGlobal = [...seasonList]
         .filter((s) => rankBySeason.get(s.id) === 1)
         .sort((a, b) => a.season_number - b.season_number);
       const legendUnlockId = champAscGlobal.length >= 3 ? champAscGlobal[2].id : null;
 
+      // Títulos personalizados para victorias de #1
+      const champIds = champAscGlobal.map((s) => s.id);
+      type CustomTitleRow = { season_id: string; title_text: string; title_style: string };
+      const customTitleMap = new Map<string, CustomTitleRow>();
+      if (champIds.length) {
+        const { data: customTitles } = await supabase
+          .from("season_custom_titles")
+          .select("season_id, title_text, title_style")
+          .in("season_id", champIds) as unknown as { data: CustomTitleRow[] | null };
+        for (const ct of customTitles ?? []) customTitleMap.set(ct.season_id, ct);
+      }
+
       return sorted.map((s) => {
         const rank = rankBySeason.get(s.id)!;
+        const ct = rank === 1 ? customTitleMap.get(s.id) : undefined;
+        const defaultTitle = `${seasonTitle(rank, gender)} · Temp ${s.season_number}`;
         return {
           season_id: s.id,
           season_number: s.season_number,
           season_name: s.name,
           end_date: s.end_date,
           rank,
-          title: `${seasonTitle(rank, gender)} · Temp ${s.season_number}`,
+          title: ct ? `${ct.title_text} · Temp ${s.season_number}` : defaultTitle,
           group_id: s.group_id,
           group_name: groupNames.get(s.group_id) ?? "Grupo",
           is_legend_unlock: s.id === legendUnlockId,
+          custom_title_text: ct?.title_text ?? null,
+          custom_title_style: ct?.title_style ?? null,
         };
       });
     },
