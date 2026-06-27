@@ -16,7 +16,7 @@ import {
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { usePlan } from "@/lib/hooks/usePlan";
 import { useUser } from "@/lib/hooks/useUser";
-import { CreateLeagueDrawer } from "@/components/grupo/CreateLeagueDrawer";
+import { CreateLeagueDrawer, LeagueCreatedModal } from "@/components/grupo/CreateLeagueDrawer";
 
 // ── Fecha helpers ──────────────────────────────────────────────────────────
 
@@ -249,6 +249,7 @@ function LigaInner() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [createGroupId, setCreateGroupId] = useState<string | null>(null);
+  const [createdModal, setCreatedModal] = useState<{ name: string; isMyGroups: boolean } | null>(null);
 
   const isElite = plan?.tier === "elite" || plan?.is_super_admin === true;
   const active = data?.active ?? [];
@@ -302,11 +303,12 @@ function LigaInner() {
             </button>
           </div>
 
-          {showCreate && createGroupId && (
+          {createGroupId && (
             <CreateLeagueDrawer
               open={showCreate}
               onClose={() => setShowCreate(false)}
               groupId={createGroupId}
+              onCreated={(name, isMyGroups) => setCreatedModal({ name, isMyGroups })}
             />
           )}
         </>
@@ -445,11 +447,21 @@ function LigaInner() {
         )}
       </div>
 
-      {showCreate && createGroupId && (
+      {createGroupId && (
         <CreateLeagueDrawer
           open={showCreate}
           onClose={() => setShowCreate(false)}
           groupId={createGroupId}
+          onCreated={(name, isMyGroups) => setCreatedModal({ name, isMyGroups })}
+        />
+      )}
+
+      {/* Modal de éxito — vive en el padre para sobrevivir el desmontaje del drawer */}
+      {createdModal && (
+        <LeagueCreatedModal
+          name={createdModal.name}
+          isMyGroups={createdModal.isMyGroups}
+          onClose={() => setCreatedModal(null)}
         />
       )}
     </>
