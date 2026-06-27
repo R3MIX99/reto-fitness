@@ -10,7 +10,7 @@ import {
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { useUser } from "@/lib/hooks/useUser";
 import {
-  Trophy, Users, Crown, CheckCircle2, AlertCircle, Loader2, ChevronRight, Calendar,
+  Trophy, Users, Crown, CheckCircle2, AlertCircle, Loader2, ChevronRight, Calendar, Swords, Clock,
 } from "lucide-react";
 
 const LEAGUE_MONTH_OPTIONS = [
@@ -129,7 +129,29 @@ function DurationPicker({
   );
 }
 
-type Mode = "pick" | "my-groups" | "other-group";
+const CREATED_STYLES = `
+@keyframes checkBounce {
+  0%   { opacity: 0; transform: scale(0.5) rotate(-12deg); }
+  55%  { transform: scale(1.15) rotate(3deg); }
+  75%  { transform: scale(0.96) rotate(-1deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes ringExpand {
+  0%   { opacity: 0.7; transform: scale(0.85); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes textSlide {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.check-bounce { animation: checkBounce 0.65s cubic-bezier(0.34,1.56,0.64,1) 0.15s both; }
+.ring-expand  { animation: ringExpand 1.2s ease-out 0.5s infinite; }
+.text-slide-1 { animation: textSlide 0.5s cubic-bezier(0.22,1,0.36,1) 0.55s both; }
+.text-slide-2 { animation: textSlide 0.5s cubic-bezier(0.22,1,0.36,1) 0.72s both; }
+.text-slide-3 { animation: textSlide 0.5s cubic-bezier(0.22,1,0.36,1) 0.9s both; }
+`;
+
+type Mode = "pick" | "my-groups" | "other-group" | "created";
 
 interface Props {
   open: boolean;
@@ -187,7 +209,7 @@ function StepMyGroups({
   onClose,
 }: {
   onBack: () => void;
-  onCreated?: () => void;
+  onCreated?: (name: string, isMyGroups: boolean) => void;
   onClose: () => void;
 }) {
   const { user } = useUser();
@@ -222,8 +244,7 @@ function StepMyGroups({
         startDate,
         endDate,
       });
-      onCreated?.();
-      onClose();
+      onCreated?.(name.trim(), true);
     } catch (e: any) {
       setError(e?.message ?? "Error al crear la liga");
     }
@@ -372,7 +393,7 @@ function StepOtherGroup({
 }: {
   ownerGroupId: string;
   onBack: () => void;
-  onCreated?: () => void;
+  onCreated?: (name: string, isMyGroups: boolean) => void;
   onClose: () => void;
 }) {
   const { user } = useUser();
@@ -417,8 +438,7 @@ function StepOtherGroup({
         startDate,
         endDate,
       });
-      onCreated?.();
-      onClose();
+      onCreated?.(name.trim(), false);
     } catch (e: any) {
       setError(e?.message ?? "Error al crear la liga");
     }
@@ -534,13 +554,94 @@ function StepOtherGroup({
   );
 }
 
+// ── Pantalla de éxito post-creación ───────────────────────────────────────
+function StepCreated({
+  leagueName,
+  isMyGroups,
+  onClose,
+}: {
+  leagueName: string;
+  isMyGroups: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: CREATED_STYLES }} />
+      <div className="px-5 pb-10 pt-4 flex flex-col items-center text-center gap-6">
+        {/* Icono animado */}
+        <div className="relative flex items-center justify-center mt-2">
+          {/* Aro pulsante */}
+          <div
+            className="ring-expand absolute w-24 h-24 rounded-full"
+            style={{ border: "2px solid rgba(207,92,54,0.5)" }}
+          />
+          {/* Círculo principal */}
+          <div className="check-bounce w-20 h-20 rounded-full flex items-center justify-center" style={{ background: "rgba(207,92,54,0.15)", border: "2px solid rgba(207,92,54,0.4)" }}>
+            <CheckCircle2 className="w-10 h-10 text-[var(--color-accent)]" strokeWidth={1.5} />
+          </div>
+        </div>
+
+        {/* Textos */}
+        <div className="space-y-2">
+          <p className="text-slide-1 font-display font-bold text-2xl text-[var(--color-fg)]">
+            ¡Liga creada!
+          </p>
+          <p className="text-slide-2 font-display font-semibold text-base text-[var(--color-warm)] leading-snug px-2">
+            {leagueName}
+          </p>
+        </div>
+
+        {/* Estado */}
+        <div className="text-slide-3 w-full rounded-2xl px-5 py-4 space-y-1.5" style={{ background: isMyGroups ? "rgba(34,197,94,0.08)" : "rgba(239,200,139,0.08)", border: isMyGroups ? "1px solid rgba(34,197,94,0.25)" : "1px solid rgba(239,200,139,0.25)" }}>
+          {isMyGroups ? (
+            <>
+              <div className="flex items-center justify-center gap-2">
+                <Swords className="w-4 h-4 text-green-400" strokeWidth={1.5} />
+                <p className="font-display font-semibold text-sm text-green-400">¡La batalla ya está activa!</p>
+              </div>
+              <p className="text-xs text-[var(--color-muted)]">
+                Ambos grupos ya están compitiendo. Que gane el mejor.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-center gap-2">
+                <Clock className="w-4 h-4 text-[var(--color-warm)]" strokeWidth={1.5} />
+                <p className="font-display font-semibold text-sm text-[var(--color-warm)]">Esperando al oponente</p>
+              </div>
+              <p className="text-xs text-[var(--color-muted)]">
+                La invitación fue enviada. La liga empieza cuando el grupo rival acepte el reto.
+              </p>
+            </>
+          )}
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full py-3.5 rounded-2xl bg-[var(--color-accent)] text-white font-display font-semibold text-sm"
+        >
+          Listo
+        </button>
+      </div>
+    </>
+  );
+}
+
 // ── Contenedor principal ───────────────────────────────────────────────────
 export function CreateLeagueDrawer({ open, onClose, groupId, onCreated }: Props) {
   const [mode, setMode] = useState<Mode>("pick");
+  const [createdInfo, setCreatedInfo] = useState<{ name: string; isMyGroups: boolean } | null>(null);
 
   function handleClose() {
     setMode("pick");
+    setCreatedInfo(null);
     onClose();
+  }
+
+  function handleCreated(name: string, isMyGroups: boolean) {
+    onCreated?.();
+    setCreatedInfo({ name, isMyGroups });
+    setMode("created");
   }
 
   return (
@@ -550,10 +651,13 @@ export function CreateLeagueDrawer({ open, onClose, groupId, onCreated }: Props)
           <StepPick onPick={(m) => setMode(m)} />
         )}
         {mode === "my-groups" && (
-          <StepMyGroups onBack={() => setMode("pick")} onCreated={onCreated} onClose={handleClose} />
+          <StepMyGroups onBack={() => setMode("pick")} onCreated={handleCreated} onClose={handleClose} />
         )}
         {mode === "other-group" && (
-          <StepOtherGroup ownerGroupId={groupId} onBack={() => setMode("pick")} onCreated={onCreated} onClose={handleClose} />
+          <StepOtherGroup ownerGroupId={groupId} onBack={() => setMode("pick")} onCreated={handleCreated} onClose={handleClose} />
+        )}
+        {mode === "created" && createdInfo && (
+          <StepCreated leagueName={createdInfo.name} isMyGroups={createdInfo.isMyGroups} onClose={handleClose} />
         )}
       </div>
     </Drawer>
