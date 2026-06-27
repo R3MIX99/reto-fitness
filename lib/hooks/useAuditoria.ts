@@ -192,24 +192,15 @@ export function useAuditCheck() {
 
       if (error) throw error;
 
-      // Actualizar también las filas hermanas del fan-out (misma evidencia en otros grupos)
-      // para evitar que aparezcan de nuevo en la cola de otros revisores y envíen más notifs.
-      {
-        let siblingsQ = supabase
-          .from("daily_checks")
-          .update({ status: approved ? "approved" : "rejected" } as never)
-          .eq("user_id", checkUserId)
-          .eq("check_date", checkDate)
-          .eq("kind", checkKind ?? "")
-          .neq("id", checkId);
-
-        if (checkGoalId) {
-          siblingsQ = (siblingsQ as unknown as { eq: (c: string, v: string) => typeof siblingsQ }).eq("goal_id", checkGoalId) as unknown as typeof siblingsQ;
-        } else {
-          siblingsQ = (siblingsQ as unknown as { is: (c: string, v: null) => typeof siblingsQ }).is("goal_id", null) as unknown as typeof siblingsQ;
-        }
-        await siblingsQ;
-      }
+      // Sincronizar todas las filas hermanas (fan-out en otros grupos) vía SECURITY DEFINER.
+      // El UPDATE directo falla por RLS cuando el revisor no pertenece al grupo hermano.
+      await (supabase.rpc as Function)("sync_sibling_checks", {
+        p_user_id:    checkUserId,
+        p_check_date: checkDate,
+        p_kind:       checkKind ?? "",
+        p_goal_id:    checkGoalId ?? null,
+        p_status:     approved ? "approved" : "rejected",
+      });
 
       // Upsert the audit vote — handles first-time and changed decisions
       await (supabase.from("audits") as unknown as {

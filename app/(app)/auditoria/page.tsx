@@ -191,10 +191,16 @@ function AuditoriaInner() {
     return checkDate < activeSeason.start_date;
   }
 
-  const [auditedIds, setAuditedIds] = useState<Set<string>>(new Set());
+  // Clave compuesta user+date+kind+goal — evita el flash cuando el refetch
+  // devuelve la fila hermana de otro grupo (mismo check, diferente id).
+  const [auditedKeys, setAuditedKeys] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<"approved" | "rejected" | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+
+  function evidenceKey(c: { user_id: string; check_date: string; kind: string; goal_id: string | null }) {
+    return `${c.user_id}|${c.check_date}|${c.kind}|${c.goal_id ?? ""}`;
+  }
 
   // Auto-approve pending checks from previous weeks on page open
   useEffect(() => {
@@ -202,8 +208,8 @@ function AuditoriaInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scopedGroupIds.join(",")]);
 
-  // Filter out already-audited checks immediately (don't wait for refetch)
-  const remaining = checks.filter((c) => !auditedIds.has(c.id));
+  // Filtrar por clave compuesta, no por id, para excluir filas hermanas del fan-out.
+  const remaining = checks.filter((c) => !auditedKeys.has(evidenceKey(c)));
   const current = remaining[0] ?? null;
   const week = getWeekNumber();
 
@@ -216,8 +222,8 @@ function AuditoriaInner() {
 
   async function handleAudit(approved: boolean, reason?: string) {
     if (!current) return;
-    // Optimistically remove from list immediately
-    setAuditedIds((prev) => { const s = new Set(prev); s.add(current.id); return s; });
+    // Optimistically remove from list immediately using composite key
+    setAuditedKeys((prev) => { const s = new Set(prev); s.add(evidenceKey(current)); return s; });
     setRejectOpen(false);
     setRejectReason("");
     setToast(approved ? "approved" : "rejected");
@@ -264,7 +270,7 @@ function AuditoriaInner() {
   }
 
   const total = checks.length;
-  const done = auditedIds.size;
+  const done = auditedKeys.size;
 
   return (
     <>
@@ -289,7 +295,7 @@ function AuditoriaInner() {
           <div
             key={c.id}
             className="flex-1 h-1 rounded-full transition-colors"
-            style={{ background: auditedIds.has(c.id) ? "#EFC88B" : "var(--color-border)" }}
+            style={{ background: auditedKeys.has(evidenceKey(c)) ? "#EFC88B" : "var(--color-border)" }}
           />
         ))}
       </div>
