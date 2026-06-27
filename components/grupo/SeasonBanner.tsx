@@ -18,6 +18,7 @@ import {
 } from "@/lib/hooks/useSeasons";
 import { usePlan } from "@/lib/hooks/usePlan";
 import { useSeasonCustomTitle } from "@/lib/hooks/useCustomTitle";
+import { TitleBadge } from "@/components/player/TitleBadge";
 
 // Número de display de una temporada: cuenta solo las no-canceladas en orden cronológico
 function useSeasonDisplayName(groupId: string, season: Season | null | undefined): string | null {
@@ -57,6 +58,7 @@ export function SeasonBanner({
 }) {
   const { data: season, isLoading } = useActiveSeason(groupId);
   const displayName = useSeasonDisplayName(groupId, season);
+  const { data: customTitle } = useSeasonCustomTitle(season?.id);
   const [startOpen, setStartOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
 
@@ -169,6 +171,33 @@ export function SeasonBanner({
           )}
         </div>
       </div>
+
+      {/* Recompensa del campeón (solo temporada activa con título configurado) */}
+      {customTitle && phase.hasStarted && !isReviewing && (() => {
+        const isGendered = customTitle.gender_mode === "gendered";
+        const textM = customTitle.title_text_male ?? customTitle.title_text ?? "";
+        const textF = customTitle.title_text_female ?? customTitle.title_text ?? "";
+        const textD = customTitle.title_text ?? "";
+        return (
+          <div
+            className="flex items-center gap-2 mb-3 px-3.5 py-2.5 rounded-[12px]"
+            style={{ background: "rgba(239,200,139,0.05)", border: "1px solid rgba(239,200,139,0.15)" }}
+          >
+            <Crown size={13} strokeWidth={1.5} className="text-warm flex-shrink-0" />
+            <span className="text-[12px] text-[var(--color-muted)] flex-shrink-0">Premio al #1</span>
+            <div className="flex items-center gap-1.5 overflow-hidden">
+              {isGendered ? (
+                <>
+                  {textM && <TitleBadge text={textM} styleId={customTitle.title_style} size="sm" />}
+                  {textF && <TitleBadge text={textF} styleId={customTitle.title_style} size="sm" />}
+                </>
+              ) : (
+                textD && <TitleBadge text={textD} styleId={customTitle.title_style} size="sm" />
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {isOwner && (
         <ManageSeasonDrawer

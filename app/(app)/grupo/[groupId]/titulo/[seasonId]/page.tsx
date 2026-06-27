@@ -66,7 +66,7 @@ export default function TituloPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "var(--color-bg)" }}>
+    <div className="flex flex-col" style={{ height: "100%", overflow: "hidden" }}>
 
       {/* ── Header ────────────────────────────────────────────────────────────── */}
       <div
@@ -93,7 +93,7 @@ export default function TituloPage() {
       </div>
 
       {/* ── Contenido con scroll ───────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 pb-36">
+      <div className="flex-1 overflow-y-auto px-4 pb-4" style={{ overscrollBehavior: "contain" }}>
 
         {/* Preview grande */}
         <div className="flex flex-col items-center py-10 gap-2">
@@ -250,9 +250,9 @@ export default function TituloPage() {
         )}
       </div>
 
-      {/* ── Botón guardar (fijo abajo) ─────────────────────────────────────────── */}
+      {/* ── Botón guardar — siempre visible al fondo del overlay ─────────────── */}
       <div
-        className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-3"
+        className="flex-shrink-0 px-4 pb-8 pt-3"
         style={{ background: "var(--color-bg)", borderTop: "1px solid var(--color-border)" }}
       >
         {saved ? (
