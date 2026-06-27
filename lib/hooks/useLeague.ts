@@ -7,7 +7,7 @@ import { useUser } from "./useUser";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type LeagueStatus = "active" | "finished";
+export type LeagueStatus = "active" | "finished" | "cancelled";
 export type LeagueParticipantStatus = "pending" | "accepted" | "rejected";
 
 export interface GroupLeague {
@@ -250,11 +250,13 @@ export function useCreateLeague() {
       ownerGroupId,
       targetGroupId,
       startDate,
+      endDate,
     }: {
       name: string;
       ownerGroupId: string;
       targetGroupId: string;
       startDate: string;
+      endDate?: string;
     }) => {
       const supabase = createClient() as any;
 
@@ -269,6 +271,7 @@ export function useCreateLeague() {
           created_by: user!.id,
           owner_group_id: ownerGroupId,
           start_date: startDate,
+          ...(endDate ? { end_date: endDate } : {}),
         })
         .select()
         .single();
@@ -383,11 +386,13 @@ export function useCreateLeagueBetweenMyGroups() {
       groupA,
       groupB,
       startDate,
+      endDate,
     }: {
       name: string;
       groupA: string;
       groupB: string;
       startDate: string;
+      endDate?: string;
     }) => {
       const supabase = createClient() as any;
       const { data: league, error: le } = await supabase
@@ -397,6 +402,7 @@ export function useCreateLeagueBetweenMyGroups() {
           created_by: user!.id,
           owner_group_id: groupA,
           start_date: startDate,
+          ...(endDate ? { end_date: endDate } : {}),
         })
         .select()
         .single();
@@ -411,6 +417,75 @@ export function useCreateLeagueBetweenMyGroups() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["allLeagues"] });
+    },
+  });
+}
+
+// ── Battle stats ───────────────────────────────────────────────────────────
+
+export interface LeagueTopPlayer {
+  group_id: string;
+  group_name: string;
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  points: number;
+  player_rank: number;
+}
+
+export interface LeagueGroupDaily {
+  group_id: string;
+  group_name: string;
+  score_date: string;
+  day_points: number;
+}
+
+/** Top 3 jugadores por grupo (para la battle screen) */
+export function useLeagueTopPlayers(leagueId: string | undefined) {
+  return useQuery({
+    queryKey: ["leagueTopPlayers", leagueId],
+    enabled: !!leagueId,
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<LeagueTopPlayer[]> => {
+      const supabase = createClient() as any;
+      const { data, error } = await supabase.rpc("get_league_top_players", {
+        p_league_id: leagueId!,
+      });
+      if (error) throw error;
+      return (data ?? []) as LeagueTopPlayer[];
+    },
+  });
+}
+
+/** Puntos diarios por grupo desde start_date (para gráfica comparativa) */
+export function useLeagueGroupDaily(leagueId: string | undefined) {
+  return useQuery({
+    queryKey: ["leagueGroupDaily", leagueId],
+    enabled: !!leagueId,
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<LeagueGroupDaily[]> => {
+      const supabase = createClient() as any;
+      const { data, error } = await supabase.rpc("get_league_group_daily", {
+        p_league_id: leagueId!,
+      });
+      if (error) throw error;
+      return (data ?? []) as LeagueGroupDaily[];
+    },
+  });
+}
+
+/** Cancelar una liga activa (solo el creador) */
+export function useCancelLeague() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (leagueId: string) => {
+      const supabase = createClient() as any;
+      const { error } = await supabase.rpc("cancel_league", { p_league_id: leagueId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["allLeagues"] });
+      qc.invalidateQueries({ queryKey: ["leagueStandings"] });
     },
   });
 }

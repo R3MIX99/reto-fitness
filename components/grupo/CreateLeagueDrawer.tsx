@@ -87,6 +87,8 @@ function StepMyGroups({
   const [selected, setSelected] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState(todayStr());
+  const [duration, setDuration] = useState<"7" | "14" | "30" | "custom">("14");
+  const [customEnd, setCustomEnd] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function toggleGroup(id: string) {
@@ -95,12 +97,25 @@ function StepMyGroups({
     );
   }
 
+  function calcEndDate(): string | undefined {
+    if (duration === "custom") return customEnd || undefined;
+    const d = new Date(startDate + "T12:00:00");
+    d.setDate(d.getDate() + Number(duration));
+    return d.toISOString().slice(0, 10);
+  }
+
   const canCreate = selected.length === 2 && name.trim().length > 0;
 
   async function handleCreate() {
     setError(null);
     try {
-      await create.mutateAsync({ name: name.trim(), groupA: selected[0], groupB: selected[1], startDate });
+      await create.mutateAsync({
+        name: name.trim(),
+        groupA: selected[0],
+        groupB: selected[1],
+        startDate,
+        endDate: calcEndDate(),
+      });
       onCreated?.();
       onClose();
     } catch (e: any) {
@@ -170,7 +185,7 @@ function StepMyGroups({
         />
       </div>
 
-      {/* Fecha */}
+      {/* Fecha de inicio */}
       <div className="space-y-1.5">
         <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Inicia el</label>
         <input
@@ -179,6 +194,36 @@ function StepMyGroups({
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
+      </div>
+
+      {/* Duración */}
+      <div className="space-y-2">
+        <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Duración</label>
+        <div className="grid grid-cols-4 gap-1.5">
+          {(["7", "14", "30", "custom"] as const).map((opt) => (
+            <button
+              key={opt}
+              onClick={() => setDuration(opt)}
+              className={`py-2 rounded-xl text-xs font-display font-semibold transition-all ${
+                duration === opt
+                  ? "bg-[var(--color-accent)] text-white"
+                  : "bg-white/5 text-[var(--color-muted)]"
+              }`}
+            >
+              {opt === "custom" ? "Otra" : `${opt}d`}
+            </button>
+          ))}
+        </div>
+        {duration === "custom" && (
+          <input
+            type="date"
+            className="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-[var(--color-fg)] outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            value={customEnd}
+            min={startDate}
+            onChange={(e) => setCustomEnd(e.target.value)}
+            placeholder="Fecha de fin"
+          />
+        )}
       </div>
 
       {error && <p className="text-xs text-red-400 bg-red-400/10 rounded-xl px-4 py-2">{error}</p>}
@@ -262,7 +307,16 @@ function StepOtherGroup({
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [startDate, setStartDate] = useState(todayStr());
+  const [duration, setDuration] = useState<"7" | "14" | "30" | "custom">("14");
+  const [customEnd, setCustomEnd] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  function calcEndDate(): string | undefined {
+    if (duration === "custom") return customEnd || undefined;
+    const d = new Date(startDate + "T12:00:00");
+    d.setDate(d.getDate() + Number(duration));
+    return d.toISOString().slice(0, 10);
+  }
 
   const { data: preview, isFetching: loadingPreview, isError: previewError } = useGroupPreview(code);
 
@@ -288,6 +342,7 @@ function StepOtherGroup({
         ownerGroupId: myGroupId,
         targetGroupId: preview.group_id,
         startDate,
+        endDate: calcEndDate(),
       });
       onCreated?.();
       onClose();
@@ -380,7 +435,7 @@ function StepOtherGroup({
         )}
       </div>
 
-      {/* Fecha */}
+      {/* Fecha de inicio */}
       <div className="space-y-1.5">
         <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Inicia el</label>
         <input
@@ -389,6 +444,35 @@ function StepOtherGroup({
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
+      </div>
+
+      {/* Duración */}
+      <div className="space-y-2">
+        <label className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Duración</label>
+        <div className="grid grid-cols-4 gap-1.5">
+          {(["7", "14", "30", "custom"] as const).map((opt) => (
+            <button
+              key={opt}
+              onClick={() => setDuration(opt)}
+              className={`py-2 rounded-xl text-xs font-display font-semibold transition-all ${
+                duration === opt
+                  ? "bg-[var(--color-accent)] text-white"
+                  : "bg-white/5 text-[var(--color-muted)]"
+              }`}
+            >
+              {opt === "custom" ? "Otra" : `${opt}d`}
+            </button>
+          ))}
+        </div>
+        {duration === "custom" && (
+          <input
+            type="date"
+            className="w-full bg-white/5 rounded-xl px-4 py-3 text-sm text-[var(--color-fg)] outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            value={customEnd}
+            min={startDate}
+            onChange={(e) => setCustomEnd(e.target.value)}
+          />
+        )}
       </div>
 
       {error && <p className="text-xs text-red-400 bg-red-400/10 rounded-xl px-4 py-2">{error}</p>}

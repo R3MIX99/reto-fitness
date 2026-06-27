@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Trophy, Crown, Users, Plus, Clock, ChevronRight,
+  Trophy, Crown, Users, Plus, ChevronRight,
   Check, X, Swords,
 } from "lucide-react";
 import {
@@ -11,13 +12,11 @@ import {
   useRespondLeagueInvite,
   useLeagueRealtime,
   type LeagueEntry,
-  type LeagueWithParticipants,
 } from "@/lib/hooks/useLeague";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { usePlan } from "@/lib/hooks/usePlan";
 import { useUser } from "@/lib/hooks/useUser";
 import { CreateLeagueDrawer } from "@/components/grupo/CreateLeagueDrawer";
-import { LeagueStandingsDrawer } from "@/components/grupo/LeagueStandingsDrawer";
 
 // ── Standings inline card ──────────────────────────────────────────────────
 
@@ -147,11 +146,11 @@ export default function LigaPage() {
   const { data: plan } = usePlan();
   const { data, isLoading } = useAllLeagues();
   const respond = useRespondLeagueInvite();
+  const router = useRouter();
   useLeagueRealtime();
 
   const [showCreate, setShowCreate] = useState(false);
   const [createGroupId, setCreateGroupId] = useState<string | null>(null);
-  const [selectedEntry, setSelectedEntry] = useState<LeagueEntry | null>(null);
 
   const isElite = plan?.tier === "elite" || plan?.is_super_admin === true;
   const active = data?.active ?? [];
@@ -320,7 +319,7 @@ export default function LigaPage() {
               <StandingsCard
                 key={entry.league.id}
                 entry={entry}
-                onOpen={() => setSelectedEntry(entry)}
+                onOpen={() => router.push(`/liga/${entry.league.id}`)}
               />
             ))}
           </div>
@@ -336,27 +335,18 @@ export default function LigaPage() {
               <FinishedLeagueCard
                 key={entry.league.id}
                 entry={entry}
-                onOpen={() => setSelectedEntry(entry)}
+                onOpen={() => router.push(`/liga/${entry.league.id}`)}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Drawers */}
       {showCreate && createGroupId && (
         <CreateLeagueDrawer
           open={showCreate}
           onClose={() => setShowCreate(false)}
           groupId={createGroupId}
-        />
-      )}
-      {selectedEntry && (
-        <LeagueStandingsDrawer
-          open={!!selectedEntry}
-          onClose={() => setSelectedEntry(null)}
-          league={selectedEntry.league}
-          myGroupId={selectedEntry.myGroupId}
         />
       )}
     </>
