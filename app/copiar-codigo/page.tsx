@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Check, Copy } from "lucide-react";
 
 function CopiarCodigoContent() {
   const params = useSearchParams();
+  const router = useRouter();
   const code = params.get("c") ?? "";
   const [copied, setCopied] = useState(false);
   const [tried, setTried] = useState(false);
@@ -14,10 +15,12 @@ function CopiarCodigoContent() {
     if (!code) return;
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
+      // Regresar al login en 1.5s para que el usuario pegue el código
+      setTimeout(() => router.replace("/login"), 1500);
     }).catch(() => {
-      // clipboard blocked (some email clients abren en webview restringido)
+      // clipboard bloqueado — el usuario puede copiarlo manualmente
     }).finally(() => setTried(true));
-  }, [code]);
+  }, [code, router]);
 
   function handleCopy() {
     if (!code) return;
