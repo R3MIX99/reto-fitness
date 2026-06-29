@@ -3,24 +3,25 @@ import { Resend } from "resend";
 
 // ── Email templates ────────────────────────────────────────────────────────
 
+const APP_URL = "https://reto-fitness-seven.vercel.app";
+
 function otpTemplate(token: string, recipientEmail: string): string {
-  // Renderiza los 6 dígitos en cajitas separadas para que se vea igual
-  // que la UI de la app (más fácil de leer, menos errores al copiar).
-  const digits = token.split("").map(
-    (d) => `<span style="
-      display:inline-block;
-      width:44px;height:52px;
-      line-height:52px;
-      text-align:center;
-      font-size:26px;font-weight:800;
+  // Dígitos en tabla (nunca se rompen en dos filas en ningún cliente de email)
+  const digitCells = token.split("").map(
+    (d) => `<td style="
+      width:34px;height:42px;
+      text-align:center;vertical-align:middle;
+      font-size:20px;font-weight:800;
       background:#1a1a1a;
       border:1.5px solid #2f2f2f;
-      border-radius:10px;
+      border-radius:8px;
       color:#EFC88B;
-      margin:0 3px;
       font-family:'Courier New',Courier,monospace;
-    ">${d}</span>`
+      padding:0;
+    ">${d}</td><td style="width:5px;"></td>`
   ).join("");
+
+  const copyUrl = `${APP_URL}/copiar-codigo?c=${encodeURIComponent(token)}`;
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -35,20 +36,21 @@ function otpTemplate(token: string, recipientEmail: string): string {
       <td align="center" style="padding:48px 16px;">
         <table width="100%" style="max-width:460px;" cellpadding="0" cellspacing="0" role="presentation">
 
-          <!-- Logo / Marca -->
+          <!-- Logo: ícono + letras -->
           <tr>
-            <td align="center" style="padding:0 0 36px;">
-              <p style="margin:0;font-size:26px;font-weight:800;letter-spacing:3px;color:#EEE5E9;">OLYMPO</p>
-              <p style="margin:6px 0 0;font-size:13px;color:#5a5a5a;">El más constante gana.</p>
+            <td align="center" style="padding:0 0 32px;">
+              <img src="${APP_URL}/email-logo-icon.png" width="56" height="56" alt="" style="display:block;margin:0 auto 12px;" />
+              <img src="${APP_URL}/email-logo-text.png" width="160" height="40" alt="OLYMPO" style="display:block;margin:0 auto;" />
+              <p style="margin:10px 0 0;font-size:13px;color:#5a5a5a;">El más constante gana.</p>
             </td>
           </tr>
 
           <!-- Card -->
           <tr>
             <td style="background:#101010;border-radius:20px;overflow:hidden;border:1px solid #1f1f1f;">
-
-              <!-- Card header dorado -->
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+
+                <!-- Card header dorado -->
                 <tr>
                   <td style="background:linear-gradient(135deg,#1a1200 0%,#2a1e00 100%);padding:28px 36px 24px;border-bottom:1px solid #2f2500;">
                     <p style="margin:0;font-size:18px;font-weight:700;color:#EFC88B;">Tu código de acceso</p>
@@ -56,11 +58,33 @@ function otpTemplate(token: string, recipientEmail: string): string {
                   </td>
                 </tr>
 
-                <!-- Cajitas del código -->
+                <!-- Dígitos (tabla — no se rompe) -->
                 <tr>
-                  <td align="center" style="padding:36px 36px 28px;">
-                    <div style="display:inline-block;">${digits}</div>
-                    <p style="margin:28px 0 0;font-size:13px;color:#5a5a5a;">
+                  <td align="center" style="padding:36px 36px 20px;">
+                    <table cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto;">
+                      <tr>${digitCells}</tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Botón copiar código -->
+                <tr>
+                  <td align="center" style="padding:0 36px 28px;">
+                    <a href="${copyUrl}"
+                      style="
+                        display:inline-block;
+                        background:#EFC88B;
+                        color:#1a1000;
+                        font-size:13px;
+                        font-weight:700;
+                        text-decoration:none;
+                        padding:10px 28px;
+                        border-radius:100px;
+                        letter-spacing:0.3px;
+                      ">
+                      Copiar código
+                    </a>
+                    <p style="margin:16px 0 0;font-size:12px;color:#5a5a5a;">
                       Expira en <strong style="color:#EEE5E9;">1 hora</strong> y solo puede usarse una vez.
                     </p>
                   </td>
