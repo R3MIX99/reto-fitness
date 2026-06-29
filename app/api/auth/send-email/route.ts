@@ -3,7 +3,7 @@ import { Resend } from "resend";
 
 // ── Email templates ────────────────────────────────────────────────────────
 
-const APP_URL = "https://reto-fitness-seven.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.olimpodynami.com";
 
 function otpTemplate(token: string, recipientEmail: string): string {
   // Dígitos en tabla (nunca se rompen en dos filas en ningún cliente de email)
