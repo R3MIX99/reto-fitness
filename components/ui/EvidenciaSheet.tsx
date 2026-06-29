@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { Drawer } from "vaul";
 import { X, Dumbbell, UtensilsCrossed, Target, Camera, Lock, ChevronRight, Check } from "lucide-react";
 import type { Goal, GoalKind, DailyCheck } from "@/lib/hooks/useChecklist";
-import { useGoals, useMarkCheck, useTodayChecks } from "@/lib/hooks/useChecklist";
+import { useGoals, useMarkCheck, useTodayChecks, goalAppliesOn, frequencyLabel, todayStr } from "@/lib/hooks/useChecklist";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { EvidencePreviewDrawer } from "@/components/checklist/EvidencePreviewDrawer";
 import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
@@ -27,6 +27,7 @@ function PickerSheet({
   onClose: () => void;
 }) {
   const filtered = goals.filter((g) => g.kind === kind);
+  const today = todayStr();
   const title = kind === "diet" ? "Elige el bloque de comida" : "Elige la meta";
 
   return (
@@ -45,22 +46,49 @@ function PickerSheet({
               <div className="flex flex-col gap-2">
                 {filtered.map((g) => {
                   const done = checks.some((c) => c.goal_id === g.id);
+                  const appliesToday = goalAppliesOn(g, today);
+                  const schedLabel = frequencyLabel(g);
+                  const isDisabled = done || !appliesToday;
+
                   return (
                     <button
                       key={g.id}
-                      onClick={() => !done && onPick(g)}
-                      disabled={done}
-                      className="flex items-center gap-3 rounded-[14px] px-4 py-3.5 text-left transition-opacity"
+                      onClick={() => !isDisabled && onPick(g)}
+                      disabled={isDisabled}
+                      className="flex items-center gap-3 rounded-[14px] px-4 py-3.5 text-left"
                       style={{
-                        background: done ? "rgba(207,92,54,0.08)" : "var(--color-surface)",
-                        border: done ? "1px solid rgba(207,92,54,0.3)" : "1px solid var(--color-border)",
-                        opacity: done ? 0.7 : 1,
+                        background: done
+                          ? "rgba(207,92,54,0.08)"
+                          : !appliesToday
+                          ? "var(--color-surface)"
+                          : "var(--color-surface)",
+                        border: done
+                          ? "1px solid rgba(207,92,54,0.3)"
+                          : !appliesToday
+                          ? "1px solid var(--color-border)"
+                          : "1px solid var(--color-border)",
+                        opacity: !appliesToday ? 0.45 : done ? 0.7 : 1,
                       }}
                     >
                       {g.icon && <span className="text-lg">{g.icon}</span>}
-                      <span className="flex-1 text-[14px] font-medium" style={{ textDecoration: done ? "line-through" : "none", color: done ? "var(--color-muted)" : "var(--color-fg)" }}>{g.title}</span>
+                      <div className="flex-1 leading-snug min-w-0">
+                        <p className="text-[14px] font-medium truncate" style={{
+                          textDecoration: done ? "line-through" : "none",
+                          color: isDisabled ? "var(--color-muted)" : "var(--color-fg)",
+                        }}>
+                          {g.title}
+                        </p>
+                        {!appliesToday && schedLabel && (
+                          <p className="text-[11px] text-[var(--color-muted)]">{schedLabel}</p>
+                        )}
+                        {!appliesToday && !schedLabel && (
+                          <p className="text-[11px] text-[var(--color-muted)]">No programada hoy</p>
+                        )}
+                      </div>
                       {done
                         ? <Check size={15} strokeWidth={2} className="text-accent flex-shrink-0" />
+                        : !appliesToday
+                        ? <Lock size={14} strokeWidth={1.5} className="flex-shrink-0" style={{ color: "var(--color-muted)" }} />
                         : <ChevronRight size={15} strokeWidth={1.5} className="text-[var(--color-muted)] flex-shrink-0" />
                       }
                     </button>
@@ -135,10 +163,16 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
   const markCheck = useMarkCheck(groupId);
   const gymDone = todayChecks.some((c) => c.kind === "gym");
 
+  const today = todayStr();
   const dietGoals = goals.filter((g) => g.kind === "diet");
   const goalGoals = goals.filter((g) => g.kind === "goal");
-  const dietDone = dietGoals.length > 0 && dietGoals.every((g) => todayChecks.some((c) => c.goal_id === g.id));
-  const goalsDone = goalGoals.length > 0 && goalGoals.every((g) => todayChecks.some((c) => c.goal_id === g.id));
+  const dietApplicable = dietGoals.filter((g) => goalAppliesOn(g, today));
+  const goalApplicable = goalGoals.filter((g) => goalAppliesOn(g, today));
+  const dietDone = dietApplicable.length > 0 && dietApplicable.every((g) => todayChecks.some((c) => c.goal_id === g.id));
+  const goalsDone = goalApplicable.length > 0 && goalApplicable.every((g) => todayChecks.some((c) => c.goal_id === g.id));
+  // Sin metas programadas para hoy → opción desactivada en la pantalla principal
+  const dietOffToday = dietGoals.length > 0 && dietApplicable.length === 0;
+  const goalOffToday = goalGoals.length > 0 && goalApplicable.length === 0;
 
   const [pickerKind, setPickerKind] = useState<GoalKind | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -237,16 +271,18 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
               <div className="flex flex-col gap-2.5">
                 {OPTIONS.map(({ kind, label, desc, color, tint, Icon }) => {
                   const done = kind === "gym" ? gymDone : kind === "diet" ? dietDone : goalsDone;
+                  const offToday = kind === "diet" ? dietOffToday : kind === "goal" ? goalOffToday : false;
+                  const isDisabled = markCheck.isPending || done || offToday;
                   return (
                     <button
                       key={kind}
-                      onClick={() => !done && handleOption(kind)}
-                      disabled={markCheck.isPending || done}
-                      className="flex items-center gap-3 rounded-[16px] px-4 py-3.5 text-left transition-opacity"
+                      onClick={() => !isDisabled && handleOption(kind)}
+                      disabled={isDisabled}
+                      className="flex items-center gap-3 rounded-[16px] px-4 py-3.5 text-left"
                       style={{
                         background: done ? "rgba(207,92,54,0.08)" : "var(--color-surface)",
                         border: done ? "1px solid rgba(207,92,54,0.3)" : "1px solid var(--color-border)",
-                        opacity: markCheck.isPending ? 0.4 : 1,
+                        opacity: markCheck.isPending ? 0.4 : offToday ? 0.4 : 1,
                       }}
                     >
                       <div
@@ -256,11 +292,15 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
                         <Icon size={20} strokeWidth={1.5} style={{ color }} />
                       </div>
                       <div className="flex-1 leading-snug">
-                        <p className="text-[14px] font-medium" style={{ color: done ? "var(--color-muted)" : "var(--color-fg)", textDecoration: done ? "line-through" : "none" }}>{label}</p>
-                        <p className="text-[11px] text-[var(--color-muted)]">{done ? "Completado hoy" : desc}</p>
+                        <p className="text-[14px] font-medium" style={{ color: done || offToday ? "var(--color-muted)" : "var(--color-fg)", textDecoration: done ? "line-through" : "none" }}>{label}</p>
+                        <p className="text-[11px] text-[var(--color-muted)]">
+                          {done ? "Completado hoy" : offToday ? "No programada hoy" : desc}
+                        </p>
                       </div>
                       {done
                         ? <Check size={18} strokeWidth={2} className="text-accent flex-shrink-0" />
+                        : offToday
+                        ? <Lock size={16} strokeWidth={1.5} style={{ color: "var(--color-muted)" }} className="flex-shrink-0" />
                         : <Camera size={18} strokeWidth={1.5} className="text-warm flex-shrink-0" />
                       }
                     </button>
