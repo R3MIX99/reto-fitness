@@ -44,7 +44,7 @@ function otpTemplate(token: string, recipientEmail: string): string {
 
                 <!-- Código en texto plano (fácil de seleccionar con tap largo) -->
                 <tr>
-                  <td align="center" style="padding:0 36px 28px;">
+                  <td align="center" style="padding:28px 36px 28px;">
                     <p style="
                       margin:0;
                       font-size:32px;
