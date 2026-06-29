@@ -109,7 +109,7 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
       await onSubmit(mainFile, evidence, extraFiles);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo guardar");
+      setError("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.");
     } finally {
       setSubmitting(false);
     }

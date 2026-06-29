@@ -6,6 +6,25 @@ import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
 import { compressImage } from "./useProfile";
 
+// ── Upload helper con reintentos ──────────────────────────────────────────
+// Reintenta la subida hasta maxTries veces con pausa creciente antes de fallar.
+// Evita errores transitorios de red o de acceso a cámara.
+async function uploadWithRetry(
+  bucket: ReturnType<ReturnType<typeof createClient>["storage"]["from"]>,
+  path: string,
+  data: File | Blob,
+  maxTries = 3,
+): Promise<void> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxTries; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 600 * attempt));
+    const { error } = await bucket.upload(path, data, { upsert: true });
+    if (!error) return;
+    lastErr = error;
+  }
+  throw lastErr;
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export type GoalKind = "gym" | "diet" | "goal";
@@ -392,20 +411,15 @@ export function useMarkCheck(groupId: string | null) {
       const supabase = createClient();
 
       let path: string;
+      const evidBucket = supabase.storage.from("evidencias");
       if (isVideoMain) {
         const ext = file.name.split(".").pop() || "mp4";
         path = `${base}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("evidencias")
-          .upload(path, file, { upsert: true });
-        if (uploadError) throw uploadError;
+        await uploadWithRetry(evidBucket, path, file);
       } else {
         const compressed = await compressImage(file, 1080);
         path = `${base}.jpg`;
-        const { error: uploadError } = await supabase.storage
-          .from("evidencias")
-          .upload(path, compressed, { upsert: true });
-        if (uploadError) throw uploadError;
+        await uploadWithRetry(evidBucket, path, compressed);
       }
 
       // Evidencia rica: sube archivos extra (audio, video, foto "después") y
@@ -414,22 +428,19 @@ export function useMarkCheck(groupId: string | null) {
       if (extraFiles?.after) {
         const afterPath = `${base}-after.jpg`;
         const afterCompressed = await compressImage(extraFiles.after, 1080);
-        const { error } = await supabase.storage.from("evidencias").upload(afterPath, afterCompressed, { upsert: true });
-        if (error) throw error;
+        await uploadWithRetry(evidBucket, afterPath, afterCompressed);
         richEvidence.after_path = afterPath;
       }
       if (extraFiles?.audio) {
         const ext = extraFiles.audio.name.split(".").pop() || "webm";
         const audioPath = `${base}-audio.${ext}`;
-        const { error } = await supabase.storage.from("evidencias").upload(audioPath, extraFiles.audio, { upsert: true });
-        if (error) throw error;
+        await uploadWithRetry(evidBucket, audioPath, extraFiles.audio);
         richEvidence.audio_path = audioPath;
       }
       if (extraFiles?.video) {
         const ext = extraFiles.video.name.split(".").pop() || "mp4";
         const videoPath = `${base}-video.${ext}`;
-        const { error } = await supabase.storage.from("evidencias").upload(videoPath, extraFiles.video, { upsert: true });
-        if (error) throw error;
+        await uploadWithRetry(evidBucket, videoPath, extraFiles.video);
         richEvidence.video_path = videoPath;
       }
       const finalEvidence = Object.keys(richEvidence).length > 0 ? richEvidence : null;
