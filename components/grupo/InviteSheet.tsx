@@ -17,8 +17,8 @@ export function InviteSheet({ open, inviteCode, groupName, onClose }: InviteShee
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const inviteLink = `${origin}/grupo/unirse?code=${inviteCode}`;
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
+  const inviteLink = `${origin}/unirse?code=${inviteCode}`;
 
   async function handleCopyCode() {
     await navigator.clipboard.writeText(inviteCode);
