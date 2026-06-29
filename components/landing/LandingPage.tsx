@@ -114,76 +114,133 @@ function Navbar() {
   );
 }
 
+// ─── Stats card (used inside Hero, below phone) ───────────────────────────────
+function HeroStatsCard() {
+  const items = [
+    { value: "13", label: "puntos / día" },
+    { value: "7",  label: "días activos" },
+    { value: "100%", label: "con evidencia" },
+    { value: "×3",  label: "bonus racha" },
+  ];
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, delay: 0.9 }}
+      style={{
+        display: "flex", justifyContent: "center",
+        background: "rgba(10,11,13,0.85)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 20,
+        backdropFilter: "blur(16px)",
+        padding: "20px 28px",
+        gap: 0,
+        width: "100%",
+        maxWidth: 400,
+        margin: "0 auto",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+      }}>
+      {items.map(({ value, label }, i) => (
+        <div key={label} style={{
+          flex: 1, textAlign: "center",
+          borderRight: i < items.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+          padding: "0 16px",
+        }}>
+          <p style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 800, color: GOLD, fontFamily: "var(--font-display, sans-serif)", letterSpacing: "-0.02em", lineHeight: 1 }}>{value}</p>
+          <p style={{ margin: 0, fontSize: 10, color: MUTED, fontFamily: "var(--font-inter, sans-serif)", lineHeight: 1.3 }}>{label}</p>
+        </div>
+      ))}
+    </motion.div>
+  );
+}
+
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   return (
-    <section style={{ minHeight: "100dvh", display: "flex", alignItems: "center", padding: "110px 24px 80px", position: "relative", overflow: "hidden" }}>
+    <section style={{
+      minHeight: "100dvh",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      padding: "130px 24px 80px",
+      position: "relative", overflow: "hidden",
+      textAlign: "center",
+    }}>
       <AuroraBackground />
 
-      {/* Split layout: text left / phone right */}
-      <div style={{
-        position: "relative", zIndex: 1,
-        maxWidth: 1100, width: "100%", margin: "0 auto",
-        display: "grid",
-        gridTemplateColumns: "1fr auto",
-        gap: 60, alignItems: "center",
-      }}
-        className="hero-grid">
+      {/* Glow behind title */}
+      <div aria-hidden style={{
+        position: "absolute", top: "10%", left: "50%", transform: "translateX(-50%)",
+        width: 700, height: 400, borderRadius: "50%",
+        background: "radial-gradient(ellipse, rgba(239,200,139,0.10) 0%, transparent 65%)",
+        filter: "blur(60px)", zIndex: 0, pointerEvents: "none",
+      }} />
 
-        {/* Left: text */}
-        <div>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-            style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(239,200,139,0.08)", border: "1px solid rgba(239,200,139,0.18)", borderRadius: 100, padding: "6px 16px 6px 12px", marginBottom: 32 }}>
-            <Flame size={13} style={{ color: GOLD }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: GOLD, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "var(--font-inter, sans-serif)" }}>Competencia entre amigos</span>
-          </motion.div>
+      {/* Glow behind phone */}
+      <div aria-hidden style={{
+        position: "absolute", bottom: "5%", left: "50%", transform: "translateX(-50%)",
+        width: 400, height: 600, borderRadius: "50%",
+        background: "radial-gradient(ellipse, rgba(239,200,139,0.08) 0%, transparent 65%)",
+        filter: "blur(50px)", zIndex: 0, pointerEvents: "none",
+      }} />
 
-          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
-            style={{ fontFamily: "var(--font-display, var(--font-inter, sans-serif))", fontSize: "clamp(44px, 6vw, 80px)", fontWeight: 700, color: FG, lineHeight: 1.0, letterSpacing: "-0.04em", margin: "0 0 24px" }}>
-            El más<br />constante{" "}
-            <span style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${TERRA} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>gana.</span>
-          </motion.h1>
+      <div style={{ position: "relative", zIndex: 1, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
 
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
-            style={{ fontSize: "clamp(15px, 1.6vw, 18px)", color: "#7a7b7c", lineHeight: 1.75, maxWidth: 480, margin: "0 0 40px", fontFamily: "var(--font-inter, sans-serif)" }}>
-            Crea un grupo con tus amigos, registra cada entrenamiento con evidencia fotográfica, y compite semana a semana por el título de campeón.
-          </motion.p>
+        {/* Badge */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(239,200,139,0.08)", border: "1px solid rgba(239,200,139,0.18)", borderRadius: 100, padding: "6px 16px 6px 12px", marginBottom: 28 }}>
+          <Flame size={13} style={{ color: GOLD }} />
+          <span style={{ fontSize: 11, fontWeight: 600, color: GOLD, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "var(--font-inter, sans-serif)" }}>Competencia entre amigos</span>
+        </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}
-            style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 56 }}>
-            <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: GOLD, color: "#1a1000", fontSize: 15, fontWeight: 700, borderRadius: 100, padding: "14px 28px", textDecoration: "none", boxShadow: "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)", fontFamily: "var(--font-inter, sans-serif)", transition: "transform 0.2s, box-shadow 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 0 70px rgba(239,200,139,0.4), 0 8px 30px rgba(0,0,0,0.3)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)"; }}>
-              Empieza gratis
-              <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ChevronRight size={14} strokeWidth={2.5} />
-              </div>
-            </Link>
-            <a href="#como-funciona" style={{ display: "inline-flex", alignItems: "center", fontSize: 15, color: MUTED, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 100, padding: "14px 28px", textDecoration: "none", fontFamily: "var(--font-inter, sans-serif)", transition: "color 0.2s, border-color 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.color = FG; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
-              onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
-              Ver cómo funciona
-            </a>
-          </motion.div>
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
+          style={{
+            fontFamily: "var(--font-display, var(--font-inter, sans-serif))",
+            fontSize: "clamp(60px, 9vw, 120px)",
+            fontWeight: 700, color: FG,
+            lineHeight: 0.95,
+            letterSpacing: "-0.04em",
+            margin: "0 0 32px",
+          }}>
+          El más<br />constante{" "}
+          <span style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${TERRA} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>gana.</span>
+        </motion.h1>
 
-          {/* Social proof */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
-            style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex" }}>
-              {["#3a5a3a", "#5a3a3a", "#3a3a5a", "#5a5a3a"].map((c, i) => (
-                <div key={i} style={{ width: 28, height: 28, borderRadius: "50%", background: c, border: "2px solid #040506", marginLeft: i > 0 ? -8 : 0 }} />
-              ))}
+        {/* Description */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
+          style={{ fontSize: "clamp(15px, 1.5vw, 18px)", color: "#7a7b7c", lineHeight: 1.75, maxWidth: 620, margin: "0 0 40px", fontFamily: "var(--font-inter, sans-serif)" }}>
+          Crea un grupo con tus amigos, registra cada entrenamiento con evidencia fotográfica, y compite semana a semana por el título de campeón.
+        </motion.p>
+
+        {/* Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}
+          style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 64 }}>
+          <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: GOLD, color: "#1a1000", fontSize: 15, fontWeight: 700, borderRadius: 100, padding: "15px 30px", textDecoration: "none", boxShadow: "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)", fontFamily: "var(--font-inter, sans-serif)", transition: "transform 0.2s, box-shadow 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 0 70px rgba(239,200,139,0.4), 0 8px 30px rgba(0,0,0,0.3)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)"; }}>
+            Empieza gratis
+            <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <ChevronRight size={14} strokeWidth={2.5} />
             </div>
-            <p style={{ margin: 0, fontSize: 13, color: MUTED, fontFamily: "var(--font-inter, sans-serif)" }}>
-              Únete y compite con tus amigos
-            </p>
-          </motion.div>
-        </div>
+          </Link>
+          <a href="#como-funciona" style={{ display: "inline-flex", alignItems: "center", fontSize: 15, color: MUTED, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 100, padding: "15px 30px", textDecoration: "none", fontFamily: "var(--font-inter, sans-serif)", transition: "color 0.2s, border-color 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.color = FG; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
+            Ver cómo funciona
+          </a>
+        </motion.div>
 
-        {/* Right: iPhone mockup */}
-        <div className="hero-phone" style={{ display: "flex", justifyContent: "center" }}>
+        {/* iPhone mockup — centrado */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.5 }}
+          style={{ display: "flex", justifyContent: "center", marginBottom: 24, transform: "scale(1.12)", transformOrigin: "top center" }}>
           <IPhoneMockup />
-        </div>
+        </motion.div>
+
+        {/* Stats card debajo del teléfono */}
+        <HeroStatsCard />
       </div>
     </section>
   );
@@ -600,22 +657,14 @@ function Footer() {
 
 // ─── Responsive overrides ─────────────────────────────────────────────────────
 const css = `
-  @media (max-width: 900px) {
-    .hero-grid {
-      grid-template-columns: 1fr !important;
-      text-align: center;
-    }
-    .hero-phone { display: none !important; }
-  }
   @media (max-width: 768px) {
     [style*="grid-column: span 7"],
     [style*="grid-column: span 8"],
     [style*="grid-column: span 5"],
     [style*="grid-column: span 4"],
     [style*="grid-column: span 6"] {
-      grid-column: 1 / -1 !important;
+      grid-column: 1 / -1!important;
     }
-    .hero-grid { justify-items: center; }
   }
   html { scroll-behavior: smooth; }
 `;
@@ -628,7 +677,6 @@ export function LandingPage() {
       <div style={{ background: BG, minHeight: "100dvh", color: FG }}>
         <Navbar />
         <Hero />
-        <Stats />
         <HowItWorks />
         <BentoFeatures />
         <HabitsMarquee />
