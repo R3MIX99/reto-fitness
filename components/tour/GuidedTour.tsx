@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useProfile } from "@/lib/hooks/useProfile";
+import { PENDING_INVITE_KEY } from "@/app/unirse/page";
 
 type Step = {
   route: string;
@@ -92,6 +93,15 @@ export function GuidedTour() {
     setActive(false);
     setRect(null);
     await completeTour();
+
+    // Si el usuario llegó a través de un enlace de invitación, llevarlo a unirse al grupo
+    const pendingCode = typeof window !== "undefined"
+      ? localStorage.getItem(PENDING_INVITE_KEY)
+      : null;
+    if (pendingCode) {
+      localStorage.removeItem(PENDING_INVITE_KEY);
+      router.push(`/grupo/unirse?code=${pendingCode}`);
+    }
   }
 
   function next() {

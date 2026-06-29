@@ -1,34 +1,57 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+"use client";
 
-export default async function UnirseRedirect({
-  searchParams,
-}: {
-  searchParams: { code?: string };
-}) {
-  const code = searchParams.code ?? "";
-  const dest = `/grupo/unirse${code ? `?code=${code}` : ""}`;
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useProfile } from "@/lib/hooks/useProfile";
 
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export const PENDING_INVITE_KEY = "olympo_pending_invite";
 
-  if (!user) {
-    // No autenticado → login con destino final ya resuelto
-    redirect(`/login?next=${encodeURIComponent(dest)}`);
-  }
+function UnirseInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const code = searchParams.get("code") ?? "";
+  const { profile, loading } = useProfile();
 
-  // Verificar si ya completó el onboarding
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("onboarded")
-    .eq("id", user.id)
-    .single();
+  useEffect(() => {
+    if (loading) return;
+    if (!code) { router.replace("/grupo"); return; }
 
-  if (!profile?.onboarded) {
-    // Onboarding primero; al terminar va directo al join del grupo
-    redirect(`/onboarding?next=${encodeURIComponent(dest)}`);
-  }
+    // Persiste el código a través de todo el flujo de nuevo usuario
+    if (typeof window !== "undefined") {
+      localStorage.setItem(PENDING_INVITE_KEY, code);
+    }
 
-  // Usuario listo → página de unirse al grupo
-  redirect(dest);
+    if (!profile?.onboarded) {
+      // Onboarding primero — al terminar irá al dashboard donde arranca el tour
+      router.replace("/onboarding");
+      return;
+    }
+
+    if (!profile?.tour_completed) {
+      // Tour pendiente — el código queda en localStorage, el tour lo recuperará al terminar
+      router.replace("/dashboard");
+      return;
+    }
+
+    // Usuario completamente configurado → unirse directo
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(PENDING_INVITE_KEY);
+    }
+    router.replace(`/grupo/unirse?code=${code}`);
+  }, [profile, loading, code, router]);
+
+  return (
+    <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
+      <div className="w-8 h-8 rounded-full border-2 animate-spin"
+        style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-warm)" }} />
+    </div>
+  );
+}
+
+export default function UnirsePage() {
+  return (
+    <Suspense fallback={null}>
+      <UnirseInner />
+    </Suspense>
+  );
 }
