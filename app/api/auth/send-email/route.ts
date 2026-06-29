@@ -40,7 +40,7 @@ function otpTemplate(token: string, recipientEmail: string): string {
           <tr>
             <td align="center" style="padding:0 0 32px;">
               <img src="${APP_URL}/email-logo-icon.png" width="56" height="56" alt="" style="display:block;margin:0 auto 12px;" />
-              <img src="${APP_URL}/email-logo-text.png" width="160" height="40" alt="OLYMPO" style="display:block;margin:0 auto;" />
+              <img src="${APP_URL}/email-logo-text.png" width="200" alt="OLYMPO" style="display:block;margin:0 auto;height:auto;" />
               <p style="margin:10px 0 0;font-size:13px;color:#5a5a5a;">El más constante gana.</p>
             </td>
           </tr>
