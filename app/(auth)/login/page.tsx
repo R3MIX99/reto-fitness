@@ -143,8 +143,9 @@ function LoginInner() {
   // ── Step transition ───────────────────────────────────────────────────────
 
   function goTo(s: Step) {
-    setTransitioning(true);
+    setLoading(false);
     setError(null);
+    setTransitioning(true);
     setTimeout(() => { setStep(s); setTransitioning(false); }, 220);
   }
 
@@ -159,7 +160,15 @@ function LoginInner() {
     const { error: err } = await supabase.auth.signInWithOtp({ email: trimmed, options: { shouldCreateUser: true } });
     setLoading(false);
     if (err) {
-      setError("No se pudo enviar el código. Intenta de nuevo.");
+      const msg = err.message ?? "";
+      if (msg.toLowerCase().includes("rate") || msg.toLowerCase().includes("limit")) {
+        setError("Demasiados intentos. Espera unos minutos e intenta de nuevo.");
+      } else if (msg.toLowerCase().includes("provider") || msg.toLowerCase().includes("identit")) {
+        setError("Este correo está vinculado a Google. Inicia sesión con Google.");
+      } else {
+        setError("No se pudo enviar el código. Intenta de nuevo.");
+        console.error("[OTP] signInWithOtp error:", msg);
+      }
     } else {
       setOtp(["", "", "", "", "", ""]);
       goTo("otp");
@@ -250,12 +259,13 @@ function LoginInner() {
         }}
       >
 
-        {/* Back button */}
+        {/* Back button — fuera del div animado para que siempre sea tappeable */}
         {step !== "landing" && (
           <button
             onClick={() => goTo(step === "otp" ? "email" : "landing")}
-            className="absolute -top-2 left-0 w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: "var(--color-surface, #1a1a1a)" }}
+            className="absolute -top-2 left-0 w-11 h-11 rounded-full flex items-center justify-center"
+            style={{ background: "var(--color-surface, #1a1a1a)", zIndex: 10 }}
+            aria-label="Regresar"
           >
             <ChevronLeft size={20} strokeWidth={1.5} />
           </button>
