@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import "./globals.css";
@@ -17,6 +18,13 @@ const satoshi = localFont({
   display: "swap",
   weight: "300 900",
 });
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
 
 export const metadata: Metadata = {
   title: "Olympo",
@@ -43,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" suppressHydrationWarning className={`${clash.variable} ${satoshi.variable}`}>
+    <html lang="es" suppressHydrationWarning className={`${clash.variable} ${satoshi.variable} ${inter.variable}`}>
       <body className="font-body bg-[var(--color-bg)] text-[var(--color-fg)]">
         <QueryProvider>
           <ThemeProvider>{children}</ThemeProvider>
