@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // ── Email templates ────────────────────────────────────────────────────────
 
 function otpTemplate(token: string, recipientEmail: string): string {
@@ -112,6 +110,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   let body: {
     user?: { email?: string };
