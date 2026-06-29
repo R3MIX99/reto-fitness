@@ -30,8 +30,10 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // Rutas públicas que no requieren sesión
-  const publicPaths = ["/login", "/auth/callback"];
-  const isPublic = publicPaths.some((p) => request.nextUrl.pathname.startsWith(p));
+  const publicPaths = ["/login", "/auth/callback", "/privacidad", "/terminos", "/copiar-codigo"];
+  const isPublic =
+    request.nextUrl.pathname === "/" ||
+    publicPaths.some((p) => request.nextUrl.pathname.startsWith(p));
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
