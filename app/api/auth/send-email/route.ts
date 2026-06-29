@@ -102,15 +102,6 @@ function otpTemplate(token: string, recipientEmail: string): string {
 // ── Handler ────────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
-  // Validar el hook secret que configuras en Supabase → Auth → Hooks
-  const hookSecret = process.env.SEND_EMAIL_HOOK_SECRET;
-  if (hookSecret) {
-    const auth = request.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${hookSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
-
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   let body: {
