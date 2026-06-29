@@ -40,7 +40,8 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Rutas públicas que no requieren sesión
-  const publicPaths = ["/auth/callback", "/privacidad", "/terminos", "/copiar-codigo"];
+  // /unirse lo manejamos en el server component para poder chequear onboarding
+  const publicPaths = ["/auth/callback", "/privacidad", "/terminos", "/copiar-codigo", "/unirse"];
   const isPublic =
     path === "/" ||
     publicPaths.some((p) => path.startsWith(p));

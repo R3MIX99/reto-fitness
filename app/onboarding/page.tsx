@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Trophy, ChevronRight, ChevronLeft, Check, Dumbbell, UtensilsCrossed,
   Target, Camera, Users, Plus,
@@ -95,8 +95,9 @@ function ChipPicker({
   );
 }
 
-export default function OnboardingPage() {
+function OnboardingInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { displayName, completeOnboarding } = useProfile();
   const upsertGoal = useUpsertGoal();
 
@@ -124,9 +125,9 @@ export default function OnboardingPage() {
       for (const t of goals) await upsertGoal.mutateAsync({ kind: "goal", title: t });
       await completeOnboarding({ full_name: effectiveName.trim() || "Jugador", gender });
       // Vuelve al destino pendiente (p. ej. invitación) o al dashboard
-      const next = new URLSearchParams(window.location.search).get("next");
-      const dest = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
-      router.replace(dest);
+      const nextParam = searchParams.get("next");
+      const dest = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/dashboard";
+      router.push(dest);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar");
       setSaving(false);
@@ -304,5 +305,13 @@ export default function OnboardingPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingInner />
+    </Suspense>
   );
 }
