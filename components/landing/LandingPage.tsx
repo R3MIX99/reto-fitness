@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useInView, AnimatePresence } from "framer-motion";
-import { IPhoneMockup } from "./IPhoneMockup";
 import {
   Trophy, Zap, Users, Camera, Calendar, ChevronRight,
   Check, Menu, X, Flame, Star, Shield, TrendingUp,
@@ -114,41 +113,73 @@ function Navbar() {
   );
 }
 
-// ─── Stats card (used inside Hero, below phone) ───────────────────────────────
-function HeroStatsCard() {
-  const items = [
-    { value: "13", label: "puntos / día" },
-    { value: "7",  label: "días activos" },
+// ─── Hero phone image with gradient + stats overlay ──────────────────────────
+function HeroPhone() {
+  const stats = [
+    { value: "13",   label: "puntos / día" },
+    { value: "7",    label: "días activos" },
     { value: "100%", label: "con evidencia" },
-    { value: "×3",  label: "bonus racha" },
+    { value: "×3",   label: "bonus racha" },
   ];
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, delay: 0.9 }}
-      style={{
-        display: "flex", justifyContent: "center",
-        background: "rgba(10,11,13,0.85)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 20,
-        backdropFilter: "blur(16px)",
-        padding: "20px 28px",
-        gap: 0,
-        width: "100%",
-        maxWidth: 400,
-        margin: "0 auto",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
-      }}>
-      {items.map(({ value, label }, i) => (
-        <div key={label} style={{
-          flex: 1, textAlign: "center",
-          borderRight: i < items.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
-          padding: "0 16px",
+      initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.9, delay: 0.5 }}
+      style={{ position: "relative", width: "100%", maxWidth: 360, margin: "0 auto" }}>
+
+      {/* Glow behind phone */}
+      <div aria-hidden style={{
+        position: "absolute", bottom: "10%", left: "50%", transform: "translateX(-50%)",
+        width: 340, height: 300, borderRadius: "50%",
+        background: "radial-gradient(ellipse, rgba(239,200,139,0.12) 0%, transparent 70%)",
+        filter: "blur(40px)", zIndex: 0,
+      }} />
+
+      {/* Phone image — cropped at bottom via overflow hidden */}
+      <div style={{ position: "relative", zIndex: 1, borderRadius: 48, overflow: "hidden" }}>
+        <Image
+          src="/mockup-hero.png"
+          alt="Olympo app dashboard"
+          width={360}
+          height={700}
+          style={{ width: "100%", height: "auto", display: "block" }}
+          priority
+        />
+
+        {/* Gradient fade — covers bottom ~35% of image */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          height: "42%",
+          background: `linear-gradient(to bottom, transparent 0%, rgba(4,5,6,0.75) 40%, ${BG} 85%)`,
+        }} />
+
+        {/* Stats overlaid on gradient */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          padding: "20px 20px 28px",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 8,
         }}>
-          <p style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 800, color: GOLD, fontFamily: "var(--font-display, sans-serif)", letterSpacing: "-0.02em", lineHeight: 1 }}>{value}</p>
-          <p style={{ margin: 0, fontSize: 10, color: MUTED, fontFamily: "var(--font-inter, sans-serif)", lineHeight: 1.3 }}>{label}</p>
+          {stats.map(({ value, label }, i) => (
+            <motion.div
+              key={label}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 + i * 0.08, duration: 0.5 }}
+              style={{
+                background: "rgba(10,11,13,0.7)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 14,
+                padding: "12px 14px",
+                backdropFilter: "blur(12px)",
+              }}>
+              <p style={{ margin: "0 0 2px", fontSize: 20, fontWeight: 800, color: GOLD, fontFamily: "var(--font-display, sans-serif)", letterSpacing: "-0.02em", lineHeight: 1 }}>{value}</p>
+              <p style={{ margin: 0, fontSize: 10, color: MUTED, fontFamily: "var(--font-inter, sans-serif)", lineHeight: 1.4 }}>{label}</p>
+            </motion.div>
+          ))}
         </div>
-      ))}
+      </div>
     </motion.div>
   );
 }
@@ -231,16 +262,8 @@ function Hero() {
           </a>
         </motion.div>
 
-        {/* iPhone mockup — centrado */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.5 }}
-          style={{ display: "flex", justifyContent: "center", marginBottom: 24, transform: "scale(1.12)", transformOrigin: "top center" }}>
-          <IPhoneMockup />
-        </motion.div>
-
-        {/* Stats card debajo del teléfono */}
-        <HeroStatsCard />
+        {/* Foto real + degradado + stats */}
+        <HeroPhone />
       </div>
     </section>
   );
