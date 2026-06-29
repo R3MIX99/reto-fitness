@@ -29,17 +29,27 @@ export async function updateSession(request: NextRequest) {
   // Refresca la sesión (mantiene el token activo)
   const { data: { user } } = await supabase.auth.getUser();
 
+  const path = request.nextUrl.pathname;
+
+  // Usuario autenticado visitando landing o login → dashboard
+  if (user && (path === "/" || path.startsWith("/login"))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   // Rutas públicas que no requieren sesión
-  const publicPaths = ["/login", "/auth/callback", "/privacidad", "/terminos", "/copiar-codigo"];
+  const publicPaths = ["/auth/callback", "/privacidad", "/terminos", "/copiar-codigo"];
   const isPublic =
-    request.nextUrl.pathname === "/" ||
-    publicPaths.some((p) => request.nextUrl.pathname.startsWith(p));
+    path === "/" ||
+    publicPaths.some((p) => path.startsWith(p));
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     // Preserva la ruta destino (p. ej. /grupo/unirse?code=XXX) para volver
     // ahí después de iniciar sesión con Google.
-    const nextPath = request.nextUrl.pathname + request.nextUrl.search;
+    const nextPath = path + request.nextUrl.search;
     url.pathname = "/login";
     url.search = "";
     if (nextPath && nextPath !== "/" && !nextPath.startsWith("/login")) {
