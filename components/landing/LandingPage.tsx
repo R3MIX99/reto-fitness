@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useInView, AnimatePresence } from "framer-motion";
+import { IPhoneMockup } from "./IPhoneMockup";
 import {
   Trophy, Zap, Users, Camera, Calendar, ChevronRight,
   Check, Menu, X, Flame, Star, Shield, TrendingUp,
@@ -116,78 +117,73 @@ function Navbar() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   return (
-    <section style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 24px 80px", position: "relative", overflow: "hidden" }}>
+    <section style={{ minHeight: "100dvh", display: "flex", alignItems: "center", padding: "110px 24px 80px", position: "relative", overflow: "hidden" }}>
       <AuroraBackground />
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 960, width: "100%", margin: "0 auto", textAlign: "center" }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-          style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(239,200,139,0.08)", border: "1px solid rgba(239,200,139,0.18)", borderRadius: 100, padding: "6px 16px 6px 12px", marginBottom: 36 }}>
-          <Flame size={13} style={{ color: GOLD }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: GOLD, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "var(--font-inter, sans-serif)" }}>Competencia entre amigos</span>
-        </motion.div>
 
-        <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
-          style={{ fontFamily: "var(--font-display, var(--font-inter, sans-serif))", fontSize: "clamp(52px, 8.5vw, 100px)", fontWeight: 700, color: FG, lineHeight: 1.0, letterSpacing: "-0.04em", margin: "0 0 28px" }}>
-          El más constante{" "}
-          <span style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${TERRA} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>gana.</span>
-        </motion.h1>
+      {/* Split layout: text left / phone right */}
+      <div style={{
+        position: "relative", zIndex: 1,
+        maxWidth: 1100, width: "100%", margin: "0 auto",
+        display: "grid",
+        gridTemplateColumns: "1fr auto",
+        gap: 60, alignItems: "center",
+      }}
+        className="hero-grid">
 
-        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
-          style={{ fontSize: "clamp(16px, 2vw, 20px)", color: "#7a7b7c", lineHeight: 1.7, maxWidth: 560, margin: "0 auto 52px", fontFamily: "var(--font-inter, sans-serif)" }}>
-          Crea un grupo con tus amigos, registra cada entrenamiento con evidencia fotográfica, y compite semana a semana por el título de campeón.
-        </motion.p>
+        {/* Left: text */}
+        <div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(239,200,139,0.08)", border: "1px solid rgba(239,200,139,0.18)", borderRadius: 100, padding: "6px 16px 6px 12px", marginBottom: 32 }}>
+            <Flame size={13} style={{ color: GOLD }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: GOLD, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "var(--font-inter, sans-serif)" }}>Competencia entre amigos</span>
+          </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}
-          style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 80 }}>
-          <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: GOLD, color: "#1a1000", fontSize: 15, fontWeight: 700, borderRadius: 100, padding: "15px 30px", textDecoration: "none", boxShadow: "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)", fontFamily: "var(--font-inter, sans-serif)", transition: "transform 0.2s, box-shadow 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 0 70px rgba(239,200,139,0.4), 0 8px 30px rgba(0,0,0,0.3)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)"; }}>
-            Empieza gratis
-            <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <ChevronRight size={14} strokeWidth={2.5} />
-            </div>
-          </Link>
-          <a href="#como-funciona" style={{ display: "inline-flex", alignItems: "center", fontSize: 15, color: MUTED, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 100, padding: "15px 30px", textDecoration: "none", fontFamily: "var(--font-inter, sans-serif)", transition: "color 0.2s, border-color 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.color = FG; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
-            onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
-            Ver cómo funciona
-          </a>
-        </motion.div>
+          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
+            style={{ fontFamily: "var(--font-display, var(--font-inter, sans-serif))", fontSize: "clamp(44px, 6vw, 80px)", fontWeight: 700, color: FG, lineHeight: 1.0, letterSpacing: "-0.04em", margin: "0 0 24px" }}>
+            El más<br />constante{" "}
+            <span style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${TERRA} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>gana.</span>
+          </motion.h1>
 
-        {/* Leaderboard mockup */}
-        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.5 }}
-          style={{ maxWidth: 520, margin: "0 auto", background: "rgba(10,11,13,0.85)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 24, overflow: "hidden", boxShadow: "0 30px 100px rgba(0,0,0,0.5), 0 0 60px rgba(239,200,139,0.04), inset 0 1px 0 rgba(255,255,255,0.06)" }}>
-          <div style={{ padding: "16px 24px 12px", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ margin: 0, fontSize: 11, color: MUTED, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono, monospace)" }}>Semana 24 · Grupo Spartan</p>
-            <div style={{ display: "flex", gap: 4 }}>
-              {["#3a3a3a", "#2a2a2a", "#1a1a1a"].map((c, i) => <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: c }} />)}
-            </div>
-          </div>
-          {[
-            { pos: 1, name: "Carlos M.", pts: 89, pct: 100, color: GOLD, badge: "Campeón" },
-            { pos: 2, name: "André S.", pts: 81, pct: 91, color: "#C0C0C0", badge: null },
-            { pos: 3, name: "Rodrigo P.", pts: 74, pct: 83, color: "#CD7F32", badge: null },
-            { pos: 4, name: "Sofía R.", pts: 61, pct: 69, color: MUTED, badge: null },
-          ].map(({ pos, name, pts, pct, color, badge }, i) => (
-            <motion.div key={pos} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 + i * 0.08 }}
-              style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", borderBottom: "1px solid rgba(255,255,255,0.03)", background: pos === 1 ? "rgba(239,200,139,0.03)" : "transparent" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color, width: 18, textAlign: "center", fontFamily: "var(--font-mono, monospace)" }}>{pos}</span>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#1a1a1a", border: `1.5px solid ${color}40`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: FG }}>{name[0]}</span>
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
+            style={{ fontSize: "clamp(15px, 1.6vw, 18px)", color: "#7a7b7c", lineHeight: 1.75, maxWidth: 480, margin: "0 0 40px", fontFamily: "var(--font-inter, sans-serif)" }}>
+            Crea un grupo con tus amigos, registra cada entrenamiento con evidencia fotográfica, y compite semana a semana por el título de campeón.
+          </motion.p>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}
+            style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 56 }}>
+            <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: GOLD, color: "#1a1000", fontSize: 15, fontWeight: 700, borderRadius: 100, padding: "14px 28px", textDecoration: "none", boxShadow: "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)", fontFamily: "var(--font-inter, sans-serif)", transition: "transform 0.2s, box-shadow 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 0 70px rgba(239,200,139,0.4), 0 8px 30px rgba(0,0,0,0.3)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)"; }}>
+              Empieza gratis
+              <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <ChevronRight size={14} strokeWidth={2.5} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 14, color: FG, fontFamily: "var(--font-inter, sans-serif)" }}>{name}</span>
-                  {badge && <span style={{ fontSize: 9, fontWeight: 700, color: GOLD, background: "rgba(239,200,139,0.1)", border: "1px solid rgba(239,200,139,0.2)", borderRadius: 100, padding: "2px 7px", letterSpacing: "0.06em", textTransform: "uppercase" }}>{badge}</span>}
-                </div>
-                <div style={{ height: 3, background: "#1a1a1a", borderRadius: 100, overflow: "hidden" }}>
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ delay: 0.8 + i * 0.08, duration: 0.8, ease: "easeOut" }}
-                    style={{ height: "100%", borderRadius: 100, background: `linear-gradient(90deg, ${color}, ${color}80)` }} />
-                </div>
-              </div>
-              <span style={{ fontSize: 14, fontWeight: 700, color, fontFamily: "var(--font-mono, monospace)" }}>{pts}</span>
-            </motion.div>
-          ))}
-        </motion.div>
+            </Link>
+            <a href="#como-funciona" style={{ display: "inline-flex", alignItems: "center", fontSize: 15, color: MUTED, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 100, padding: "14px 28px", textDecoration: "none", fontFamily: "var(--font-inter, sans-serif)", transition: "color 0.2s, border-color 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.color = FG; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
+              Ver cómo funciona
+            </a>
+          </motion.div>
+
+          {/* Social proof */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+            style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex" }}>
+              {["#3a5a3a", "#5a3a3a", "#3a3a5a", "#5a5a3a"].map((c, i) => (
+                <div key={i} style={{ width: 28, height: 28, borderRadius: "50%", background: c, border: "2px solid #040506", marginLeft: i > 0 ? -8 : 0 }} />
+              ))}
+            </div>
+            <p style={{ margin: 0, fontSize: 13, color: MUTED, fontFamily: "var(--font-inter, sans-serif)" }}>
+              Únete y compite con tus amigos
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Right: iPhone mockup */}
+        <div className="hero-phone" style={{ display: "flex", justifyContent: "center" }}>
+          <IPhoneMockup />
+        </div>
       </div>
     </section>
   );
@@ -603,6 +599,13 @@ function Footer() {
 
 // ─── Responsive overrides ─────────────────────────────────────────────────────
 const css = `
+  @media (max-width: 900px) {
+    .hero-grid {
+      grid-template-columns: 1fr !important;
+      text-align: center;
+    }
+    .hero-phone { display: none !important; }
+  }
   @media (max-width: 768px) {
     [style*="grid-column: span 7"],
     [style*="grid-column: span 8"],
@@ -611,6 +614,7 @@ const css = `
     [style*="grid-column: span 6"] {
       grid-column: 1 / -1 !important;
     }
+    .hero-grid { justify-items: center; }
   }
   html { scroll-behavior: smooth; }
 `;
