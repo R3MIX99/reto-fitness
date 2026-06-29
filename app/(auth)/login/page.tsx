@@ -200,17 +200,29 @@ function LoginInner() {
   // ── OTP input handlers ────────────────────────────────────────────────────
 
   function handleOtpChange(i: number, raw: string) {
-    const digit = raw.replace(/\D/g, "").slice(-1);
+    const digits = raw.replace(/\D/g, "");
+
+    // Samsung keyboard / autofill pega varios dígitos de golpe en una sola caja
+    if (digits.length > 1) {
+      const next = [...otp];
+      for (let j = 0; j < digits.length && i + j < 6; j++) next[i + j] = digits[j];
+      setOtp(next);
+      setError(null);
+      const lastIdx = Math.min(i + digits.length - 1, 5);
+      otpRefs.current[lastIdx]?.focus();
+      if (next.every(d => d)) verifyCode(next.join(""));
+      return;
+    }
+
+    const digit = digits.slice(-1);
     const next = [...otp];
     next[i] = digit;
     setOtp(next);
     setError(null);
 
     if (digit) {
-      // Pop animation
       setPopIdx(i);
       setTimeout(() => setPopIdx(null), 220);
-      // Advance
       if (i < 5) setTimeout(() => otpRefs.current[i + 1]?.focus(), 0);
     }
 
@@ -374,50 +386,51 @@ function LoginInner() {
         {/* ── OTP ── */}
         {step === "otp" && (
           <div className="space-y-8 login-step-in">
-            {/* 6 boxes */}
-            <div className="flex gap-2 justify-center">
-              {otp.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={el => { otpRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  pattern="\d*"
-                  maxLength={2}
-                  value={digit}
-                  onChange={e => handleOtpChange(i, e.target.value)}
-                  onKeyDown={e => handleOtpKey(i, e)}
-                  onPaste={handleOtpPaste}
-                  disabled={loading}
-                  className={popIdx === i ? "otp-pop" : ""}
-                  style={{
-                    width: 46,
-                    height: 58,
-                    textAlign: "center",
-                    fontSize: 22,
-                    fontWeight: 700,
-                    fontFamily: "var(--font-display, monospace)",
-                    background: "var(--color-bg-card)",
-                    color: "var(--color-fg)",
-                    border: `2px solid ${error ? "var(--color-accent)" : digit ? "var(--color-warm)" : "var(--color-border)"}`,
-                    borderRadius: 12,
-                    outline: "none",
-                    transition: "border-color 0.15s ease, box-shadow 0.15s ease",
-                    boxShadow: digit && !error ? "0 0 0 1px rgba(239,200,139,0.25)" : "none",
-                    caretColor: "transparent",
-                    opacity: loading ? 0.5 : 1,
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Spinner de verificación */}
-            {loading && (
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-5 h-5 rounded-full border-2 border-[var(--color-muted)] border-t-[var(--color-fg)] animate-spin" />
-                <p className="text-[12px] text-[var(--color-muted)]">Verificando…</p>
+            {/* 6 boxes + overlay de loading */}
+            <div className="relative flex flex-col items-center gap-4">
+              <div className="flex gap-2 justify-center" style={{ opacity: loading ? 0.35 : 1, transition: "opacity 0.2s" }}>
+                {otp.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={el => { otpRefs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d*"
+                    maxLength={6}
+                    value={digit}
+                    onChange={e => handleOtpChange(i, e.target.value)}
+                    onKeyDown={e => handleOtpKey(i, e)}
+                    onPaste={handleOtpPaste}
+                    disabled={loading}
+                    className={popIdx === i ? "otp-pop" : ""}
+                    style={{
+                      width: 46,
+                      height: 58,
+                      textAlign: "center",
+                      fontSize: 22,
+                      fontWeight: 700,
+                      fontFamily: "var(--font-display, monospace)",
+                      background: "var(--color-bg-card)",
+                      color: "var(--color-fg)",
+                      border: `2px solid ${error ? "var(--color-accent)" : digit ? "var(--color-warm)" : "var(--color-border)"}`,
+                      borderRadius: 12,
+                      outline: "none",
+                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+                      boxShadow: digit && !error ? "0 0 0 1px rgba(239,200,139,0.25)" : "none",
+                      caretColor: "transparent",
+                    }}
+                  />
+                ))}
               </div>
-            )}
+
+              {/* Overlay animado mientras verifica */}
+              {loading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
+                  <div className="w-6 h-6 rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-warm)] animate-spin" />
+                  <p className="text-[12px] font-medium" style={{ color: "var(--color-warm)" }}>Verificando…</p>
+                </div>
+              )}
+            </div>
 
             {error && (
               <p className="text-center text-[12px] text-accent">{error}</p>
