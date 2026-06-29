@@ -7,20 +7,6 @@ const APP_URL = "https://reto-fitness-seven.vercel.app";
 
 function otpTemplate(token: string, recipientEmail: string): string {
   // Dígitos en tabla (nunca se rompen en dos filas en ningún cliente de email)
-  const digitCells = token.split("").map(
-    (d) => `<td style="
-      width:34px;height:42px;
-      text-align:center;vertical-align:middle;
-      font-size:20px;font-weight:800;
-      background:#1a1a1a;
-      border:1.5px solid #2f2f2f;
-      border-radius:8px;
-      color:#EFC88B;
-      font-family:'Courier New',Courier,monospace;
-      padding:0;
-    ">${d}</td><td style="width:5px;"></td>`
-  ).join("");
-
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -53,15 +39,6 @@ function otpTemplate(token: string, recipientEmail: string): string {
                   <td style="background:linear-gradient(135deg,#1a1200 0%,#2a1e00 100%);padding:28px 36px 24px;border-bottom:1px solid #2f2500;">
                     <p style="margin:0;font-size:18px;font-weight:700;color:#EFC88B;">Tu código de acceso</p>
                     <p style="margin:6px 0 0;font-size:13px;color:#8a7040;">Ingresa este código en la aplicación para continuar</p>
-                  </td>
-                </tr>
-
-                <!-- Dígitos (tabla — no se rompe) -->
-                <tr>
-                  <td align="center" style="padding:36px 36px 20px;">
-                    <table cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto;">
-                      <tr>${digitCells}</tr>
-                    </table>
                   </td>
                 </tr>
 
