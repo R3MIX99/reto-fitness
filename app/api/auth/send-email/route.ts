@@ -21,8 +21,6 @@ function otpTemplate(token: string, recipientEmail: string): string {
     ">${d}</td><td style="width:5px;"></td>`
   ).join("");
 
-  const copyUrl = `${APP_URL}/copiar-codigo?c=${encodeURIComponent(token)}`;
-
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -67,23 +65,23 @@ function otpTemplate(token: string, recipientEmail: string): string {
                   </td>
                 </tr>
 
-                <!-- Botón copiar código -->
+                <!-- Código en texto plano (fácil de seleccionar con tap largo) -->
                 <tr>
                   <td align="center" style="padding:0 36px 28px;">
-                    <a href="${copyUrl}"
-                      style="
-                        display:inline-block;
-                        background:#EFC88B;
-                        color:#1a1000;
-                        font-size:13px;
-                        font-weight:700;
-                        text-decoration:none;
-                        padding:10px 28px;
-                        border-radius:100px;
-                        letter-spacing:0.3px;
-                      ">
-                      Copiar código
-                    </a>
+                    <p style="
+                      margin:0;
+                      font-size:32px;
+                      font-weight:800;
+                      letter-spacing:10px;
+                      color:#EFC88B;
+                      font-family:'Courier New',Courier,monospace;
+                      background:#1a1a1a;
+                      border:1.5px solid #2f2f2f;
+                      border-radius:12px;
+                      padding:16px 20px;
+                      display:inline-block;
+                      user-select:all;
+                    ">${token}</p>
                     <p style="margin:16px 0 0;font-size:12px;color:#5a5a5a;">
                       Expira en <strong style="color:#EEE5E9;">1 hora</strong> y solo puede usarse una vez.
                     </p>
