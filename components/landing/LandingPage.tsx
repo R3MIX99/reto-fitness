@@ -509,8 +509,8 @@ function Planes() {
   const inView = useInView(ref, { once: true, margin: "-60px" });
   const plans = [
     { name: "Free", price: "$0", period: "", highlight: false, color: MUTED, desc: "Para empezar con tus amigos hoy.", cta: "Empezar gratis", features: ["1 grupo", "Hasta 5 miembros", "Leaderboard semanal", "Evidencia fotográfica", "Rachas y bonus", "Temporadas"] },
-    { name: "Pro", price: "$5.99", period: "/mes", highlight: true, color: GOLD, desc: "Para grupos más serios y competitivos.", cta: "Próximamente", features: ["Hasta 5 grupos", "Hasta 10 miembros/grupo", "Todo lo de Free", "Retos grupales programados", "Metas 100% personalizables", "Wrapped anual"] },
-    { name: "Elite", price: "$12.99", period: "/mes", highlight: false, color: "#9664ff", desc: "Para competidores de alto nivel.", cta: "Próximamente", features: ["Hasta 20 grupos", "Hasta 30 miembros/grupo", "Todo lo de Pro", "Liga entre grupos", "Títulos personalizados de campeón", "Soporte prioritario"] },
+    { name: "Pro", price: "$99", period: "/mes", highlight: true, color: GOLD, desc: "Para grupos más serios y competitivos.", cta: "Próximamente", features: ["Hasta 5 grupos", "Hasta 10 miembros/grupo", "Todo lo de Free", "Retos grupales programados", "Metas 100% personalizables", "Wrapped anual"] },
+    { name: "Elite", price: "$219", period: "/mes", highlight: false, color: "#9664ff", desc: "Para competidores de alto nivel.", cta: "Próximamente", features: ["Hasta 20 grupos", "Hasta 30 miembros/grupo", "Todo lo de Pro", "Liga entre grupos", "Títulos personalizados de campeón", "Soporte prioritario"] },
   ];
   return (
     <section id="planes" ref={ref} style={{ padding: "0 24px 120px", maxWidth: 1100, margin: "0 auto" }}>
@@ -526,10 +526,11 @@ function Planes() {
             {highlight && <div style={{ position: "absolute", top: -14, left: 32, background: GOLD, color: "#1a1000", fontSize: 10, fontWeight: 700, borderRadius: 100, padding: "5px 14px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-inter, sans-serif)" }}>Más popular</div>}
             <div style={{ marginBottom: 28 }}>
               <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "var(--font-inter, sans-serif)" }}>{name}</p>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 3, margin: "0 0 10px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 3, margin: "0 0 4px" }}>
                 <span style={{ fontSize: 48, fontWeight: 800, color: FG, fontFamily: "var(--font-display, sans-serif)", letterSpacing: "-0.03em", lineHeight: 1 }}>{price}</span>
                 <span style={{ fontSize: 15, color: MUTED, fontFamily: "var(--font-inter, sans-serif)" }}>{period}</span>
               </div>
+              {period && <p style={{ margin: "0 0 10px", fontSize: 11, color: "#3a3a3a", fontFamily: "var(--font-inter, sans-serif)" }}>pesos mexicanos</p>}
               <p style={{ margin: 0, fontSize: 14, color: MUTED, fontFamily: "var(--font-inter, sans-serif)" }}>{desc}</p>
             </div>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
