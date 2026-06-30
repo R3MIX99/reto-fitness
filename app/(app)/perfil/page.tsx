@@ -540,6 +540,23 @@ export default function PerfilPage() {
           })}
         </div>
 
+        {/* Wrapped anual */}
+        <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Resumen del año</p>
+        <button
+          onClick={() => router.push("/wrapped")}
+          className="w-full rounded-[16px] px-4 py-3.5 flex items-center gap-3 mb-5 text-left"
+          style={{ background: "linear-gradient(135deg, rgba(207,92,54,0.22), rgba(239,200,139,0.12))", border: "1px solid rgba(239,200,139,0.25)" }}
+        >
+          <div className="w-[30px] h-[30px] rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: "rgba(239,200,139,0.2)" }}>
+            <Sparkles size={16} strokeWidth={1.5} className="text-warm" />
+          </div>
+          <div className="flex-1 leading-snug min-w-0">
+            <p className="text-[13px] font-medium">Tu Wrapped {new Date().getFullYear()}</p>
+            <p className="text-[11px] text-[var(--color-muted)]">Mira tu año en Olympo</p>
+          </div>
+          <ChevronRight size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+        </button>
+
         {/* Recuerdos */}
         <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Recuerdos</p>
         <button
