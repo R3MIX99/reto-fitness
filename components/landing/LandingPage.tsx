@@ -221,37 +221,6 @@ function Hero() {
               style={{ width: "100%", height: "auto", display: "block" }}
             />
 
-            {/* Abajo — más fuerte, corta la mitad inferior */}
-            <div style={{
-              position: "absolute", bottom: 0, left: 0, right: 0,
-              height: "58%",
-              background: `linear-gradient(to top, ${BG} 0%, ${BG} 30%, rgba(4,5,6,0.85) 55%, transparent 100%)`,
-              pointerEvents: "none",
-            }} />
-
-            {/* Izquierda */}
-            <div style={{
-              position: "absolute", inset: "0 auto 0 0",
-              width: "38%",
-              background: `linear-gradient(to right, ${BG} 0%, transparent 100%)`,
-              pointerEvents: "none",
-            }} />
-
-            {/* Derecha */}
-            <div style={{
-              position: "absolute", inset: "0 0 0 auto",
-              width: "38%",
-              background: `linear-gradient(to left, ${BG} 0%, transparent 100%)`,
-              pointerEvents: "none",
-            }} />
-
-            {/* Arriba — sutil */}
-            <div style={{
-              position: "absolute", top: 0, left: 0, right: 0,
-              height: "22%",
-              background: `linear-gradient(to bottom, ${BG} 0%, transparent 100%)`,
-              pointerEvents: "none",
-            }} />
           </div>
         </motion.div>
       </div>
