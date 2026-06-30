@@ -139,12 +139,12 @@ function Hero() {
       }} />
 
       {/* Contenedor principal: texto izquierda + teléfono derecha */}
-      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", alignItems: "center" }}
+      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", alignItems: "center", maxWidth: 1200, margin: "0 auto", width: "100%", gap: 0 }}
         className="flex-col md:flex-row pt-[120px] md:pt-[100px]">
 
         {/* ── Columna izquierda: texto ── */}
-        <div className="w-full md:w-1/2 lg:w-[52%]"
-          style={{ padding: "0 48px 0 clamp(24px, 6vw, 96px)", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+        <div className="w-full md:w-[48%]"
+          style={{ padding: "0 32px 0 clamp(24px, 5vw, 72px)", display: "flex", flexDirection: "column", alignItems: "flex-start", flexShrink: 0 }}>
 
           {/* Badge */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
@@ -195,23 +195,23 @@ function Hero() {
           </motion.div>
         </div>
 
-        {/* ── Columna derecha: teléfono recortado ── */}
+        {/* ── Columna derecha: teléfono ── */}
         <motion.div
-          className="w-full md:w-1/2 lg:w-[48%] mt-10 md:mt-0"
+          className="w-full md:w-[52%] mt-10 md:mt-0"
           initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.9, delay: 0.4 }}
-          style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+          style={{ position: "relative", display: "flex", justifyContent: "flex-start", alignItems: "flex-start", paddingLeft: 16 }}>
 
           {/* Glow detrás del teléfono */}
           <div aria-hidden style={{
-            position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)",
-            width: 280, height: 380, borderRadius: "50%",
+            position: "absolute", top: "20%", left: "30%", transform: "translateX(-50%)",
+            width: 320, height: 400, borderRadius: "50%",
             background: "radial-gradient(ellipse, rgba(239,200,139,0.15) 0%, transparent 65%)",
             filter: "blur(50px)", zIndex: 0, pointerEvents: "none",
           }} />
 
-          {/* Wrapper del teléfono — desplazado hacia abajo para no tocar el borde superior */}
-          <div style={{ position: "relative", zIndex: 1, width: "min(480px, 95%)", marginTop: 60 }}>
+          {/* Wrapper del teléfono */}
+          <div style={{ position: "relative", zIndex: 1, width: "min(420px, 90%)", marginTop: 48 }}>
             <Image
               src="/mockup-hero.png"
               alt="Olympo app dashboard"
@@ -225,7 +225,7 @@ function Hero() {
       </div>
 
       {/* ── Stats row — debajo del split ── */}
-      <div style={{ position: "relative", zIndex: 1, padding: "0 clamp(24px, 6vw, 96px) 64px" }}>
+      <div style={{ position: "relative", zIndex: 1, padding: "0 clamp(24px, 5vw, 72px) 64px", maxWidth: 1200, margin: "0 auto", width: "100%" }}>
         <motion.div
           initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.6 }}
