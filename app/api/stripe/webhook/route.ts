@@ -86,9 +86,11 @@ export async function POST(req: Request) {
 
   const admin = makeAdmin();
 
-  // Idempotencia: si el evento ya se registró, no reprocesar.
-  const { error: dupErr } = await admin.from("stripe_events").insert({ id: event.id, type: event.type } as never);
-  if (dupErr) return NextResponse.json({ received: true, duplicate: true });
+  // Idempotencia: si el evento ya se procesó antes, no repetir.
+  const { data: already } = await admin
+    .from("stripe_events").select("id").eq("id", event.id).maybeSingle() as unknown as {
+      data: { id: string } | null };
+  if (already) return NextResponse.json({ received: true, duplicate: true });
 
   try {
     switch (event.type) {
@@ -116,9 +118,12 @@ export async function POST(req: Request) {
         break;
     }
   } catch (err) {
+    // No registramos el evento: Stripe lo reintentará (el sync es idempotente).
     console.error("[stripe webhook] error procesando", event.type, (err as Error).message);
     return NextResponse.json({ error: "processing_error" }, { status: 500 });
   }
 
+  // Registrar solo tras procesar con éxito.
+  await admin.from("stripe_events").insert({ id: event.id, type: event.type } as never);
   return NextResponse.json({ received: true });
 }

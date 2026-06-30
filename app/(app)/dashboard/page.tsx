@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp, Info, Crown } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useMyGroups, useGroupMembersGlobalLeaderboard, useTodayScore, useStreak, getInitials, useGroupsRealtime } from "@/lib/hooks/useGroups";
 import { useGoals, useTodayChecks, goalAppliesOn, todayStr } from "@/lib/hooks/useChecklist";
@@ -113,6 +114,21 @@ export default function DashboardPage() {
   const [showAll, setShowAll] = useState(false);
   const [showPointsInfo, setShowPointsInfo] = useState(false);
   const [cardUserId, setCardUserId] = useState<string | null>(null);
+
+  // Al volver del checkout de Stripe: refresca el plan y muestra aviso.
+  const params = useSearchParams();
+  const qc = useQueryClient();
+  const [planToast, setPlanToast] = useState(false);
+  useEffect(() => {
+    if (params.get("checkout") !== "success") return;
+    qc.invalidateQueries({ queryKey: ["myPlan"] });
+    qc.invalidateQueries({ queryKey: ["groups"] });
+    setPlanToast(true);
+    const t = setTimeout(() => setPlanToast(false), 4000);
+    // Limpia el query para que el "atrás" no quede en este estado
+    window.history.replaceState(null, "", "/dashboard");
+    return () => clearTimeout(t);
+  }, [params, qc]);
 
   const { data: todayPts = 0 } = useTodayScore(groupId);
   const { data: streakData = { streak_day: 0, streak_bonus: 0 } } = useStreak(groupId);
@@ -360,6 +376,16 @@ export default function DashboardPage() {
           placeholder={cardPlaceholder}
           onClose={() => setCardUserId(null)}
         />
+      )}
+
+      {/* Aviso al volver del checkout de Stripe */}
+      {planToast && (
+        <div className="fixed bottom-[88px] left-4 right-4 z-[90] flex justify-center pointer-events-none">
+          <div className="flex items-center gap-2.5 rounded-full px-4 py-3 shadow-xl" style={{ background: "#14532d", border: "1px solid rgba(34,197,94,0.5)" }}>
+            <Crown size={14} strokeWidth={2} style={{ color: "#EFC88B" }} className="flex-shrink-0" />
+            <p className="text-[13px] text-[var(--color-fg)]">¡Pago recibido! Tu plan se activará en unos segundos.</p>
+          </div>
+        </div>
       )}
     </div>
   );

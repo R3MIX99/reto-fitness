@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     customer: customerId,
     line_items,
     allow_promotion_codes: true,
-    success_url: `${APP_URL}/perfil?checkout=success`,
+    success_url: `${APP_URL}/dashboard?checkout=success`,
     cancel_url: `${APP_URL}/perfil?checkout=cancel`,
     subscription_data: { metadata: { user_id: user.id, tier, interval } },
     metadata: { user_id: user.id, tier, interval, seats: String(seats) },
