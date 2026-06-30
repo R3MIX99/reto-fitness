@@ -283,25 +283,33 @@ export function useTodayScore(groupId: string | null) {
   });
 }
 
+export interface StreakData {
+  streak_day: number;
+  streak_bonus: number;
+}
+
 export function useStreak(groupId: string | null) {
   const { user } = useUser();
   return useQuery({
     queryKey: ["streak", user?.id, groupId],
     enabled: !!user && !!groupId,
-    queryFn: async (): Promise<number> => {
-      if (!groupId || !user) return 0;
+    queryFn: async (): Promise<StreakData> => {
+      if (!groupId || !user) return { streak_day: 0, streak_bonus: 0 };
       const supabase = createClient();
       const _d = new Date();
       const todayStr = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
-      type Row = { streak_day: number | null };
+      type Row = { streak_day: number | null; streak_bonus: number | null };
       const { data } = await supabase
         .from("daily_scores")
-        .select("streak_day")
+        .select("streak_day, streak_bonus")
         .eq("user_id", user.id)
         .eq("group_id", groupId)
         .eq("score_date", todayStr)
         .single() as unknown as { data: Row | null };
-      return data?.streak_day ?? 0;
+      return {
+        streak_day:   data?.streak_day   ?? 0,
+        streak_bonus: data?.streak_bonus ?? 0,
+      };
     },
   });
 }

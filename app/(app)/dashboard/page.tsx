@@ -115,7 +115,9 @@ export default function DashboardPage() {
   const [cardUserId, setCardUserId] = useState<string | null>(null);
 
   const { data: todayPts = 0 } = useTodayScore(groupId);
-  const { data: streak = 0 } = useStreak(groupId);
+  const { data: streakData = { streak_day: 0, streak_bonus: 0 } } = useStreak(groupId);
+  const streak = streakData.streak_day;
+  const streakBonus = streakData.streak_bonus;
   const { data: leaderboard = [] } = useGlobalLeaderboard(groupIds);
   const { data: activeSeasonCount = 0 } = useActiveSeasonCount(groupIds);
 
@@ -192,8 +194,16 @@ export default function DashboardPage() {
             {activeSeasonBadge(activeSeasonCount)}
           </span>
         </div>
-        <div className="font-display font-medium text-[30px] mb-2.5">
-          {todayPts}<span className="text-[var(--color-muted)] text-[18px]"> / {TOTAL_PTS}</span>
+        <div className="flex items-baseline gap-2.5 mb-2.5">
+          <span className="font-display font-medium text-[30px]">
+            {todayPts}<span className="text-[var(--color-muted)] text-[18px]"> / {TOTAL_PTS}</span>
+          </span>
+          {streakBonus > 0 && (
+            <span className="flex items-center gap-1 text-[13px] font-semibold text-accent">
+              <Flame size={13} strokeWidth={1.5} fill="#CF5C36" />
+              +{streakBonus}
+            </span>
+          )}
         </div>
         <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface)" }}>
           <div
@@ -237,12 +247,20 @@ export default function DashboardPage() {
         {/* Racha */}
         <div className="flex-1 bg-[var(--color-bg-card)] rounded-[18px] p-3.5">
           <div className="flex items-center gap-2.5">
-            <Flame size={22} strokeWidth={1.5} className="text-accent flex-shrink-0" />
-            <div>
+            <Flame size={22} strokeWidth={1.5} className="text-accent flex-shrink-0" fill={streak >= 3 ? "#CF5C36" : "none"} />
+            <div className="flex-1 min-w-0">
               <p className="text-[10.5px] text-[var(--color-muted)]">Racha</p>
-              <p className="font-display font-medium text-[15px]">
-                {streak} {streak === 1 ? "día" : "días"}
-              </p>
+              <div className="flex items-baseline gap-1.5">
+                <p className="font-display font-medium text-[15px]">
+                  {streak} {streak === 1 ? "día" : "días"}
+                </p>
+                {streakBonus > 0 && (
+                  <span className="text-[11px] font-semibold text-accent">+{streakBonus} pts</span>
+                )}
+                {streak === 2 && (
+                  <span className="text-[10px] text-[var(--color-muted)]">¡falta 1!</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
