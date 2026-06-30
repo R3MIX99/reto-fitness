@@ -113,157 +113,165 @@ function Navbar() {
   );
 }
 
-// ─── Hero phone image with gradient + stats overlay ──────────────────────────
-function HeroPhone() {
-  const stats = [
-    { value: "13",   label: "puntos / día" },
-    { value: "7",    label: "días activos" },
-    { value: "100%", label: "con evidencia" },
-    { value: "×3",   label: "bonus racha" },
-  ];
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.9, delay: 0.5 }}
-      style={{ position: "relative", width: "100%", maxWidth: 360, margin: "0 auto" }}>
-
-      {/* Glow behind phone */}
-      <div aria-hidden style={{
-        position: "absolute", bottom: "10%", left: "50%", transform: "translateX(-50%)",
-        width: 340, height: 300, borderRadius: "50%",
-        background: "radial-gradient(ellipse, rgba(239,200,139,0.12) 0%, transparent 70%)",
-        filter: "blur(40px)", zIndex: 0,
-      }} />
-
-      {/* Phone image — cropped at bottom via overflow hidden */}
-      <div style={{ position: "relative", zIndex: 1, borderRadius: 48, overflow: "hidden" }}>
-        <Image
-          src="/mockup-hero.png"
-          alt="Olympo app dashboard"
-          width={360}
-          height={700}
-          style={{ width: "100%", height: "auto", display: "block" }}
-          priority
-        />
-
-        {/* Gradient fade — covers bottom ~35% of image */}
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
-          height: "42%",
-          background: `linear-gradient(to bottom, transparent 0%, rgba(4,5,6,0.75) 40%, ${BG} 85%)`,
-        }} />
-
-        {/* Stats overlaid on gradient */}
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
-          padding: "20px 20px 28px",
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 8,
-        }}>
-          {stats.map(({ value, label }, i) => (
-            <motion.div
-              key={label}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 + i * 0.08, duration: 0.5 }}
-              style={{
-                background: "rgba(10,11,13,0.7)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 14,
-                padding: "12px 14px",
-                backdropFilter: "blur(12px)",
-              }}>
-              <p style={{ margin: "0 0 2px", fontSize: 20, fontWeight: 800, color: GOLD, fontFamily: "var(--font-display, sans-serif)", letterSpacing: "-0.02em", lineHeight: 1 }}>{value}</p>
-              <p style={{ margin: 0, fontSize: 10, color: MUTED, fontFamily: "var(--font-inter, sans-serif)", lineHeight: 1.4 }}>{label}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
 // ─── Hero ─────────────────────────────────────────────────────────────────────
+const HERO_STATS = [
+  { value: "13",   label: "puntos / día" },
+  { value: "7",    label: "días activos" },
+  { value: "100%", label: "con evidencia" },
+  { value: "×3",   label: "bonus racha" },
+];
+
 function Hero() {
   return (
     <section style={{
       minHeight: "100dvh",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      padding: "130px 24px 80px",
+      display: "flex", flexDirection: "column",
       position: "relative", overflow: "hidden",
-      textAlign: "center",
     }}>
       <AuroraBackground />
 
-      {/* Glow behind title */}
+      {/* Glow detrás del texto */}
       <div aria-hidden style={{
-        position: "absolute", top: "10%", left: "50%", transform: "translateX(-50%)",
-        width: 700, height: 400, borderRadius: "50%",
+        position: "absolute", top: "20%", left: "0%",
+        width: 600, height: 500, borderRadius: "50%",
         background: "radial-gradient(ellipse, rgba(239,200,139,0.10) 0%, transparent 65%)",
-        filter: "blur(60px)", zIndex: 0, pointerEvents: "none",
+        filter: "blur(70px)", zIndex: 0, pointerEvents: "none",
       }} />
 
-      {/* Glow behind phone */}
-      <div aria-hidden style={{
-        position: "absolute", bottom: "5%", left: "50%", transform: "translateX(-50%)",
-        width: 400, height: 600, borderRadius: "50%",
-        background: "radial-gradient(ellipse, rgba(239,200,139,0.08) 0%, transparent 65%)",
-        filter: "blur(50px)", zIndex: 0, pointerEvents: "none",
-      }} />
+      {/* Contenedor principal: texto izquierda + teléfono derecha */}
+      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", alignItems: "center" }}
+        className="flex-col md:flex-row pt-[120px] md:pt-[100px]">
 
-      <div style={{ position: "relative", zIndex: 1, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+        {/* ── Columna izquierda: texto ── */}
+        <div className="w-full md:w-1/2 lg:w-[52%]"
+          style={{ padding: "0 48px 0 clamp(24px, 6vw, 96px)", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
 
-        {/* Badge */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-          style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(239,200,139,0.08)", border: "1px solid rgba(239,200,139,0.18)", borderRadius: 100, padding: "6px 16px 6px 12px", marginBottom: 28 }}>
-          <Flame size={13} style={{ color: GOLD }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: GOLD, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "var(--font-inter, sans-serif)" }}>Competencia entre amigos</span>
-        </motion.div>
+          {/* Badge */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(239,200,139,0.08)", border: "1px solid rgba(239,200,139,0.18)", borderRadius: 100, padding: "6px 16px 6px 12px", marginBottom: 28 }}>
+            <Flame size={13} style={{ color: GOLD }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: GOLD, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "var(--font-inter, sans-serif)" }}>Competencia entre amigos</span>
+          </motion.div>
 
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
-          style={{
-            fontFamily: "var(--font-display, var(--font-inter, sans-serif))",
-            fontSize: "clamp(60px, 9vw, 120px)",
-            fontWeight: 700, color: FG,
-            lineHeight: 0.95,
-            letterSpacing: "-0.04em",
-            margin: "0 0 32px",
-          }}>
-          El más<br />constante{" "}
-          <span style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${TERRA} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>gana.</span>
-        </motion.h1>
+          {/* Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
+            style={{
+              fontFamily: "var(--font-display, var(--font-inter, sans-serif))",
+              fontSize: "clamp(52px, 7vw, 104px)",
+              fontWeight: 700, color: FG,
+              lineHeight: 0.95,
+              letterSpacing: "-0.04em",
+              margin: "0 0 28px",
+            }}>
+            El más<br />constante{" "}
+            <span style={{ background: `linear-gradient(135deg, ${GOLD} 0%, ${TERRA} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>gana.</span>
+          </motion.h1>
 
-        {/* Description */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
-          style={{ fontSize: "clamp(15px, 1.5vw, 18px)", color: "#7a7b7c", lineHeight: 1.75, maxWidth: 620, margin: "0 0 40px", fontFamily: "var(--font-inter, sans-serif)" }}>
-          Crea un grupo con tus amigos, registra cada entrenamiento con evidencia fotográfica, y compite semana a semana por el título de campeón.
-        </motion.p>
+          {/* Descripción */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
+            style={{ fontSize: "clamp(14px, 1.4vw, 17px)", color: "#7a7b7c", lineHeight: 1.75, maxWidth: 480, margin: "0 0 36px", fontFamily: "var(--font-inter, sans-serif)" }}>
+            Crea un grupo con tus amigos, registra cada entrenamiento con evidencia fotográfica, y compite semana a semana por el título de campeón.
+          </motion.p>
 
-        {/* Buttons */}
+          {/* Botones */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}
+            style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 0 }}>
+            <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: GOLD, color: "#1a1000", fontSize: 15, fontWeight: 700, borderRadius: 100, padding: "15px 30px", textDecoration: "none", boxShadow: "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)", fontFamily: "var(--font-inter, sans-serif)", transition: "transform 0.2s, box-shadow 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 0 70px rgba(239,200,139,0.4), 0 8px 30px rgba(0,0,0,0.3)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)"; }}>
+              Empieza gratis
+              <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <ChevronRight size={14} strokeWidth={2.5} />
+              </div>
+            </Link>
+            <a href="#como-funciona" style={{ display: "inline-flex", alignItems: "center", fontSize: 15, color: MUTED, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 100, padding: "15px 30px", textDecoration: "none", fontFamily: "var(--font-inter, sans-serif)", transition: "color 0.2s, border-color 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.color = FG; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
+              Ver cómo funciona
+            </a>
+          </motion.div>
+        </div>
+
+        {/* ── Columna derecha: teléfono recortado ── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.3 }}
-          style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 64 }}>
-          <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: GOLD, color: "#1a1000", fontSize: 15, fontWeight: 700, borderRadius: 100, padding: "15px 30px", textDecoration: "none", boxShadow: "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)", fontFamily: "var(--font-inter, sans-serif)", transition: "transform 0.2s, box-shadow 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 0 70px rgba(239,200,139,0.4), 0 8px 30px rgba(0,0,0,0.3)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 50px rgba(239,200,139,0.25), 0 4px 20px rgba(0,0,0,0.3)"; }}>
-            Empieza gratis
-            <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <ChevronRight size={14} strokeWidth={2.5} />
-            </div>
-          </Link>
-          <a href="#como-funciona" style={{ display: "inline-flex", alignItems: "center", fontSize: 15, color: MUTED, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 100, padding: "15px 30px", textDecoration: "none", fontFamily: "var(--font-inter, sans-serif)", transition: "color 0.2s, border-color 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.color = FG; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
-            onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
-            Ver cómo funciona
-          </a>
-        </motion.div>
+          className="w-full md:w-1/2 lg:w-[48%] mt-12 md:mt-0"
+          initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.9, delay: 0.4 }}
+          style={{ position: "relative", alignSelf: "stretch", minHeight: 480 }}>
 
-        {/* Foto real + degradado + stats */}
-        <HeroPhone />
+          {/* Glow detrás del teléfono */}
+          <div aria-hidden style={{
+            position: "absolute", top: "30%", left: "20%",
+            width: 300, height: 400, borderRadius: "50%",
+            background: "radial-gradient(ellipse, rgba(239,200,139,0.14) 0%, transparent 65%)",
+            filter: "blur(50px)", zIndex: 0, pointerEvents: "none",
+          }} />
+
+          {/* Imagen del teléfono — desborda por abajo, recortada */}
+          <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+            <Image
+              src="/mockup-hero.png"
+              alt="Olympo app dashboard"
+              width={360}
+              height={780}
+              priority
+              style={{
+                position: "absolute",
+                top: "50%", left: "50%",
+                transform: "translate(-50%, -30%)",
+                height: "110%", width: "auto",
+                borderRadius: 44,
+                maxWidth: "none",
+              }}
+            />
+
+            {/* Degradado de abajo hacia arriba — recorta el teléfono */}
+            <div style={{
+              position: "absolute", bottom: 0, left: 0, right: 0,
+              height: "55%",
+              background: `linear-gradient(to top, ${BG} 0%, ${BG} 20%, rgba(4,5,6,0.6) 55%, transparent 100%)`,
+              pointerEvents: "none",
+            }} />
+
+            {/* Degradado izquierda — fusiona con el fondo en desktop */}
+            <div className="hidden md:block" style={{
+              position: "absolute", top: 0, bottom: 0, left: 0,
+              width: "30%",
+              background: `linear-gradient(to right, ${BG} 0%, transparent 100%)`,
+              pointerEvents: "none",
+            }} />
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ── Stats row — debajo del split ── */}
+      <div style={{ position: "relative", zIndex: 1, padding: "0 clamp(24px, 6vw, 96px) 64px" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.6 }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            borderTop: "1px solid rgba(255,255,255,0.06)",
+            paddingTop: 32,
+            gap: 0,
+          }}
+          className="grid-cols-2 md:grid-cols-4">
+          {HERO_STATS.map(({ value, label }, i) => (
+            <div key={label} style={{
+              padding: "20px 24px",
+              borderRight: i < 3 ? "1px solid rgba(255,255,255,0.06)" : "none",
+              display: "flex", flexDirection: "column", gap: 4,
+            }}
+              className={i === 1 || i === 3 ? "border-r-0 md:border-r" : ""}>
+              <p style={{ margin: 0, fontSize: "clamp(28px, 3.5vw, 42px)", fontWeight: 800, color: GOLD, fontFamily: "var(--font-display, sans-serif)", letterSpacing: "-0.03em", lineHeight: 1 }}>{value}</p>
+              <p style={{ margin: 0, fontSize: 12, color: MUTED, fontFamily: "var(--font-inter, sans-serif)", lineHeight: 1.4 }}>{label}</p>
+            </div>
+          ))}
+        </motion.div>
       </div>
     </section>
   );
