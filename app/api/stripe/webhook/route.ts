@@ -48,6 +48,19 @@ async function syncSubscription(admin: Admin, sub: Stripe.Subscription) {
   const isActive = status === "active" || status === "past_due";
   const effectiveTier = isActive && tier ? tier : "free";
 
+  // Localiza la fila por user_id (metadata) o por stripe_customer_id.
+  const matchCol = userId ? "user_id" : "stripe_customer_id";
+  const matchVal = userId ?? customerId;
+
+  // Detecta si es una MEJORA de plan para disparar el drawer de celebración
+  // (mismo mecanismo que usa el super-admin: campo subscriptions.celebrate).
+  const rank: Record<string, number> = { free: 0, pro: 1, elite: 2 };
+  const { data: cur } = await admin
+    .from("subscriptions").select("tier").eq(matchCol, matchVal).maybeSingle() as unknown as {
+      data: { tier: string } | null };
+  const currentTier = cur?.tier ?? "free";
+  const isUpgrade = effectiveTier !== "free" && (rank[effectiveTier] ?? 0) > (rank[currentTier] ?? 0);
+
   const patch: Record<string, unknown> = {
     tier: effectiveTier,
     status,
@@ -60,13 +73,9 @@ async function syncSubscription(admin: Admin, sub: Stripe.Subscription) {
     stripe_subscription_id: effectiveTier === "free" ? null : sub.id,
     updated_at: new Date().toISOString(),
   };
+  if (isUpgrade) patch.celebrate = effectiveTier;
 
-  // Localiza la fila: por user_id (metadata) o por stripe_customer_id.
-  if (userId) {
-    await admin.from("subscriptions").update(patch as never).eq("user_id", userId);
-  } else {
-    await admin.from("subscriptions").update(patch as never).eq("stripe_customer_id", customerId);
-  }
+  await admin.from("subscriptions").update(patch as never).eq(matchCol, matchVal);
 }
 
 export async function POST(req: Request) {
