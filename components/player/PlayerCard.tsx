@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Trophy, X, Calendar, Check, Crown, Sparkles, Medal } from "lucide-react";
+import { Trophy, X, Calendar, Check, Crown, Sparkles, Medal, Flame } from "lucide-react";
 import { usePlayerCard, useEquipTitle, type PlayerWin } from "@/lib/hooks/usePlayerCard";
 import { TitleBadge, type TitleStyleId } from "@/components/player/TitleBadge";
 
@@ -161,11 +161,17 @@ export function PlayerCard({
           </div>
 
           {/* Datos */}
-          <div className="flex items-center justify-center gap-4 text-[12px] text-[var(--color-muted)] mb-4">
+          <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-[var(--color-muted)] mb-4">
             <span className="flex items-center gap-1.5">
               <Trophy size={13} strokeWidth={1.5} className="text-warm" />
               {data?.wins_count ?? 0} {(data?.wins_count ?? 0) === 1 ? "título" : "títulos"}
             </span>
+            {(data?.streak_day ?? 0) > 0 && (
+              <span className="flex items-center gap-1.5" style={{ color: (data?.streak_day ?? 0) >= 3 ? "var(--color-accent)" : undefined }}>
+                <Flame size={13} strokeWidth={1.5} className="text-accent" fill={(data?.streak_day ?? 0) >= 3 ? "#CF5C36" : "none"} />
+                {data?.streak_day} {data?.streak_day === 1 ? "día" : "días"} de racha
+              </span>
+            )}
             <span className="flex items-center gap-1.5">
               <Calendar size={13} strokeWidth={1.5} />
               Se unió {fmt(data?.joined_at ?? null)}

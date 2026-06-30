@@ -31,6 +31,7 @@ export interface PlayerCardData {
   tier: PlayerTier;
   is_latest_champion: boolean;
   equipped: PlayerWin | null;
+  streak_day: number;
 }
 
 export function playerCardKey(userId: string, groupId: string) {
@@ -148,6 +149,23 @@ export async function fetchPlayerCard(userId: string, groupId: string): Promise<
       const equipped =
         wins.find((w) => w.season_id === profile?.equipped_season_id) ?? wins[0] ?? null;
 
+      // Racha actual en este grupo: hoy si ya completó, si no ayer (sigue activa
+      // hasta medianoche). Mismo criterio que useStreak.
+      const _d = new Date();
+      const todayS = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
+      const _y = new Date(_d); _y.setDate(_y.getDate() - 1);
+      const yestS = `${_y.getFullYear()}-${String(_y.getMonth()+1).padStart(2,"0")}-${String(_y.getDate()).padStart(2,"0")}`;
+      type StreakRow = { score_date: string; streak_day: number | null };
+      const { data: srows } = await supabase
+        .from("daily_scores")
+        .select("score_date, streak_day")
+        .eq("user_id", userId)
+        .eq("group_id", groupId)
+        .in("score_date", [todayS, yestS]) as unknown as { data: StreakRow[] | null };
+      const stToday = srows?.find((r) => r.score_date === todayS)?.streak_day ?? 0;
+      const stYest = srows?.find((r) => r.score_date === yestS)?.streak_day ?? 0;
+      const streakDay = stToday > 0 ? stToday : stYest;
+
       return {
         user_id: userId,
         full_name: profile?.full_name ?? null,
@@ -159,6 +177,7 @@ export async function fetchPlayerCard(userId: string, groupId: string): Promise<
         tier,
         is_latest_champion: isLatestChampion,
         equipped,
+        streak_day: streakDay,
       };
   }
 }
@@ -188,6 +207,7 @@ export function usePlayerCard(
           tier: "none",
           is_latest_champion: false,
           equipped: null,
+          streak_day: 0,
         }
       : undefined,
   });

@@ -212,12 +212,12 @@ export function useLast7Days(groupId: string | null) {
       since.setDate(since.getDate() - 6);
       const sinceStr = since.toISOString().split("T")[0];
 
-      type DayRow = { user_id: string; score_date: string; total_points: number | null };
+      type DayRow = { user_id: string; score_date: string; total_points: number | null; streak_bonus: number | null };
       type NameRow = { full_name: string | null };
 
       const { data } = await supabase
         .from("daily_scores")
-        .select("user_id, score_date, total_points")
+        .select("user_id, score_date, total_points, streak_bonus")
         .eq("group_id", groupId)
         .gte("score_date", sinceStr)
         .order("score_date", { ascending: true }) as unknown as { data: DayRow[] | null };
@@ -241,7 +241,7 @@ export function useLast7Days(groupId: string | null) {
         user_id: r.user_id,
         full_name: profiles[r.user_id] ?? null,
         score_date: r.score_date,
-        total_points: r.total_points ?? 0,
+        total_points: (r.total_points ?? 0) + (r.streak_bonus ?? 0),
       }));
     },
   });
@@ -836,11 +836,11 @@ export function useGroupMembersGlobalLast7Days(memberIds: string[]) {
       since.setDate(since.getDate() - 6);
       const sinceStr = since.toISOString().split("T")[0];
 
-      type ScoreRow = { user_id: string; score_date: string; total_points: number | null };
+      type ScoreRow = { user_id: string; score_date: string; total_points: number | null; streak_bonus: number | null };
 
       const { data } = await supabase
         .from("daily_scores")
-        .select("user_id, score_date, total_points")
+        .select("user_id, score_date, total_points, streak_bonus")
         .in("user_id", memberIds)
         .gte("score_date", sinceStr) as unknown as { data: ScoreRow[] | null };
 
@@ -849,7 +849,7 @@ export function useGroupMembersGlobalLast7Days(memberIds: string[]) {
       for (const row of data ?? []) {
         const uid = row.user_id;
         const date = row.score_date;
-        const pts = row.total_points ?? 0;
+        const pts = (row.total_points ?? 0) + (row.streak_bonus ?? 0);
         if (!perUserPerDate[uid]) perUserPerDate[uid] = {};
         perUserPerDate[uid][date] = Math.max(perUserPerDate[uid][date] ?? 0, pts);
       }
