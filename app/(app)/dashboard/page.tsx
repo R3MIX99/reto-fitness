@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Flame, Dumbbell, UtensilsCrossed, Target, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
-import { useMyGroups, useGlobalLeaderboard, useTodayScore, useStreak, getInitials, useGroupsRealtime } from "@/lib/hooks/useGroups";
+import { useMyGroups, useGroupMembersGlobalLeaderboard, useTodayScore, useStreak, getInitials, useGroupsRealtime } from "@/lib/hooks/useGroups";
 import { useGoals, useTodayChecks, goalAppliesOn, todayStr } from "@/lib/hooks/useChecklist";
 import { useActiveSeasonCount } from "@/lib/hooks/useSeasons";
 import { PlayerCard } from "@/components/player/PlayerCard";
@@ -118,12 +118,14 @@ export default function DashboardPage() {
   const { data: streakData = { streak_day: 0, streak_bonus: 0 } } = useStreak(groupId);
   const streak = streakData.streak_day;
   const streakBonus = streakData.streak_bonus;
-  const { data: leaderboard = [] } = useGlobalLeaderboard(groupIds);
   const { data: activeSeasonCount = 0 } = useActiveSeasonCount(groupIds);
 
   // If no one has scored yet, show all unique members from all groups at 0 pts
   const allMembers = groups.flatMap((g) => g.members);
   const uniqueMembers = Array.from(new Map(allMembers.map((m) => [m.user_id, m])).values());
+  const memberIds = uniqueMembers.map((m) => m.user_id);
+  // Leaderboard global: suma el score real de cada jugador en TODOS sus grupos
+  const { data: leaderboard = [] } = useGroupMembersGlobalLeaderboard(memberIds);
   const effectiveLeaderboard = leaderboard.length > 0
     ? leaderboard
     : uniqueMembers.map((m, i) => ({
