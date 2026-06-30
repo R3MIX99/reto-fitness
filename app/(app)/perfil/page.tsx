@@ -12,7 +12,7 @@ import {
   LogOut, ChevronRight, ChevronLeft, Bell, BellOff, X,
   Trophy, Flame, Zap, Users, Copy, Check,
   Pencil, Crown, Sparkles, Medal, SlidersHorizontal,
-  Globe, AlertTriangle, Trash2,
+  Globe, AlertTriangle, Trash2, Bookmark,
 } from "lucide-react";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { PlanCard } from "@/components/perfil/PlanCard";
@@ -539,6 +539,22 @@ export default function PerfilPage() {
             );
           })}
         </div>
+
+        {/* Recuerdos */}
+        <p className="text-[13px] text-[var(--color-muted)] mb-2.5">Recuerdos</p>
+        <button
+          onClick={() => router.push("/recuerdos")}
+          className="w-full bg-[var(--color-bg-card)] rounded-[16px] px-4 py-3.5 flex items-center gap-3 mb-5 text-left"
+        >
+          <div className="w-[30px] h-[30px] rounded-[10px] bg-warm/20 flex items-center justify-center flex-shrink-0">
+            <Bookmark size={16} strokeWidth={1.5} className="text-warm" />
+          </div>
+          <div className="flex-1 leading-snug min-w-0">
+            <p className="text-[13px]">Mis recuerdos</p>
+            <p className="text-[11px] text-[var(--color-muted)]">Tus evidencias guardadas del año</p>
+          </div>
+          <ChevronRight size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+        </button>
 
         {/* Títulos ganados */}
         {(stats?.wonWeeks.length ?? 0) > 0 && (

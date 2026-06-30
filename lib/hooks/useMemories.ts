@@ -3,11 +3,42 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
+import type { CheckEvidence } from "./useChecklist";
 
 // Recuerdos preservados para el Wrapped anual (Pro/Elite). El usuario guarda sus
 // evidencias favoritas; quedan exentas de la purga de storage.
 
 export const MEMORY_MANUAL_CAP = 20; // por usuario por año
+
+export interface Memory {
+  id: string;
+  check_id: string | null;
+  kind: string | null;
+  goal_title: string | null;
+  check_date: string;
+  year: number;
+  path: string;
+  evidence: CheckEvidence | null;
+  source: "manual" | "auto";
+}
+
+// Lista completa de recuerdos del usuario (para la página de recuerdos).
+export function useMemoriesList() {
+  const { user } = useUser();
+  return useQuery({
+    queryKey: ["memoriesList", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<Memory[]> => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("memories")
+        .select("id, check_id, kind, goal_title, check_date, year, path, evidence, source")
+        .eq("user_id", user!.id)
+        .order("check_date", { ascending: false }) as unknown as { data: Memory[] | null };
+      return data ?? [];
+    },
+  });
+}
 
 // Set de check_id que el usuario ya guardó como recuerdo (para el toggle).
 export function useMemoryCheckIds() {
@@ -58,6 +89,7 @@ export function useSaveMemory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["memoryCheckIds"] });
       qc.invalidateQueries({ queryKey: ["memoryCount"] });
+      qc.invalidateQueries({ queryKey: ["memoriesList"] });
     },
   });
 }
@@ -73,6 +105,7 @@ export function useRemoveMemory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["memoryCheckIds"] });
       qc.invalidateQueries({ queryKey: ["memoryCount"] });
+      qc.invalidateQueries({ queryKey: ["memoriesList"] });
     },
   });
 }
