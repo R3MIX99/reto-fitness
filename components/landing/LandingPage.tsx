@@ -197,50 +197,40 @@ function Hero() {
 
         {/* ── Columna derecha: teléfono recortado ── */}
         <motion.div
-          className="w-full md:w-1/2 lg:w-[48%] mt-12 md:mt-0"
+          className="w-full md:w-1/2 lg:w-[48%] mt-10 md:mt-0"
           initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.9, delay: 0.4 }}
-          style={{ position: "relative", alignSelf: "stretch", minHeight: 480 }}>
+          style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
 
           {/* Glow detrás del teléfono */}
           <div aria-hidden style={{
-            position: "absolute", top: "30%", left: "20%",
-            width: 300, height: 400, borderRadius: "50%",
-            background: "radial-gradient(ellipse, rgba(239,200,139,0.14) 0%, transparent 65%)",
+            position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)",
+            width: 280, height: 380, borderRadius: "50%",
+            background: "radial-gradient(ellipse, rgba(239,200,139,0.15) 0%, transparent 65%)",
             filter: "blur(50px)", zIndex: 0, pointerEvents: "none",
           }} />
 
-          {/* Imagen del teléfono — desborda por abajo, recortada */}
-          <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+          {/* Wrapper que recorta el teléfono por abajo */}
+          <div style={{
+            position: "relative",
+            zIndex: 1,
+            width: "min(320px, 80%)",
+            overflow: "hidden",
+          }}>
             <Image
               src="/mockup-hero.png"
               alt="Olympo app dashboard"
               width={360}
               height={780}
               priority
-              style={{
-                position: "absolute",
-                top: "50%", left: "50%",
-                transform: "translate(-50%, -30%)",
-                height: "110%", width: "auto",
-                borderRadius: 44,
-                maxWidth: "none",
-              }}
+              style={{ width: "100%", height: "auto", display: "block", borderRadius: 44 }}
             />
 
-            {/* Degradado de abajo hacia arriba — recorta el teléfono */}
+            {/* Degradado de abajo hacia arriba — recorta la imagen */}
             <div style={{
               position: "absolute", bottom: 0, left: 0, right: 0,
-              height: "55%",
-              background: `linear-gradient(to top, ${BG} 0%, ${BG} 20%, rgba(4,5,6,0.6) 55%, transparent 100%)`,
-              pointerEvents: "none",
-            }} />
-
-            {/* Degradado izquierda — fusiona con el fondo en desktop */}
-            <div className="hidden md:block" style={{
-              position: "absolute", top: 0, bottom: 0, left: 0,
-              width: "30%",
-              background: `linear-gradient(to right, ${BG} 0%, transparent 100%)`,
+              height: "52%",
+              background: `linear-gradient(to top, ${BG} 0%, ${BG} 18%, rgba(4,5,6,0.85) 42%, transparent 100%)`,
               pointerEvents: "none",
             }} />
           </div>
