@@ -5,13 +5,14 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft, Check, X, Clock, Dumbbell, UtensilsCrossed,
-  Target, ImageIcon, RefreshCw, ChevronDown, ChevronUp, Video as VideoIcon,
+  Target, ImageIcon, RefreshCw, ChevronDown, ChevronUp, Video as VideoIcon, Archive, Lock,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useMyAudits, type MyAuditEntry } from "@/lib/hooks/useMyAudits";
 import { useAuditCheck } from "@/lib/hooks/useAuditoria";
 import { useUser } from "@/lib/hooks/useUser";
 import { isVideoPath } from "@/lib/hooks/useChecklist";
+import { auditWindowClosed } from "@/lib/auditWindow";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -46,11 +47,12 @@ function KindBadge({ kind }: { kind: string }) {
   );
 }
 
-function EvidenceThumb({ path }: { path: string }) {
+function EvidenceThumb({ path, purged }: { path: string; purged?: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
   const [errored, setErrored] = useState(false);
 
   useEffect(() => {
+    if (purged || !path) return;
     setUrl(null);
     setErrored(false);
     createClient()
@@ -60,7 +62,16 @@ function EvidenceThumb({ path }: { path: string }) {
         if (data?.signedUrl) setUrl(data.signedUrl);
         else setErrored(true);
       });
-  }, [path]);
+  }, [path, purged]);
+
+  if (purged) {
+    return (
+      <div className="w-[72px] h-[72px] flex-shrink-0 rounded-[12px] flex flex-col items-center justify-center gap-1" style={{ background: "var(--color-surface)" }}>
+        <Archive size={18} strokeWidth={1.25} className="text-[var(--color-muted)]" />
+        <span className="text-[9px] text-[var(--color-muted)] text-center leading-tight">Archivada</span>
+      </div>
+    );
+  }
 
   if (!url) {
     return (
@@ -112,6 +123,11 @@ function AuditCard({
 
   const isResubmitted = entry.check_status === "pending";
   const isApproved = entry.check_status === "approved";
+  // Ventana cerrada (semana + 2 días): decisión bloqueada y evidencia purgada.
+  const windowClosed = auditWindowClosed(entry.check_date);
+  // Solo se puede cambiar la decisión si: la ventana sigue abierta Y no está ya
+  // aprobada (una aprobación es definitiva, no se puede pasar a rechazo).
+  const canChange = !windowClosed && !isApproved;
 
   const subtitle = [formatDate(entry.check_date), entry.goal_title].filter(Boolean).join(" · ");
 
@@ -135,7 +151,7 @@ function AuditCard({
 
       {/* Evidence + status row */}
       <div className="flex items-center gap-3">
-        <EvidenceThumb path={entry.check_evidence_path} />
+        <EvidenceThumb path={entry.check_evidence_path} purged={entry.check_evidence_purged} />
 
         <div className="flex-1 space-y-2">
           {/* Current check status */}
@@ -161,8 +177,9 @@ function AuditCard({
             <p className="text-[11px] text-[var(--color-muted)] italic">&ldquo;{entry.reason}&rdquo;</p>
           )}
 
-          {/* Change decision toggle for already-reviewed */}
-          {!isResubmitted && (
+          {/* Change decision toggle — solo si la ventana sigue abierta y no está
+              ya aprobada (la aprobación es definitiva). */}
+          {!isResubmitted && canChange && (
             <button
               onClick={() => setExpanded(!expanded)}
               className="flex items-center gap-1 text-[11px] text-[var(--color-muted)] hover:text-[var(--color-fg)] transition-colors"
@@ -171,11 +188,19 @@ function AuditCard({
               {expanded ? <ChevronUp size={11} strokeWidth={1.5} /> : <ChevronDown size={11} strokeWidth={1.5} />}
             </button>
           )}
+
+          {/* Bloqueo: ventana cerrada (semana + 2 días) */}
+          {windowClosed && (
+            <span className="flex items-center gap-1.5 text-[11px] text-[var(--color-muted)]">
+              <Lock size={10} strokeWidth={1.5} />
+              Periodo de revisión cerrado
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Action buttons — shown for re-submitted OR expanded change */}
-      {(isResubmitted || expanded) && !rejectOpen && (
+      {/* Action buttons — shown for re-submitted OR expanded change (solo con ventana abierta) */}
+      {(isResubmitted || expanded) && !rejectOpen && !windowClosed && (
         <div className="flex gap-2 mt-3">
           <button
             onClick={onApprove}

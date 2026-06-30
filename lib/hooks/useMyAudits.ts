@@ -15,6 +15,7 @@ export interface MyAuditEntry {
   check_date: string;
   check_kind: string;
   check_evidence_path: string;
+  check_evidence_purged: boolean;
   check_goal_id: string | null;
   check_group_id: string;
   owner_id: string;
@@ -56,12 +57,13 @@ export function useMyAudits() {
         kind: string;
         check_date: string;
         evidence_path: string;
+        evidence_purged: boolean;
         status: string;
         goal_id: string | null;
       };
       const { data: checks } = await supabase
         .from("daily_checks")
-        .select("id, user_id, group_id, kind, check_date, evidence_path, status, goal_id")
+        .select("id, user_id, group_id, kind, check_date, evidence_path, evidence_purged, status, goal_id")
         .in("id", checkIds) as unknown as { data: CheckRow[] | null };
 
       if (!checks?.length) return [];
@@ -104,6 +106,7 @@ export function useMyAudits() {
           check_date: check.check_date,
           check_kind: check.kind,
           check_evidence_path: check.evidence_path,
+          check_evidence_purged: check.evidence_purged ?? false,
           check_goal_id: check.goal_id,
           check_group_id: check.group_id,
           owner_id: check.user_id,
