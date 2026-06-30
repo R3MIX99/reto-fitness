@@ -570,6 +570,12 @@ export function useDeleteGoal() {
       // Al borrar la meta, quitar también sus recuerdos guardados (ya no se
       // podrán ver) y desmarcar is_memory para que la purga limpie los archivos.
       await (supabase.rpc as Function)("remove_memories_for_goal", { p_goal_id: id });
+      // Eliminar los checks de la meta desde hoy: se quitan de revisión/auditoría
+      // y dejan de sumar puntos. Devuelve las rutas para borrar del storage.
+      const { data: paths } = await (supabase.rpc as Function)("purge_goal_checks", { p_goal_id: id });
+      if (Array.isArray(paths) && paths.length) {
+        await supabase.storage.from("evidencias").remove(paths as string[]);
+      }
       // Borrar una meta cambia el denominador → recalcular puntos del usuario
       // en todos sus días con registro y propagar a las tablas.
       await recalcMyScores();
@@ -580,6 +586,13 @@ export function useDeleteGoal() {
       qc.invalidateQueries({ queryKey: ["memoriesList"] });
       qc.invalidateQueries({ queryKey: ["memoryCheckIds"] });
       qc.invalidateQueries({ queryKey: ["memoryCount"] });
+      qc.invalidateQueries({ queryKey: ["pendingChecks"] });
+      qc.invalidateQueries({ queryKey: ["pendingAudits"] });
+      qc.invalidateQueries({ queryKey: ["todayChecks"] });
+      qc.invalidateQueries({ queryKey: ["dateChecks"] });
+      qc.invalidateQueries({ queryKey: ["monthChecks"] });
+      qc.invalidateQueries({ queryKey: ["todayScore"] });
+      qc.invalidateQueries({ queryKey: ["myAudits"] });
       invalidateScoreQueries(qc);
     },
   });
