@@ -298,18 +298,30 @@ export function useStreak(groupId: string | null) {
       const supabase = createClient();
       const _d = new Date();
       const todayStr = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
-      type Row = { streak_day: number | null; streak_bonus: number | null };
+      const _y = new Date(_d); _y.setDate(_y.getDate() - 1);
+      const yesterdayStr = `${_y.getFullYear()}-${String(_y.getMonth()+1).padStart(2,"0")}-${String(_y.getDate()).padStart(2,"0")}`;
+
+      type Row = { score_date: string; streak_day: number | null; streak_bonus: number | null };
       const { data } = await supabase
         .from("daily_scores")
-        .select("streak_day, streak_bonus")
+        .select("score_date, streak_day, streak_bonus")
         .eq("user_id", user.id)
         .eq("group_id", groupId)
-        .eq("score_date", todayStr)
-        .single() as unknown as { data: Row | null };
-      return {
-        streak_day:   data?.streak_day   ?? 0,
-        streak_bonus: data?.streak_bonus ?? 0,
-      };
+        .in("score_date", [todayStr, yesterdayStr]) as unknown as { data: Row[] | null };
+
+      const today = data?.find((r) => r.score_date === todayStr);
+      const yesterday = data?.find((r) => r.score_date === yesterdayStr);
+
+      // Si hoy ya está completo (streak_day > 0) → usar hoy.
+      // Si no, usar ayer (la racha sigue activa hasta medianoche).
+      const displayDay = (today?.streak_day ?? 0) > 0
+        ? (today?.streak_day ?? 0)
+        : (yesterday?.streak_day ?? 0);
+      const displayBonus = (today?.streak_bonus ?? 0) > 0
+        ? (today?.streak_bonus ?? 0)
+        : (yesterday?.streak_bonus ?? 0);
+
+      return { streak_day: displayDay, streak_bonus: displayBonus };
     },
   });
 }
@@ -748,6 +760,8 @@ export function useGroupMembersGlobalLeaderboard(memberIds: string[]) {
 
       const _md = new Date();
       const todayMd = `${_md.getFullYear()}-${String(_md.getMonth()+1).padStart(2,"0")}-${String(_md.getDate()).padStart(2,"0")}`;
+      const _yd = new Date(_md); _yd.setDate(_yd.getDate() - 1);
+      const yesterdayMd = `${_yd.getFullYear()}-${String(_yd.getMonth()+1).padStart(2,"0")}-${String(_yd.getDate()).padStart(2,"0")}`;
 
       const { data } = await supabase
         .from("daily_scores")
@@ -756,16 +770,27 @@ export function useGroupMembersGlobalLeaderboard(memberIds: string[]) {
 
       // Deduplicar por (usuario, fecha) → tomar el máximo entre grupos
       const perUserPerDate: Record<string, Record<string, number>> = {};
-      const streakDaysMb: Record<string, number> = {};
+      const streakTodayMb: Record<string, number> = {};
+      const streakYesterdayMb: Record<string, number> = {};
       for (const row of data ?? []) {
         const uid = row.user_id;
         const date = row.score_date;
         const effective = (row.total_points ?? 0) + (row.streak_bonus ?? 0);
         if (!perUserPerDate[uid]) perUserPerDate[uid] = {};
         perUserPerDate[uid][date] = Math.max(perUserPerDate[uid][date] ?? 0, effective);
-        if (date === todayMd && (row.streak_day ?? 0) > (streakDaysMb[uid] ?? 0)) {
-          streakDaysMb[uid] = row.streak_day ?? 0;
+        if (date === todayMd && (row.streak_day ?? 0) > (streakTodayMb[uid] ?? 0)) {
+          streakTodayMb[uid] = row.streak_day ?? 0;
         }
+        if (date === yesterdayMd && (row.streak_day ?? 0) > (streakYesterdayMb[uid] ?? 0)) {
+          streakYesterdayMb[uid] = row.streak_day ?? 0;
+        }
+      }
+      // Si hoy ya completó → usar hoy; si no, usar ayer (racha activa hasta medianoche)
+      const streakDaysMb: Record<string, number> = {};
+      for (const uid of memberIds) {
+        streakDaysMb[uid] = (streakTodayMb[uid] ?? 0) > 0
+          ? (streakTodayMb[uid] ?? 0)
+          : (streakYesterdayMb[uid] ?? 0);
       }
 
       const totals: Record<string, number> = {};
