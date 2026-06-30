@@ -764,8 +764,10 @@ export function useGroupMembersGlobalLeaderboard(memberIds: string[]) {
 
       // Puntos globales reales: RPC con SECURITY DEFINER para ver todos los grupos
       type GlobalRow = { user_id: string; total_global_points: number | null };
-      const { data: globalData } = await supabase
-        .rpc("get_users_global_scores", { p_user_ids: memberIds }) as unknown as { data: GlobalRow[] | null };
+      const { data: globalData } = await (supabase.rpc as Function)(
+        "get_users_global_scores",
+        { p_user_ids: memberIds }
+      ) as { data: GlobalRow[] | null };
 
       const totals: Record<string, number> = {};
       for (const row of globalData ?? []) {

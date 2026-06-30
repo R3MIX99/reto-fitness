@@ -3,8 +3,7 @@
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useProfile } from "@/lib/hooks/useProfile";
-
-export const PENDING_INVITE_KEY = "olympo_pending_invite";
+import { PENDING_INVITE_KEY } from "@/lib/constants";
 
 function UnirseInner() {
   const router = useRouter();

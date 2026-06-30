@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useProfile } from "@/lib/hooks/useProfile";
-import { PENDING_INVITE_KEY } from "@/app/unirse/page";
+import { PENDING_INVITE_KEY } from "@/lib/constants";
 
 type Step = {
   route: string;
