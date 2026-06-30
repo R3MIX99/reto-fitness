@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Crown, Shield, ChevronRight, Users, Layers, Settings } from "lucide-react";
 import { usePlan, TIER_LABEL, TIER_PRICE, useOpenPortal } from "@/lib/hooks/usePlan";
+import { useIsNativeApp } from "@/lib/platform";
 import { UpgradeDrawer } from "./UpgradeDrawer";
 
 // Tarjeta de plan en el perfil: plan actual, uso de grupos, mejora y gestión
@@ -15,6 +16,7 @@ export function PlanCard() {
   const qc = useQueryClient();
   const params = useSearchParams();
   const portal = useOpenPortal();
+  const native = useIsNativeApp();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // Al volver del checkout, refresca el plan (el webhook ya lo actualizó).
@@ -66,6 +68,14 @@ export function PlanCard() {
           <Shield size={14} strokeWidth={1.5} /> Panel de super-admin
           <ChevronRight size={14} strokeWidth={1.5} />
         </Link>
+      ) : native ? (
+        // Dentro de la app de tienda (TWA/Capacitor) no mostramos compra ni
+        // gestión de pago (Apple/Google lo prohíben). Solo texto neutral.
+        <p className="text-[11px] text-[var(--color-muted)] text-center">
+          {plan.tier === "free"
+            ? "Desbloquea más grupos y funciones con Pro o Elite."
+            : "Gestiona tu suscripción desde olympodynami.com"}
+        </p>
       ) : (
         <div className="space-y-2">
           {plan.tier !== "elite" && (
@@ -90,11 +100,13 @@ export function PlanCard() {
         </div>
       )}
 
-      <UpgradeDrawer
-        open={upgradeOpen}
-        onClose={() => setUpgradeOpen(false)}
-        defaultTier={plan.tier === "pro" ? "elite" : "pro"}
-      />
+      {!native && (
+        <UpgradeDrawer
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          defaultTier={plan.tier === "pro" ? "elite" : "pro"}
+        />
+      )}
     </div>
   );
 }
