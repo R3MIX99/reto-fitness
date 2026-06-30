@@ -383,7 +383,7 @@ export default function PerfilPage() {
     <div className="pb-24">
       {/* Barra superior */}
       <div className="flex items-center justify-between px-[18px] py-3">
-        <button onClick={() => router.back()} aria-label="Volver">
+        <button onClick={() => router.push("/dashboard")} aria-label="Volver">
           <ChevronLeft size={22} strokeWidth={1.5} className="text-[var(--color-fg)]" />
         </button>
         <span className="text-[15px] font-medium">Perfil</span>
