@@ -57,7 +57,7 @@ Las fotos de evidencia se almacenan en Supabase Storage con acceso restringido a
 • Solicitar la eliminación de tu cuenta y datos asociados.
 • Retirar tu consentimiento en cualquier momento.
 
-Para ejercer estos derechos, contáctanos en: privacidad@olimpodynami.com`,
+Para ejercer estos derechos, contáctanos en: privacidad@olympodynami.com`,
           },
           {
             title: "6. Menores de edad",
@@ -69,7 +69,7 @@ Para ejercer estos derechos, contáctanos en: privacidad@olimpodynami.com`,
           },
           {
             title: "8. Contacto",
-            body: `Si tienes preguntas sobre esta política de privacidad, contáctanos en:\n\nprivacidad@olimpodynami.com`,
+            body: `Si tienes preguntas sobre esta política de privacidad, contáctanos en:\n\nprivacidad@olympodynami.com`,
           },
         ].map(({ title, body }) => (
           <section key={title} style={{ marginBottom: 40 }}>

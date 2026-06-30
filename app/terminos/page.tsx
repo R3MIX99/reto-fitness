@@ -71,7 +71,7 @@ Los pagos se procesan de forma segura a través de Stripe. Las suscripciones se 
           },
           {
             title: "10. Contacto",
-            body: `Si tienes preguntas sobre estos términos, contáctanos en:\n\nhola@olimpodynami.com`,
+            body: `Si tienes preguntas sobre estos términos, contáctanos en:\n\nhola@olympodynami.com`,
           },
         ].map(({ title, body }) => (
           <section key={title} style={{ marginBottom: 40 }}>

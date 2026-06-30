@@ -27,6 +27,7 @@ const inter = Inter({
 
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://www.olympodynami.com"),
   title: "Olympo",
   description: "Compite con tus amigos para cumplir metas de gimnasio y dieta",
   manifest: "/manifest.json",
