@@ -231,13 +231,13 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
             onClick={() => isDone && onDetail?.()}
             disabled={!isDone}
           >
-            <div className="flex items-center gap-2">
-              <p className="text-[15px] font-medium" style={{ color: isRejected ? "#ef4444" : undefined }}>
-                Ejercicio de hoy
-              </p>
+            <p className="text-[15px] font-medium truncate" style={{ color: isRejected ? "#ef4444" : undefined }}>
+              Ejercicio de hoy
+            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[12px] text-[var(--color-muted)]">{statusLabel}</span>
               <PointsBadge earned={isDone && !isRejected ? 3 : 0} max={3} />
             </div>
-            <p className="text-[12px] text-[var(--color-muted)]">{statusLabel}</p>
           </button>
 
           {isPending && (
