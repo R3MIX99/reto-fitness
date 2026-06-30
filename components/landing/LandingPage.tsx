@@ -139,12 +139,12 @@ function Hero() {
       }} />
 
       {/* Contenedor principal: texto izquierda + teléfono derecha */}
-      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", alignItems: "center", maxWidth: 1200, margin: "0 auto", width: "100%", gap: 0 }}
-        className="flex-col md:flex-row pt-[120px] md:pt-[100px]">
+      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", alignItems: "center", maxWidth: 1300, margin: "0 auto", width: "100%", gap: 48 }}
+        className="flex-col md:flex-row pt-[120px] md:pt-[110px] px-8 md:px-16">
 
         {/* ── Columna izquierda: texto ── */}
-        <div className="w-full md:w-[48%]"
-          style={{ padding: "0 32px 0 clamp(24px, 5vw, 72px)", display: "flex", flexDirection: "column", alignItems: "flex-start", flexShrink: 0 }}>
+        <div className="w-full md:w-[46%]"
+          style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", flexShrink: 0 }}>
 
           {/* Badge */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
@@ -197,10 +197,10 @@ function Hero() {
 
         {/* ── Columna derecha: teléfono ── */}
         <motion.div
-          className="w-full md:w-[52%] mt-10 md:mt-0"
+          className="w-full md:w-[54%] mt-10 md:mt-0"
           initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.9, delay: 0.4 }}
-          style={{ position: "relative", display: "flex", justifyContent: "flex-start", alignItems: "flex-start", paddingLeft: 16 }}>
+          style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
 
           {/* Glow detrás del teléfono */}
           <div aria-hidden style={{
@@ -225,7 +225,7 @@ function Hero() {
       </div>
 
       {/* ── Stats row — debajo del split ── */}
-      <div style={{ position: "relative", zIndex: 1, padding: "0 clamp(24px, 5vw, 72px) 64px", maxWidth: 1200, margin: "0 auto", width: "100%" }}>
+      <div style={{ position: "relative", zIndex: 1, padding: "0 64px 80px", maxWidth: 1300, margin: "0 auto", width: "100%" }}>
         <motion.div
           initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.6 }}
