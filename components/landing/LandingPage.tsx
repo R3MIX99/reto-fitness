@@ -210,17 +210,16 @@ function Hero() {
             filter: "blur(50px)", zIndex: 0, pointerEvents: "none",
           }} />
 
-          {/* Wrapper del teléfono — mezcla en los 4 bordes */}
-          <div style={{ position: "relative", zIndex: 1, width: "min(480px, 95%)" }}>
+          {/* Wrapper del teléfono — desplazado hacia abajo para no tocar el borde superior */}
+          <div style={{ position: "relative", zIndex: 1, width: "min(480px, 95%)", marginTop: 60 }}>
             <Image
               src="/mockup-hero.png"
               alt="Olympo app dashboard"
-              width={360}
-              height={780}
+              width={960}
+              height={1200}
               priority
               style={{ width: "100%", height: "auto", display: "block" }}
             />
-
           </div>
         </motion.div>
       </div>
