@@ -12,7 +12,7 @@ import {
   LogOut, ChevronRight, ChevronLeft, Bell, BellOff, X,
   Trophy, Flame, Zap, Users, Copy, Check,
   Pencil, Crown, Sparkles, Medal, SlidersHorizontal,
-  Globe, AlertTriangle, Trash2, Bookmark,
+  Globe, AlertTriangle, Trash2, Bookmark, FileText, Shield,
 } from "lucide-react";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { PlanCard } from "@/components/perfil/PlanCard";
@@ -649,6 +649,16 @@ export default function PerfilPage() {
               <p className="text-[11px] text-[var(--color-muted)] truncate">{user?.email}</p>
             </div>
           </div>
+          <a href="/terminos" className="w-full flex items-center gap-3 py-3 text-left">
+            <FileText size={17} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+            <span className="text-[13px] flex-1">Términos de servicio</span>
+            <ChevronRight size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+          </a>
+          <a href="/privacidad" className="w-full flex items-center gap-3 py-3 text-left">
+            <Shield size={17} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+            <span className="text-[13px] flex-1">Política de privacidad</span>
+            <ChevronRight size={16} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+          </a>
           <button onClick={handleSignOut} className="w-full flex items-center gap-3 py-3 text-left">
             <LogOut size={17} strokeWidth={1.5} className="text-accent" />
             <span className="text-[13px] text-accent">Cerrar sesión</span>

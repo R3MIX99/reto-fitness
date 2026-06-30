@@ -343,7 +343,10 @@ function LoginInner() {
             {error && <p className="text-center text-[12px] text-accent">{error}</p>}
 
             <p className="text-center text-[11px] text-[var(--color-muted)] pt-4">
-              Al continuar aceptas los términos del reto.<br />
+              Al continuar aceptas los{" "}
+              <a href="/terminos" className="underline" style={{ color: "var(--color-fg)" }}>Términos</a>
+              {" "}y la{" "}
+              <a href="/privacidad" className="underline" style={{ color: "var(--color-fg)" }}>Política de Privacidad</a>.<br />
               Solo tú y tus amigos ven tus datos.
             </p>
           </div>
