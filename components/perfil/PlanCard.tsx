@@ -1,15 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Crown, Shield, ChevronRight, Users, Layers } from "lucide-react";
-import { usePlan, TIER_LABEL, TIER_PRICE } from "@/lib/hooks/usePlan";
+import { useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { Crown, Shield, ChevronRight, Users, Layers, Settings } from "lucide-react";
+import { usePlan, TIER_LABEL, TIER_PRICE, useOpenPortal } from "@/lib/hooks/usePlan";
+import { UpgradeDrawer } from "./UpgradeDrawer";
 
-// Tarjeta de plan en el perfil: plan actual, uso de grupos y acceso al panel
-// de super-admin. El botón "Mejorar plan" conecta el cobro en la Fase 4.
+// Tarjeta de plan en el perfil: plan actual, uso de grupos, mejora y gestión
+// de la suscripción (Stripe), y acceso al panel de super-admin.
 export function PlanCard() {
   const { data: plan } = usePlan();
-  const [soon, setSoon] = useState(false);
+  const qc = useQueryClient();
+  const params = useSearchParams();
+  const portal = useOpenPortal();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  // Al volver del checkout, refresca el plan (el webhook ya lo actualizó).
+  useEffect(() => {
+    if (params.get("checkout") === "success") {
+      qc.invalidateQueries({ queryKey: ["myPlan"] });
+      qc.invalidateQueries({ queryKey: ["groups"] });
+    }
+  }, [params, qc]);
+
   if (!plan) return null;
 
   const unlimited = plan.is_super_admin;
@@ -51,21 +66,35 @@ export function PlanCard() {
           <Shield size={14} strokeWidth={1.5} /> Panel de super-admin
           <ChevronRight size={14} strokeWidth={1.5} />
         </Link>
-      ) : plan.tier !== "elite" ? (
-        <>
-          <button
-            onClick={() => setSoon(true)}
-            className="w-full flex items-center justify-center gap-2 text-[13px] font-medium rounded-pill py-2.5 bg-warm text-accent-dark"
-          >
-            <Crown size={14} strokeWidth={1.5} /> Mejorar plan
-          </button>
-          {soon && (
-            <p className="text-[11px] text-[var(--color-muted)] text-center mt-2">
-              El pago de planes estará disponible muy pronto.
-            </p>
+      ) : (
+        <div className="space-y-2">
+          {plan.tier !== "elite" && (
+            <button
+              onClick={() => setUpgradeOpen(true)}
+              className="w-full flex items-center justify-center gap-2 text-[13px] font-medium rounded-pill py-2.5 bg-warm text-accent-dark"
+            >
+              <Crown size={14} strokeWidth={1.5} /> Mejorar plan
+            </button>
           )}
-        </>
-      ) : null}
+          {plan.tier !== "free" && (
+            <button
+              onClick={() => portal.mutate()}
+              disabled={portal.isPending}
+              className="w-full flex items-center justify-center gap-2 text-[13px] rounded-pill py-2.5 disabled:opacity-50"
+              style={{ border: "1px solid var(--color-border)" }}
+            >
+              <Settings size={14} strokeWidth={1.5} className="text-[var(--color-muted)]" />
+              {portal.isPending ? "Abriendo…" : "Gestionar suscripción"}
+            </button>
+          )}
+        </div>
+      )}
+
+      <UpgradeDrawer
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        defaultTier={plan.tier === "pro" ? "elite" : "pro"}
+      />
     </div>
   );
 }

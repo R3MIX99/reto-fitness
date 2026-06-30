@@ -575,7 +575,7 @@ function Planes() {
   const plans = [
     { name: "Free", price: "$0", period: "", highlight: false, color: MUTED, desc: "Para empezar con tus amigos hoy.", cta: "Empezar gratis", features: ["1 grupo", "Hasta 5 miembros", "Leaderboard semanal", "Evidencia fotográfica", "Rachas y bonus", "Temporadas"] },
     { name: "Pro", price: "$99", period: "/mes", highlight: true, color: GOLD, desc: "Para grupos más serios y competitivos.", cta: "Próximamente", features: ["Hasta 5 grupos", "Hasta 10 miembros/grupo", "Todo lo de Free", "Retos grupales programados", "Metas 100% personalizables", "Wrapped anual"] },
-    { name: "Elite", price: "$219", period: "/mes", highlight: false, color: "#9664ff", desc: "Para competidores de alto nivel.", cta: "Próximamente", features: ["Hasta 20 grupos", "Hasta 30 miembros/grupo", "Todo lo de Pro", "Liga entre grupos", "Títulos personalizados de campeón", "Soporte prioritario"] },
+    { name: "Elite", price: "$199", period: "/mes", highlight: false, color: "#9664ff", desc: "Para competidores de alto nivel.", cta: "Próximamente", features: ["Hasta 20 grupos", "Hasta 30 miembros/grupo", "Todo lo de Pro", "Liga entre grupos", "Títulos personalizados de campeón", "Soporte prioritario"] },
   ];
   return (
     <section id="planes" ref={ref} style={{ padding: "0 24px 120px", maxWidth: 1100, margin: "0 auto" }}>
