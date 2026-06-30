@@ -755,7 +755,6 @@ export function useGroupMembersGlobalLeaderboard(memberIds: string[]) {
     queryFn: async (): Promise<LeaderboardEntry[]> => {
       if (!memberIds.length) return [];
       const supabase = createClient();
-      type ScoreRow = { user_id: string; score_date: string; total_points: number | null; streak_bonus: number | null; streak_day: number | null };
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
 
       const _md = new Date();
@@ -763,21 +762,30 @@ export function useGroupMembersGlobalLeaderboard(memberIds: string[]) {
       const _yd = new Date(_md); _yd.setDate(_yd.getDate() - 1);
       const yesterdayMd = `${_yd.getFullYear()}-${String(_yd.getMonth()+1).padStart(2,"0")}-${String(_yd.getDate()).padStart(2,"0")}`;
 
+      // Puntos globales reales: RPC con SECURITY DEFINER para ver todos los grupos
+      type GlobalRow = { user_id: string; total_global_points: number | null };
+      const { data: globalData } = await supabase
+        .rpc("get_users_global_scores", { p_user_ids: memberIds }) as unknown as { data: GlobalRow[] | null };
+
+      const totals: Record<string, number> = {};
+      for (const row of globalData ?? []) {
+        totals[row.user_id] = row.total_global_points ?? 0;
+      }
+
+      // Streak: sí puede estar restringido a grupos compartidos, pero es suficiente
+      // porque la racha se forma en los grupos donde ambos coinciden.
+      type ScoreRow = { user_id: string; score_date: string; streak_day: number | null };
       const { data } = await supabase
         .from("daily_scores")
-        .select("user_id, score_date, total_points, streak_bonus, streak_day")
-        .in("user_id", memberIds) as unknown as { data: ScoreRow[] | null };
+        .select("user_id, score_date, streak_day")
+        .in("user_id", memberIds)
+        .in("score_date", [todayMd, yesterdayMd]) as unknown as { data: ScoreRow[] | null };
 
-      // Deduplicar por (usuario, fecha) → tomar el máximo entre grupos
-      const perUserPerDate: Record<string, Record<string, number>> = {};
       const streakTodayMb: Record<string, number> = {};
       const streakYesterdayMb: Record<string, number> = {};
       for (const row of data ?? []) {
         const uid = row.user_id;
         const date = row.score_date;
-        const effective = (row.total_points ?? 0) + (row.streak_bonus ?? 0);
-        if (!perUserPerDate[uid]) perUserPerDate[uid] = {};
-        perUserPerDate[uid][date] = Math.max(perUserPerDate[uid][date] ?? 0, effective);
         if (date === todayMd && (row.streak_day ?? 0) > (streakTodayMb[uid] ?? 0)) {
           streakTodayMb[uid] = row.streak_day ?? 0;
         }
@@ -791,11 +799,6 @@ export function useGroupMembersGlobalLeaderboard(memberIds: string[]) {
         streakDaysMb[uid] = (streakTodayMb[uid] ?? 0) > 0
           ? (streakTodayMb[uid] ?? 0)
           : (streakYesterdayMb[uid] ?? 0);
-      }
-
-      const totals: Record<string, number> = {};
-      for (const [uid, dates] of Object.entries(perUserPerDate)) {
-        totals[uid] = Object.values(dates).reduce((a, b) => a + b, 0);
       }
 
       const profiles = await Promise.all(
