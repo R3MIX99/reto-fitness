@@ -70,6 +70,36 @@ export function useClearCelebration() {
   });
 }
 
+// ── Stripe: checkout y portal ────────────────────────────────────────
+
+// Inicia el checkout de Stripe y redirige. seats = miembros extra (opcional).
+export function useStartCheckout() {
+  return useMutation({
+    mutationFn: async (args: { tier: "pro" | "elite"; interval: "month" | "year"; seats?: number }) => {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(args),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error ?? "No se pudo iniciar el pago");
+      window.location.href = data.url as string;
+    },
+  });
+}
+
+// Abre el Customer Portal de Stripe (gestionar/cancelar suscripción).
+export function useOpenPortal() {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error ?? "No se pudo abrir el portal");
+      window.location.href = data.url as string;
+    },
+  });
+}
+
 // ── Super-admin ──────────────────────────────────────────────────────
 
 export interface AdminUser {
