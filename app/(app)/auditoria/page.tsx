@@ -11,6 +11,7 @@ import { usePendingChecks, useAuditCheck, useAutoApproveOldChecks, kindLabel, ge
 import { useActiveSeason } from "@/lib/hooks/useSeasons";
 import { useUser } from "@/lib/hooks/useUser";
 import { isVideoPath, type CheckEvidence } from "@/lib/hooks/useChecklist";
+import { AudioPlayer } from "@/components/ui/AudioPlayer";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -214,7 +215,7 @@ function CollapsibleRow({
 function EvidenceAudio({ path, enabled }: { path: string; enabled: boolean }) {
   const url = useSignedUrl(path, enabled);
   if (!url) return <p className="text-[12px] text-[var(--color-muted)]">Cargando…</p>;
-  return <audio controls src={url} className="w-full h-9" />;
+  return <AudioPlayer url={url} />;
 }
 
 function EvidenceVideo({ path, enabled }: { path: string; enabled: boolean }) {

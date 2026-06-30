@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
+import { AudioPlayer } from "@/components/ui/AudioPlayer";
 
 // ── Signed URL hook ────────────────────────────────────────────────────────
 
@@ -267,7 +268,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
                   {check.evidence.audio_path && (
                     <div>
                       <p className="text-[11px] text-[var(--color-muted)] mb-1 flex items-center gap-1.5"><Mic size={12} strokeWidth={1.5} /> Audio</p>
-                      {audioUrl ? <audio controls src={audioUrl} className="w-full h-9" /> : <p className="text-[12px] text-[var(--color-muted)]">Cargando…</p>}
+                      {audioUrl ? <AudioPlayer url={audioUrl} /> : <p className="text-[12px] text-[var(--color-muted)]">Cargando…</p>}
                     </div>
                   )}
                   {check.evidence.video_path && (
