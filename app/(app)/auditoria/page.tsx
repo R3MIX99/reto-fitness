@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, type ReactNode } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, X, Check, Dumbbell, UtensilsCrossed, Target, ImageIcon, Maximize2 } from "lucide-react";
+import { ChevronLeft, X, Check, Dumbbell, UtensilsCrossed, Target, ImageIcon, Maximize2, ChevronDown, Timer, AlignLeft, Mic, Video } from "lucide-react";
 import { Drawer as VaulDrawer } from "vaul";
 import { createClient } from "@/lib/supabase/client";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { usePendingChecks, useAuditCheck, useAutoApproveOldChecks, kindLabel, getWeekNumber } from "@/lib/hooks/useAuditoria";
 import { useActiveSeason } from "@/lib/hooks/useSeasons";
 import { useUser } from "@/lib/hooks/useUser";
-import { isVideoPath } from "@/lib/hooks/useChecklist";
+import { isVideoPath, type CheckEvidence } from "@/lib/hooks/useChecklist";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -156,6 +156,152 @@ function EvidenceImage({ path }: { path: string }) {
         </div>
       )}
     </>
+  );
+}
+
+// ── Signed URL bajo demanda (solo se firma cuando enabled) ─────────────────
+
+function useSignedUrl(path: string | null | undefined, enabled: boolean) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!path || !enabled) return;
+    let cancelled = false;
+    createClient()
+      .storage.from("evidencias")
+      .createSignedUrl(path, 3600)
+      .then(({ data }) => { if (!cancelled && data?.signedUrl) setUrl(data.signedUrl); });
+    return () => { cancelled = true; };
+  }, [path, enabled]);
+  return url;
+}
+
+// ── Evidencia personalizada colapsable (metas Pro/Elite) ───────────────────
+// Cada módulo (resumen, audio, video, tiempo, foto "después") se muestra como
+// una fila plegada; al tocarla se expande con scroll para revisar el contenido.
+
+type EvidenceModule = "summary" | "audio" | "video" | "after" | "timer";
+
+function CollapsibleRow({
+  icon, label, defaultOpen = false, children,
+}: {
+  icon: ReactNode; label: string; defaultOpen?: boolean; children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-[12px] overflow-hidden" style={{ background: "var(--color-surface)" }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-3.5 py-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-[13px] text-[var(--color-fg)]">
+          <span className="text-[var(--color-muted)]">{icon}</span>
+          {label}
+        </span>
+        <ChevronDown
+          size={16}
+          strokeWidth={1.5}
+          className="text-[var(--color-muted)] transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "none" }}
+        />
+      </button>
+      {open && (
+        <div className="px-3.5 pb-3.5 pt-0.5">{children}</div>
+      )}
+    </div>
+  );
+}
+
+function EvidenceAudio({ path, enabled }: { path: string; enabled: boolean }) {
+  const url = useSignedUrl(path, enabled);
+  if (!url) return <p className="text-[12px] text-[var(--color-muted)]">Cargando…</p>;
+  return <audio controls src={url} className="w-full h-9" />;
+}
+
+function EvidenceVideo({ path, enabled }: { path: string; enabled: boolean }) {
+  const url = useSignedUrl(path, enabled);
+  if (!url) return <p className="text-[12px] text-[var(--color-muted)]">Cargando…</p>;
+  return <video controls src={url} className="w-full rounded-[10px]" style={{ maxHeight: 240 }} />;
+}
+
+function EvidenceAfterPhoto({ path, enabled }: { path: string; enabled: boolean }) {
+  const url = useSignedUrl(path, enabled);
+  if (!url) {
+    return (
+      <div className="w-full h-[180px] rounded-[12px] flex items-center justify-center" style={{ background: "var(--color-bg-card)" }}>
+        <span className="text-[11px] text-[var(--color-muted)]">Cargando…</span>
+      </div>
+    );
+  }
+  return (
+    <div className="relative w-full h-[220px] rounded-[12px] overflow-hidden" style={{ background: "var(--color-bg-card)" }}>
+      <Image src={url} alt="Después" fill className="object-cover" unoptimized />
+    </div>
+  );
+}
+
+function CustomEvidence({ evidence }: { evidence: CheckEvidence }) {
+  // Qué módulos expandidos (para firmar URLs solo al abrir)
+  const [opened, setOpened] = useState<Set<EvidenceModule>>(new Set());
+  const markOpen = (m: EvidenceModule) => setOpened((prev) => new Set(prev).add(m));
+
+  const hasTimer   = evidence.timer_seconds != null;
+  const hasSummary = !!evidence.summary;
+  const hasAudio   = !!evidence.audio_path;
+  const hasVideo   = !!evidence.video_path;
+  const hasAfter   = !!evidence.after_path;
+
+  if (!hasTimer && !hasSummary && !hasAudio && !hasVideo && !hasAfter) return null;
+
+  return (
+    <div className="mt-3 space-y-2">
+      <p className="text-[11px] text-[var(--color-muted)]">Evidencia adicional</p>
+
+      {/* Tiempo: corto, se muestra inline sin colapsar */}
+      {hasTimer && (
+        <div className="flex items-center justify-between rounded-[12px] px-3.5 py-3 text-[13px]" style={{ background: "var(--color-surface)" }}>
+          <span className="flex items-center gap-2 text-[var(--color-fg)]">
+            <Timer size={15} strokeWidth={1.5} className="text-[var(--color-muted)]" /> Tiempo
+          </span>
+          <span className="text-[var(--color-fg)]">
+            {Math.floor(evidence.timer_seconds! / 60)} min {evidence.timer_seconds! % 60}s
+          </span>
+        </div>
+      )}
+
+      {hasSummary && (
+        <CollapsibleRow icon={<AlignLeft size={15} strokeWidth={1.5} />} label="Resumen">
+          <div className="max-h-[200px] overflow-y-auto">
+            <p className="text-[13px]" style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+              {evidence.summary}
+            </p>
+          </div>
+        </CollapsibleRow>
+      )}
+
+      {hasAudio && (
+        <div onClick={() => markOpen("audio")}>
+          <CollapsibleRow icon={<Mic size={15} strokeWidth={1.5} />} label="Audio">
+            <EvidenceAudio path={evidence.audio_path!} enabled={opened.has("audio")} />
+          </CollapsibleRow>
+        </div>
+      )}
+
+      {hasVideo && (
+        <div onClick={() => markOpen("video")}>
+          <CollapsibleRow icon={<Video size={15} strokeWidth={1.5} />} label="Video">
+            <EvidenceVideo path={evidence.video_path!} enabled={opened.has("video")} />
+          </CollapsibleRow>
+        </div>
+      )}
+
+      {hasAfter && (
+        <div onClick={() => markOpen("after")}>
+          <CollapsibleRow icon={<ImageIcon size={15} strokeWidth={1.5} />} label="Foto después">
+            <EvidenceAfterPhoto path={evidence.after_path!} enabled={opened.has("after")} />
+          </CollapsibleRow>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -324,6 +470,9 @@ function AuditoriaInner() {
 
           {/* Evidence photo */}
           <EvidenceImage path={current.evidence_path} />
+
+          {/* Evidencia personalizada (resumen, audio, video, tiempo, después) */}
+          {current.evidence && <CustomEvidence evidence={current.evidence} />}
 
           {/* Upload timestamp */}
           {current.uploaded_at && (

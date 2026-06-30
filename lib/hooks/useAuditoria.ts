@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
 import { notifyUser } from "@/lib/notify";
+import type { CheckEvidence } from "./useChecklist";
 
 export interface PendingCheck {
   id: string;
@@ -12,6 +13,7 @@ export interface PendingCheck {
   kind: string;
   check_date: string;
   evidence_path: string;
+  evidence: CheckEvidence | null;
   goal_id: string | null;
   goal_title: string | null;
   full_name: string | null;
@@ -49,6 +51,7 @@ export function usePendingChecks(groupIds: string[]) {
         kind: string;
         check_date: string;
         evidence_path: string;
+        evidence: CheckEvidence | null;
         goal_id: string | null;
         group_id: string;
         created_at: string | null;
@@ -60,7 +63,7 @@ export function usePendingChecks(groupIds: string[]) {
       // Los pre-temporada se muestran con aviso en la UI pero sí se pueden revisar.
       const { data: rawChecks } = await supabase
         .from("daily_checks")
-        .select("id, user_id, kind, check_date, evidence_path, goal_id, group_id, created_at")
+        .select("id, user_id, kind, check_date, evidence_path, evidence, goal_id, group_id, created_at")
         .in("group_id", groupIds)
         .eq("status", "pending")
         .neq("user_id", user!.id)
@@ -105,6 +108,7 @@ export function usePendingChecks(groupIds: string[]) {
             kind: c.kind,
             check_date: c.check_date,
             evidence_path: c.evidence_path,
+            evidence: c.evidence,
             goal_id: c.goal_id,
             goal_title,
             full_name: profile?.full_name ?? null,
