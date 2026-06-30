@@ -211,7 +211,7 @@ function Hero() {
           }} />
 
           {/* Wrapper del teléfono — mezcla en los 4 bordes */}
-          <div style={{ position: "relative", zIndex: 1, width: "min(340px, 82%)" }}>
+          <div style={{ position: "relative", zIndex: 1, width: "min(480px, 95%)" }}>
             <Image
               src="/mockup-hero.png"
               alt="Olympo app dashboard"
