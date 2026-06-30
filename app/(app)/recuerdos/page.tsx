@@ -5,10 +5,10 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft, ChevronDown, Bookmark, Timer, AlignLeft, Mic,
-  Video as VideoIcon, ImageIcon, X, Dumbbell, UtensilsCrossed, Target, Maximize2,
+  Video as VideoIcon, ImageIcon, X, Dumbbell, UtensilsCrossed, Target, Maximize2, Trash2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useMemoriesList, type Memory } from "@/lib/hooks/useMemories";
+import { useMemoriesList, useRemoveMemoryById, type Memory } from "@/lib/hooks/useMemories";
 import { AudioPlayer } from "@/components/ui/AudioPlayer";
 import { isVideoPath } from "@/lib/hooks/useChecklist";
 
@@ -125,7 +125,7 @@ function Row({ icon, label, children }: { icon: ReactNode; label: string; childr
 
 // ── Memory card ──────────────────────────────────────────────────────────────
 
-function MemoryCard({ memory }: { memory: Memory }) {
+function MemoryCard({ memory, onRemoveRequest }: { memory: Memory; onRemoveRequest: (m: Memory) => void }) {
   const [open, setOpen] = useState(false);
   const ev = memory.evidence;
   const subtitle = [formatDate(memory.check_date), memory.goal_title].filter(Boolean).join(" · ");
@@ -182,6 +182,16 @@ function MemoryCard({ memory }: { memory: Memory }) {
               </div>
             </Row>
           )}
+
+          {/* Quitar de recuerdos */}
+          <button
+            onClick={() => onRemoveRequest(memory)}
+            className="w-full flex items-center justify-center gap-2 rounded-full py-3 text-[13px] text-red-400"
+            style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}
+          >
+            <Trash2 size={15} strokeWidth={1.5} />
+            Quitar de recuerdos
+          </button>
         </div>
       )}
     </div>
@@ -231,6 +241,13 @@ function VideoFromPath({ path, enabled }: { path: string; enabled: boolean }) {
 export default function RecuerdosPage() {
   const router = useRouter();
   const { data: memories = [], isLoading } = useMemoriesList();
+  const removeMemory = useRemoveMemoryById();
+  const [confirm, setConfirm] = useState<Memory | null>(null);
+
+  function handleConfirmRemove() {
+    if (!confirm) return;
+    removeMemory.mutate(confirm.id, { onSettled: () => setConfirm(null) });
+  }
 
   // Agrupar por año (desc)
   const byYear = new Map<number, Memory[]>();
@@ -271,10 +288,43 @@ export default function RecuerdosPage() {
             <section key={year}>
               <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider font-medium mb-3">{year}</p>
               <div className="space-y-3">
-                {byYear.get(year)!.map((m) => <MemoryCard key={m.id} memory={m} />)}
+                {byYear.get(year)!.map((m) => <MemoryCard key={m.id} memory={m} onRemoveRequest={setConfirm} />)}
               </div>
             </section>
           ))}
+        </div>
+      )}
+
+      {/* Modal de confirmación */}
+      {confirm && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center px-6" style={{ background: "var(--color-overlay)" }} onClick={() => !removeMemory.isPending && setConfirm(null)}>
+          <div className="w-full max-w-[340px] rounded-[20px] p-5" style={{ background: "var(--color-bg-card)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: "rgba(239,68,68,0.1)" }}>
+              <Trash2 size={20} strokeWidth={1.5} className="text-red-400" />
+            </div>
+            <p className="font-display font-medium text-[17px] text-center mb-1.5">Quitar de recuerdos</p>
+            <p className="text-[13px] text-[var(--color-muted)] text-center mb-5">
+              Se quitará de tus recuerdos y del Wrapped anual. Ya no podrás ver esta foto, audio ni resumen. Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setConfirm(null)}
+                disabled={removeMemory.isPending}
+                className="flex-1 text-[14px] rounded-full py-3 disabled:opacity-50"
+                style={{ border: "1px solid var(--color-border)" }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmRemove}
+                disabled={removeMemory.isPending}
+                className="flex-1 text-[14px] font-medium text-red-400 rounded-full py-3 disabled:opacity-50"
+                style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}
+              >
+                {removeMemory.isPending ? "Quitando…" : "Quitar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

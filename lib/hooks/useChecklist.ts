@@ -567,6 +567,9 @@ export function useDeleteGoal() {
       // Guardar la fecha de borrado para que la meta deje de contar/mostrarse
       // a partir de hoy, pero siga apareciendo en los días en que estuvo vigente.
       await supabase.from("goals").update({ active: false, deactivated_at: new Date().toISOString() } as never).eq("id", id) as unknown as { error: unknown };
+      // Al borrar la meta, quitar también sus recuerdos guardados (ya no se
+      // podrán ver) y desmarcar is_memory para que la purga limpie los archivos.
+      await (supabase.rpc as Function)("remove_memories_for_goal", { p_goal_id: id });
       // Borrar una meta cambia el denominador → recalcular puntos del usuario
       // en todos sus días con registro y propagar a las tablas.
       await recalcMyScores();
@@ -574,6 +577,9 @@ export function useDeleteGoal() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goals"] });
       qc.invalidateQueries({ queryKey: ["goalsHistory"] });
+      qc.invalidateQueries({ queryKey: ["memoriesList"] });
+      qc.invalidateQueries({ queryKey: ["memoryCheckIds"] });
+      qc.invalidateQueries({ queryKey: ["memoryCount"] });
       invalidateScoreQueries(qc);
     },
   });

@@ -109,3 +109,20 @@ export function useRemoveMemory() {
     },
   });
 }
+
+// Quitar un recuerdo por su id (desde la página de recuerdos).
+export function useRemoveMemoryById() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createClient();
+      const { error } = await (supabase.rpc as Function)("remove_memory_by_id", { p_id: id });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["memoriesList"] });
+      qc.invalidateQueries({ queryKey: ["memoryCheckIds"] });
+      qc.invalidateQueries({ queryKey: ["memoryCount"] });
+    },
+  });
+}
