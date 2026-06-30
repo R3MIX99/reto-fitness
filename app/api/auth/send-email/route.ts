@@ -101,6 +101,10 @@ function otpTemplate(token: string, recipientEmail: string): string {
 // ── Handler ────────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
+  if (!process.env.RESEND_API_KEY) {
+    console.error("[send-email hook] Falta RESEND_API_KEY en el entorno");
+    return NextResponse.json({ error: "missing_resend_api_key" }, { status: 500 });
+  }
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   let body: {
@@ -145,8 +149,13 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    console.error("[send-email hook] Resend error:", error);
-    return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
+    // Devolvemos el detalle real (nombre + mensaje) para poder diagnosticar
+    // desde los logs de Vercel/Supabase en vez de un error genérico.
+    console.error("[send-email hook] Resend error:", JSON.stringify(error), "from:", fromAddress);
+    return NextResponse.json(
+      { error: "resend_failed", detail: error.message ?? String(error), from: fromAddress },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ message: "ok" });
