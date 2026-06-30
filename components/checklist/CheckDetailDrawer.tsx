@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Drawer as VaulDrawer } from "vaul";
-import { Clock, CheckCircle2, X, Expand, XCircle, Timer, AlignLeft, Mic, Video } from "lucide-react";
+import { Clock, CheckCircle2, X, Expand, XCircle, Timer, AlignLeft, Mic, Video, Bookmark, BookmarkCheck } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
 import { isVideoPath } from "@/lib/hooks/useChecklist";
 import { createClient } from "@/lib/supabase/client";
@@ -10,6 +10,8 @@ import Image from "next/image";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
 import { AudioPlayer } from "@/components/ui/AudioPlayer";
+import { usePlan } from "@/lib/hooks/usePlan";
+import { useMemoryCheckIds, useSaveMemory, useRemoveMemory } from "@/lib/hooks/useMemories";
 
 // ── Signed URL hook ────────────────────────────────────────────────────────
 
@@ -97,6 +99,15 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
   const afterUrl = useSignedUrl(check?.evidence?.after_path ?? null);
   const audioUrl = useSignedUrl(check?.evidence?.audio_path ?? null);
   const videoUrl = useSignedUrl(check?.evidence?.video_path ?? null);
+
+  // Recuerdos (Pro/Elite): guardar la evidencia para que sobreviva a la purga.
+  const { data: plan } = usePlan();
+  const isPremium = plan?.tier === "pro" || plan?.tier === "elite";
+  const { data: memoryIds } = useMemoryCheckIds();
+  const saveMemory = useSaveMemory();
+  const removeMemory = useRemoveMemory();
+  const isSaved = !!check && !!memoryIds?.has(check.id);
+  const memoryBusy = saveMemory.isPending || removeMemory.isPending;
 
   useEffect(() => {
     if (signedUrl) setPhotoUrl(signedUrl);
@@ -284,6 +295,25 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Guardar en recuerdos (Pro/Elite) — sobrevive a la purga semanal */}
+              {isPremium && check?.evidence_path && (
+                <button
+                  onClick={() => check && (isSaved ? removeMemory.mutate(check.id) : saveMemory.mutate(check.id))}
+                  disabled={memoryBusy}
+                  className="w-full flex items-center justify-center gap-2 rounded-full py-3 text-[14px] mb-3 disabled:opacity-50"
+                  style={{
+                    background: isSaved ? "rgba(239,200,139,0.14)" : "var(--color-surface)",
+                    border: `1px solid ${isSaved ? "rgba(239,200,139,0.35)" : "var(--color-border)"}`,
+                    color: isSaved ? "var(--color-warm)" : "var(--color-fg)",
+                  }}
+                >
+                  {isSaved
+                    ? <BookmarkCheck size={16} strokeWidth={1.5} />
+                    : <Bookmark size={16} strokeWidth={1.5} />}
+                  {isSaved ? "Guardado en recuerdos" : "Guardar en recuerdos"}
+                </button>
               )}
 
               {/* Bottom action — adapts to status */}
