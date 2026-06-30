@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdmin } from "@supabase/supabase-js";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe/server";
+import { getStripe } from "@/lib/stripe/server";
 import { lookupPrice } from "@/lib/stripe/prices";
 
 export const dynamic = "force-dynamic";
@@ -74,6 +74,7 @@ export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!sig || !secret) return NextResponse.json({ error: "missing_signature_or_secret" }, { status: 400 });
 
+  const stripe = getStripe();
   const raw = await req.text();
   let event: Stripe.Event;
   try {

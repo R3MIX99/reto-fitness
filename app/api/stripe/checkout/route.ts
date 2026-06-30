@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createAdmin } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe/server";
+import { getStripe } from "@/lib/stripe/server";
 import { planPriceId, seatPriceId, type PaidTier, type Interval } from "@/lib/stripe/prices";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +31,7 @@ export async function POST(req: Request) {
   const planPrice = planPriceId(tier, interval);
   if (!planPrice) return NextResponse.json({ error: "price_not_configured", detail: `${tier}/${interval}` }, { status: 500 });
 
+  const stripe = getStripe();
   const admin = createAdmin(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
   // Reutiliza el customer de Stripe si ya existe; si no, lo crea y lo guarda.
