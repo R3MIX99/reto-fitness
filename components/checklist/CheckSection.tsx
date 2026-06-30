@@ -53,6 +53,26 @@ function ScheduledRow({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
   );
 }
 
+// ── Points badge ───────────────────────────────────────────────────────────
+// Muestra los puntos ganados / máximos de una sección (mismos cálculos que el
+// motor recalc_day_score). Se pinta en dorado cuando ya está al tope.
+
+function PointsBadge({ earned, max }: { earned: number; max: number }) {
+  const complete = max > 0 && earned >= max;
+  return (
+    <span
+      className="text-[11px] rounded-full px-2 py-0.5 flex-shrink-0 font-medium"
+      style={{
+        background: complete ? "rgba(239,200,139,0.14)" : "var(--color-surface)",
+        color: complete ? "var(--color-warm)" : "var(--color-muted)",
+        border: `1px solid ${complete ? "rgba(239,200,139,0.3)" : "var(--color-border)"}`,
+      }}
+    >
+      {earned}/{max} pts
+    </span>
+  );
+}
+
 // ── Sortable wrapper ───────────────────────────────────────────────────────
 
 function SortableCheckItem({
@@ -211,9 +231,12 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
             onClick={() => isDone && onDetail?.()}
             disabled={!isDone}
           >
-            <p className="text-[15px] font-medium" style={{ color: isRejected ? "#ef4444" : undefined }}>
-              Ejercicio de hoy
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-[15px] font-medium" style={{ color: isRejected ? "#ef4444" : undefined }}>
+                Ejercicio de hoy
+              </p>
+              <PointsBadge earned={isDone && !isRejected ? 3 : 0} max={3} />
+            </div>
             <p className="text-[12px] text-[var(--color-muted)]">{statusLabel}</p>
           </button>
 
@@ -339,6 +362,9 @@ export function DietSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, 
   const dietChecks = checks.filter((c) => c.kind === "diet" && dietGoals.some((g) => g.id === c.goal_id));
   const done = dietChecks.length;
   const total = dietGoals.length;
+  // Puntos proporcionales (motor recalc_day_score): FLOOR(válidos/total*5), máx 5.
+  const dietValid = dietChecks.filter((c) => c.status !== "rejected").length;
+  const dietPts = total > 0 ? Math.floor((dietValid / total) * 5) : 0;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -370,6 +396,7 @@ export function DietSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, 
         <button className="flex-1 flex items-center gap-2 text-left" onClick={() => !reordering && setCollapsed((c) => !c)}>
           <span className="text-[15px] font-medium">Dieta</span>
           {!reordering && <span className="text-[12px] text-[var(--color-muted)]">{done}/{total}</span>}
+          {!reordering && <PointsBadge earned={dietPts} max={5} />}
           {!reordering && (collapsed
             ? <ChevronDown size={14} strokeWidth={1.5} className="text-[var(--color-muted)]" />
             : <ChevronUp size={14} strokeWidth={1.5} className="text-[var(--color-muted)]" />
@@ -472,6 +499,9 @@ export function GoalsSection({ goals, checks, onMark, onResubmit, onAdd, onEdit,
   const goalChecks = checks.filter((c) => c.kind === "goal" && goalGoals.some((g) => g.id === c.goal_id));
   const done = goalChecks.length;
   const total = goalGoals.length;
+  // Puntos proporcionales (motor recalc_day_score): FLOOR(válidos/total*5), máx 5.
+  const goalValid = goalChecks.filter((c) => c.status !== "rejected").length;
+  const goalPts = total > 0 ? Math.floor((goalValid / total) * 5) : 0;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -502,6 +532,7 @@ export function GoalsSection({ goals, checks, onMark, onResubmit, onAdd, onEdit,
         <button className="flex-1 flex items-center gap-2 text-left" onClick={() => !reordering && setCollapsed((c) => !c)}>
           <span className="text-[15px] font-medium">Metas diarias</span>
           {!reordering && <span className="text-[12px] text-[var(--color-muted)]">{done}/{total}</span>}
+          {!reordering && <PointsBadge earned={goalPts} max={5} />}
           {!reordering && (collapsed
             ? <ChevronDown size={14} strokeWidth={1.5} className="text-[var(--color-muted)]" />
             : <ChevronUp size={14} strokeWidth={1.5} className="text-[var(--color-muted)]" />
