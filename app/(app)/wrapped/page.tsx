@@ -121,20 +121,24 @@ export default function WrappedPage() {
     ),
   });
 
-  if (d.longest_streak >= 1) {
-    slides.push({
-      bg: "linear-gradient(160deg,#CF5C36,#3a1205)",
-      content: (
-        <>
-          <Flame size={40} strokeWidth={1.5} className="mb-3" fill="#fff" style={{ color: "#fff" }} />
-          <p className="text-[15px] mb-2" style={{ color: "rgba(255,255,255,0.85)" }}>Tu mejor racha</p>
-          <p className="font-display font-bold text-[80px] leading-none">{d.longest_streak}</p>
-          <p className="text-[18px] mt-2 mb-5">{d.longest_streak === 1 ? "día completando todo" : "días seguidos completando todo"}</p>
-          <p className="text-[14px] max-w-[260px]" style={{ color: "rgba(255,255,255,0.85)" }}>{streakPhrase(d.longest_streak)}</p>
-        </>
-      ),
-    });
-  }
+  slides.push({
+    bg: "linear-gradient(160deg,#CF5C36,#3a1205)",
+    content: (
+      <>
+        <Flame size={40} strokeWidth={1.5} className="mb-3" fill="#fff" style={{ color: "#fff" }} />
+        <p className="text-[15px] mb-2" style={{ color: "rgba(255,255,255,0.85)" }}>Tu mejor racha</p>
+        <p className="font-display font-bold text-[80px] leading-none">{d.longest_streak}</p>
+        <p className="text-[18px] mt-2 mb-5">
+          {d.longest_streak === 0
+            ? "días seguidos completando todo"
+            : d.longest_streak === 1
+            ? "día completando todo"
+            : "días seguidos completando todo"}
+        </p>
+        <p className="text-[14px] max-w-[260px]" style={{ color: "rgba(255,255,255,0.85)" }}>{streakPhrase(d.longest_streak)}</p>
+      </>
+    ),
+  });
 
   if (d.best_month) {
     slides.push({
