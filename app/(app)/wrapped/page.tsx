@@ -11,6 +11,16 @@ import { useMemoriesList } from "@/lib/hooks/useMemories";
 const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const YEAR = new Date().getFullYear();
 
+// Frase dinámica según el bloque de días de racha (días seguidos completando
+// TODO: gimnasio + dieta + metas del día).
+function streakPhrase(days: number): string {
+  if (days <= 4) return "¡Cada racha empieza con un primer día!";
+  if (days <= 10) return "Te mantuviste constante. ¡Ese es el hábito!";
+  if (days <= 20) return "Estás en llamas — la disciplina ya es tuya.";
+  if (days <= 40) return "Imparable. Muy pocos llegan tan lejos.";
+  return "Leyenda de la constancia. Nivel élite.";
+}
+
 function SignedImg({ path }: { path: string }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
@@ -111,7 +121,7 @@ export default function WrappedPage() {
     ),
   });
 
-  if (d.longest_streak >= 2) {
+  if (d.longest_streak >= 1) {
     slides.push({
       bg: "linear-gradient(160deg,#CF5C36,#3a1205)",
       content: (
@@ -119,7 +129,8 @@ export default function WrappedPage() {
           <Flame size={40} strokeWidth={1.5} className="mb-3" fill="#fff" style={{ color: "#fff" }} />
           <p className="text-[15px] mb-2" style={{ color: "rgba(255,255,255,0.85)" }}>Tu mejor racha</p>
           <p className="font-display font-bold text-[80px] leading-none">{d.longest_streak}</p>
-          <p className="text-[18px] mt-2">días seguidos activo</p>
+          <p className="text-[18px] mt-2 mb-5">{d.longest_streak === 1 ? "día completando todo" : "días seguidos completando todo"}</p>
+          <p className="text-[14px] max-w-[260px]" style={{ color: "rgba(255,255,255,0.85)" }}>{streakPhrase(d.longest_streak)}</p>
         </>
       ),
     });
@@ -133,7 +144,7 @@ export default function WrappedPage() {
           <Calendar size={32} strokeWidth={1.5} className="mb-3" style={{ color: "#5fe3a1" }} />
           <p className="text-[15px] mb-2" style={{ color: "rgba(255,255,255,0.8)" }}>Tu mes más fuerte</p>
           <p className="font-display font-bold text-[48px] leading-tight capitalize" style={{ color: "#5fe3a1" }}>{MESES[d.best_month - 1]}</p>
-          <p className="text-[16px] mt-2">{d.best_month_days} días activo</p>
+          <p className="text-[16px] mt-2">{d.best_month_days} {d.best_month_days === 1 ? "evidencia subida" : "evidencias subidas"}</p>
         </>
       ),
     });

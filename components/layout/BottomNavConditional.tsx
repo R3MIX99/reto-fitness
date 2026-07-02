@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { BottomNav } from "./BottomNav";
 
 // Rutas donde se oculta la navegación (páginas de pantalla completa)
-const FULLSCREEN_PATTERNS = ["/titulo/"];
+const FULLSCREEN_PATTERNS = ["/titulo/", "/wrapped"];
 
 export function BottomNavConditional() {
   const pathname = usePathname();
