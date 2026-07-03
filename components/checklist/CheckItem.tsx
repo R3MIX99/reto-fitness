@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Check, Clock, Pencil, ChevronsUpDown, X, RotateCcw } from "lucide-react";
+import { Camera, Check, Clock, Pencil, ChevronsUpDown, X, RotateCcw, CloudOff } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
-import { hasModules } from "@/lib/hooks/useChecklist";
+import { hasModules, PENDING_SYNC } from "@/lib/hooks/useChecklist";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
 import { CompleteGoalDrawer } from "./CompleteGoalDrawer";
@@ -72,6 +72,8 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
   const isPending = status === "pending";
   const isApproved = status === "approved";
   const isRejected = status === "rejected";
+  // Guardado sin conexión: se ve completada, pendiente de sincronizar.
+  const isSyncPending = status === PENDING_SYNC;
 
   function handleFileSelect(file: File, resubmit: boolean) {
     setIsResubmit(resubmit);
@@ -121,7 +123,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
     ? { background: "rgba(239,68,68,0.12)", border: "1.5px solid rgba(239,68,68,0.5)" }
     : isApproved
     ? { background: "rgba(34,197,94,0.12)", border: "1.5px solid rgba(34,197,94,0.5)" }
-    : isPending
+    : isPending || isSyncPending
     ? { background: "rgba(239,200,139,0.12)", border: "1.5px solid rgba(239,200,139,0.4)" }
     : { background: "var(--color-surface)", border: "1.5px solid var(--color-border)" };
 
@@ -144,6 +146,8 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
                 <X size={14} strokeWidth={2} style={{ color: "#ef4444" }} />
               ) : isApproved ? (
                 <Check size={14} strokeWidth={2} style={{ color: "#22c55e" }} />
+              ) : isSyncPending ? (
+                <CloudOff size={12} strokeWidth={1.5} style={{ color: "#EFC88B" }} />
               ) : isPending ? (
                 <Clock size={12} strokeWidth={1.5} style={{ color: "#EFC88B" }} />
               ) : (
@@ -159,8 +163,8 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
               color: reordering ? "var(--color-fg)" : isRejected ? "#ef4444" : isDone ? "var(--color-muted)" : "var(--color-fg)",
               textDecoration: !reordering && isDone && !isRejected ? "line-through" : "none",
             }}
-            onClick={() => isDone && !reordering && onDetail?.()}
-            disabled={!isDone || reordering}
+            onClick={() => isDone && !isSyncPending && !reordering && onDetail?.()}
+            disabled={!isDone || isSyncPending || reordering}
           >
             {goal.icon && <span className="mr-1.5">{goal.icon}</span>}
             {goal.title}
@@ -176,6 +180,12 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
+              {isSyncPending && (
+                <span className="flex items-center gap-1 text-[10px] text-[#EFC88B] bg-[rgba(239,200,139,0.12)] rounded-full px-2 py-0.5">
+                  <CloudOff size={9} strokeWidth={1.5} />
+                  sin conexión
+                </span>
+              )}
               {isPending && (
                 <span className="flex items-center gap-1 text-[10px] text-[#EFC88B] bg-[rgba(239,200,139,0.12)] rounded-full px-2 py-0.5">
                   <Clock size={9} strokeWidth={1.5} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, Clock, X, Dumbbell, UtensilsCrossed, Target, RotateCcw } from "lucide-react";
 import { PhotoSourceDrawer } from "@/components/checklist/PhotoSourceDrawer";
@@ -24,6 +24,8 @@ import type { Goal, DailyCheck, GoalKind, CategoryView, CheckEvidence, ExtraFile
 import { useResubmitCheck } from "@/lib/hooks/useMyAudits";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { useUser } from "@/lib/hooks/useUser";
+import { useOfflineChecks, offlineToDailyCheck } from "@/lib/hooks/useOfflineChecks";
+import { OfflineBanner } from "@/components/checklist/OfflineBanner";
 import { StatsSection } from "@/components/checklist/StatsSection";
 import { GymSection, DietSection, GoalsSection } from "@/components/checklist/CheckSection";
 import { GoalDrawer } from "@/components/checklist/GoalDrawer";
@@ -268,6 +270,19 @@ function ChecklistPageInner() {
   const { data: todayChecks = [] } = useTodayChecks(allGroupIds);
   const { data: monthChecks = [] } = useMonthChecks(groupId);
 
+  // Mezcla las evidencias guardadas sin conexión (cola IndexedDB) con las del
+  // servidor: la offline gana su "slot" (kind+meta) y se muestra completada con
+  // el badge "sin conexión" hasta que el sync la suba.
+  const { data: offlineQueue = [] } = useOfflineChecks();
+  const todayChecksMerged = useMemo(() => {
+    if (!groupId) return todayChecks;
+    const offlineToday = offlineQueue.filter((o) => o.checkDate === todayStr());
+    if (offlineToday.length === 0) return todayChecks;
+    const offlineSlots = new Set(offlineToday.map((o) => `${o.kind}|${o.goalId ?? ""}`));
+    const base = todayChecks.filter((c) => !offlineSlots.has(`${c.kind}|${c.goal_id ?? ""}`));
+    return [...base, ...offlineToday.map((o) => offlineToDailyCheck(o, groupId))];
+  }, [todayChecks, offlineQueue, groupId]);
+
   const markCheck = useMarkCheck(groupId);
   const resubmitCheck = useResubmitCheck();
   const upsertGoal = useUpsertGoal();
@@ -355,7 +370,7 @@ function ChecklistPageInner() {
     });
   }
 
-  const gymCheck = todayChecks.find((c) => c.kind === "gym");
+  const gymCheck = todayChecksMerged.find((c) => c.kind === "gym");
 
   if (!groupId) {
     return (
@@ -389,6 +404,9 @@ function ChecklistPageInner() {
             {/* Today label */}
             <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider mb-3">Hoy</p>
 
+            {/* Aviso de modo sin conexión / sincronización pendiente */}
+            <OfflineBanner />
+
             {/* Reto grupal del día (si toca) */}
             <ChallengeTodayCard groups={groups} userId={user?.id} />
 
@@ -407,7 +425,7 @@ function ChecklistPageInner() {
             <div id="section-diet">
             <DietSection
               goals={goals}
-              checks={todayChecks}
+              checks={todayChecksMerged}
               onMark={handleMark}
               onResubmit={handleResubmit}
               onAdd={() => openAdd("diet")}
@@ -421,7 +439,7 @@ function ChecklistPageInner() {
             <div id="section-goals">
             <GoalsSection
               goals={goals}
-              checks={todayChecks}
+              checks={todayChecksMerged}
               onMark={handleMark}
               onResubmit={handleResubmit}
               onAdd={() => openAdd("goal")}

@@ -5,6 +5,11 @@ import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tansta
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "./useUser";
 import { compressImage } from "./useProfile";
+import { enqueueOfflineCheck, slotId } from "@/lib/offline/queue";
+
+// Status sintético (solo en el cliente) para evidencias guardadas sin conexión
+// que aún no se han subido al servidor.
+export const PENDING_SYNC = "pending_sync";
 
 // ── Upload helper con reintentos ──────────────────────────────────────────
 // Reintenta la subida hasta maxTries veces con pausa creciente antes de fallar.
@@ -182,7 +187,7 @@ function monthEnd(offset = 0) {
 
 // Invalida TODAS las queries que dependen de los puntos para que el cambio se
 // refleje en el dashboard, la tabla global y las tablas de temporada.
-function invalidateScoreQueries(qc: QueryClient) {
+export function invalidateScoreQueries(qc: QueryClient) {
   for (const k of [
     "leaderboard", "globalLeaderboard", "seasonLeaderboard", "seasonStandings",
     "todayScore", "streak", "monthChecks", "playerCard", "myTitles",
@@ -363,6 +368,127 @@ export function useChecklistRealtime(groupId: string | null) {
   }, [user?.id, groupId, qc]);
 }
 
+// ── Envío de evidencia (compartido online / sync offline) ───────────────────
+
+// Evidencia ya lista para subir: blobs comprimidos + extensiones. Se genera en
+// el cliente (funciona sin conexión) y la comparten el envío en línea y la cola.
+export interface PreparedEvidence {
+  main: { blob: Blob; ext: string };
+  isVideo: boolean;
+  after?: { blob: Blob; ext: string };
+  audio?: { blob: Blob; ext: string };
+  video?: { blob: Blob; ext: string };
+}
+
+// Comprime la evidencia principal (foto) y la foto "después"; deja audio/video
+// tal cual. La compresión es client-side, así que corre igual sin internet.
+export async function prepareEvidence(file: File, extraFiles?: ExtraFiles): Promise<PreparedEvidence> {
+  const isVideo = file.type.startsWith("video");
+  const main = isVideo
+    ? { blob: file as Blob, ext: file.name.split(".").pop() || "mp4" }
+    : { blob: await compressImage(file, 1080), ext: "jpg" };
+
+  const prepared: PreparedEvidence = { main, isVideo };
+  if (extraFiles?.after) prepared.after = { blob: await compressImage(extraFiles.after, 1080), ext: "jpg" };
+  if (extraFiles?.audio) prepared.audio = { blob: extraFiles.audio, ext: extraFiles.audio.name.split(".").pop() || "webm" };
+  if (extraFiles?.video) prepared.video = { blob: extraFiles.video, ext: extraFiles.video.name.split(".").pop() || "mp4" };
+  return prepared;
+}
+
+// Sube la evidencia ya preparada al Storage e inserta el check en TODOS los
+// grupos del usuario (fan-out), recalculando puntos y racha. Se usa tanto en el
+// envío en línea como al drenar la cola offline (por eso recibe checkDate).
+export async function submitCheckToServer(
+  supabase: ReturnType<typeof createClient>,
+  params: {
+    userId: string;
+    activeGroupId?: string | null;
+    kind: GoalKind;
+    goalId?: string | null;
+    checkDate: string;
+    prepared: PreparedEvidence;
+    evidence?: CheckEvidence | null;
+  },
+): Promise<void> {
+  const { userId, activeGroupId, kind, goalId, checkDate, prepared, evidence } = params;
+  const base = `${userId}/${checkDate}/${kind}${goalId ? `-${goalId}` : ""}`;
+  const evidBucket = supabase.storage.from("evidencias");
+
+  const path = `${base}.${prepared.main.ext}`;
+  await uploadWithRetry(evidBucket, path, prepared.main.blob);
+
+  const rich: CheckEvidence = { ...(evidence ?? {}) };
+  if (prepared.after) {
+    const p = `${base}-after.jpg`;
+    await uploadWithRetry(evidBucket, p, prepared.after.blob);
+    rich.after_path = p;
+  }
+  if (prepared.audio) {
+    const p = `${base}-audio.${prepared.audio.ext}`;
+    await uploadWithRetry(evidBucket, p, prepared.audio.blob);
+    rich.audio_path = p;
+  }
+  if (prepared.video) {
+    const p = `${base}-video.${prepared.video.ext}`;
+    await uploadWithRetry(evidBucket, p, prepared.video.blob);
+    rich.video_path = p;
+  }
+  const finalEvidence = Object.keys(rich).length > 0 ? rich : null;
+
+  type MembershipRow = { group_id: string };
+  const { data: memberships } = await supabase
+    .from("group_members")
+    .select("group_id")
+    .eq("user_id", userId) as unknown as { data: MembershipRow[] | null };
+
+  const groupIds = (memberships ?? []).map((m) => m.group_id);
+  if (activeGroupId && !groupIds.includes(activeGroupId)) groupIds.push(activeGroupId);
+  if (!groupIds.length) throw new Error("Sin grupos para registrar el check");
+
+  for (const gid of groupIds) {
+    const deleteQuery = supabase
+      .from("daily_checks")
+      .delete()
+      .eq("user_id", userId)
+      .eq("group_id", gid)
+      .eq("check_date", checkDate)
+      .eq("kind", kind);
+
+    if (goalId) {
+      const { error: delErr } = await (deleteQuery.eq("goal_id", goalId) as unknown as Promise<{ error: unknown }>);
+      if (delErr) console.warn("delete check warning:", delErr);
+    } else {
+      const { error: delErr } = await (deleteQuery.is("goal_id", null) as unknown as Promise<{ error: unknown }>);
+      if (delErr) console.warn("delete check warning:", delErr);
+    }
+
+    const { error: insertError } = await supabase
+      .from("daily_checks")
+      .insert({
+        user_id: userId,
+        group_id: gid,
+        kind,
+        goal_id: goalId ?? null,
+        evidence_path: path,
+        evidence: finalEvidence,
+        check_date: checkDate,
+        status: "pending",
+      } as never) as unknown as { error: { message: string } | null };
+
+    if (insertError) throw new Error((insertError as { message: string }).message);
+
+    await (supabase.rpc as Function)("recalc_day_score", {
+      p_user_id: userId,
+      p_group_id: gid,
+      p_date: checkDate,
+    });
+    await (supabase.rpc as Function)("compute_user_streak", {
+      p_user_id: userId,
+      p_group_id: gid,
+    });
+  }
+}
+
 // ── Mutations ──────────────────────────────────────────────────────────────
 
 export function useMarkCheck(groupId: string | null) {
@@ -374,6 +500,9 @@ export function useMarkCheck(groupId: string | null) {
     // el servidor responda. Si falla, revierte al estado anterior.
     onMutate: async ({ kind, goalId }: { file: File; kind: GoalKind; goalId?: string; evidence?: CheckEvidence; extraFiles?: ExtraFiles }) => {
       if (!user || !groupId) return;
+      // Sin conexión: la cola offline maneja la UI (badge "guardado sin conexión");
+      // evitamos escribir un optimista "pending" fantasma en la caché persistida.
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
       const queryKey = ["todayChecks", user.id, groupId] as const;
       await qc.cancelQueries({ queryKey });
       const prev = qc.getQueryData<DailyCheck[]>(queryKey);
@@ -403,105 +532,40 @@ export function useMarkCheck(groupId: string | null) {
     mutationFn: async ({ file, kind, goalId, evidence, extraFiles }: { file: File; kind: GoalKind; goalId?: string; evidence?: CheckEvidence; extraFiles?: ExtraFiles }) => {
       if (!user || !groupId) throw new Error("Sin sesión o grupo");
 
-      // La evidencia es UNA sola pieza, compartida por todos los grupos del usuario:
-      // la ruta no incluye group_id, así que el archivo nunca se duplica.
-      // Para metas de solo-video, la evidencia principal es el propio video.
-      const base = `${user.id}/${todayStr()}/${kind}${goalId ? `-${goalId}` : ""}`;
-      const isVideoMain = file.type.startsWith("video");
+      // Comprimimos/preparamos la evidencia en el cliente (funciona sin red).
+      const prepared = await prepareEvidence(file, extraFiles);
+      const checkDate = todayStr();
+
+      // Sin conexión → a la cola de IndexedDB. Se subirá al reconectar.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await enqueueOfflineCheck({
+          id: slotId(kind, goalId, checkDate),
+          userId: user.id,
+          kind,
+          goalId: goalId ?? null,
+          checkDate,
+          main: prepared.main,
+          isVideo: prepared.isVideo,
+          evidence: evidence ?? null,
+          after: prepared.after,
+          audio: prepared.audio,
+          video: prepared.video,
+          createdAt: Date.now(),
+        });
+        return;
+      }
+
+      // En línea: subida + fan-out + recalculo (lógica compartida con el sync).
       const supabase = createClient();
-
-      let path: string;
-      const evidBucket = supabase.storage.from("evidencias");
-      if (isVideoMain) {
-        const ext = file.name.split(".").pop() || "mp4";
-        path = `${base}.${ext}`;
-        await uploadWithRetry(evidBucket, path, file);
-      } else {
-        const compressed = await compressImage(file, 1080);
-        path = `${base}.jpg`;
-        await uploadWithRetry(evidBucket, path, compressed);
-      }
-
-      // Evidencia rica: sube archivos extra (audio, video, foto "después") y
-      // guarda sus rutas junto al resumen/cronómetro.
-      const richEvidence: CheckEvidence = { ...(evidence ?? {}) };
-      if (extraFiles?.after) {
-        const afterPath = `${base}-after.jpg`;
-        const afterCompressed = await compressImage(extraFiles.after, 1080);
-        await uploadWithRetry(evidBucket, afterPath, afterCompressed);
-        richEvidence.after_path = afterPath;
-      }
-      if (extraFiles?.audio) {
-        const ext = extraFiles.audio.name.split(".").pop() || "webm";
-        const audioPath = `${base}-audio.${ext}`;
-        await uploadWithRetry(evidBucket, audioPath, extraFiles.audio);
-        richEvidence.audio_path = audioPath;
-      }
-      if (extraFiles?.video) {
-        const ext = extraFiles.video.name.split(".").pop() || "mp4";
-        const videoPath = `${base}-video.${ext}`;
-        await uploadWithRetry(evidBucket, videoPath, extraFiles.video);
-        richEvidence.video_path = videoPath;
-      }
-      const finalEvidence = Object.keys(richEvidence).length > 0 ? richEvidence : null;
-
-      // Un check es personal: aplica a TODOS los grupos del usuario. Creamos una
-      // fila por grupo (mismo archivo) para que cada grupo lo revise y puntúe por
-      // separado, sin duplicar la evidencia.
-      type MembershipRow = { group_id: string };
-      const { data: memberships } = await supabase
-        .from("group_members")
-        .select("group_id")
-        .eq("user_id", user.id) as unknown as { data: MembershipRow[] | null };
-
-      const groupIds = (memberships ?? []).map((m) => m.group_id);
-      // Garantizar que el grupo activo siempre esté incluido aunque haya lag de lectura
-      if (!groupIds.includes(groupId)) groupIds.push(groupId);
-
-      for (const gid of groupIds) {
-        // Borrar check previo del mismo slot en este grupo (maneja re-subidas)
-        const deleteQuery = supabase
-          .from("daily_checks")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("group_id", gid)
-          .eq("check_date", todayStr())
-          .eq("kind", kind);
-
-        if (goalId) {
-          const { error: delErr } = await (deleteQuery.eq("goal_id", goalId) as unknown as Promise<{ error: unknown }>);
-          if (delErr) console.warn("delete check warning:", delErr);
-        } else {
-          const { error: delErr } = await (deleteQuery.is("goal_id", null) as unknown as Promise<{ error: unknown }>);
-          if (delErr) console.warn("delete check warning:", delErr);
-        }
-
-        const { error: insertError } = await supabase
-          .from("daily_checks")
-          .insert({
-            user_id: user.id,
-            group_id: gid,
-            kind,
-            goal_id: goalId ?? null,
-            evidence_path: path,
-            evidence: finalEvidence,
-            check_date: todayStr(),
-            status: "pending",
-          } as never) as unknown as { error: { message: string } | null };
-
-        if (insertError) throw new Error((insertError as { message: string }).message);
-
-        // Recalcular puntos del día en cada grupo para que su leaderboard se actualice
-        await (supabase.rpc as Function)("recalc_day_score", {
-          p_user_id: user.id,
-          p_group_id: gid,
-          p_date: todayStr(),
-        });
-        await (supabase.rpc as Function)("compute_user_streak", {
-          p_user_id: user.id,
-          p_group_id: gid,
-        });
-      }
+      await submitCheckToServer(supabase, {
+        userId: user.id,
+        activeGroupId: groupId,
+        kind,
+        goalId,
+        checkDate,
+        prepared,
+        evidence,
+      });
     },
 
     onError: (_err, _vars, context) => {
@@ -511,9 +575,11 @@ export function useMarkCheck(groupId: string | null) {
       }
     },
 
-    // Tanto en éxito como en error: sincronizar con el servidor
+    // Tanto en éxito como en error: sincronizar con el servidor y refrescar la
+    // cola offline (para que el badge "guardado sin conexión" aparezca/desaparezca).
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["todayChecks"] });
+      qc.invalidateQueries({ queryKey: ["offlineChecks"] });
       invalidateScoreQueries(qc);
     },
   });

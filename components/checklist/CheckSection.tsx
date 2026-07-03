@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown, X, RotateCcw, CalendarClock, Pencil } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Camera, Check, Clock, ArrowUpDown, X, RotateCcw, CalendarClock, Pencil, CloudOff } from "lucide-react";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
 import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
@@ -22,7 +22,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
-import { goalAppliesOn, frequencyLabel, todayStr } from "@/lib/hooks/useChecklist";
+import { goalAppliesOn, frequencyLabel, todayStr, PENDING_SYNC } from "@/lib/hooks/useChecklist";
 import { CheckItem } from "./CheckItem";
 
 // ¿Debe mostrarse como "programada" en el listado de hoy? Mensual sí (recurrente);
@@ -144,12 +144,13 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
   const isPending = check?.status === "pending";
   const isApproved = check?.status === "approved";
   const isRejected = check?.status === "rejected";
+  const isSyncPending = check?.status === PENDING_SYNC;
 
   const circleStyle: React.CSSProperties = isRejected
     ? { background: "rgba(239,68,68,0.12)", border: "2px solid rgba(239,68,68,0.5)" }
     : isApproved
     ? { background: "rgba(34,197,94,0.12)", border: "2px solid rgba(34,197,94,0.5)" }
-    : isPending
+    : isPending || isSyncPending
     ? { background: "rgba(239,200,139,0.12)", border: "2px solid rgba(239,200,139,0.4)" }
     : { background: "var(--color-surface)", border: "2px solid var(--color-border)" };
 
@@ -157,6 +158,8 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
     ? "Rechazado"
     : isApproved
     ? "Aprobado"
+    : isSyncPending
+    ? "Guardado sin conexión"
     : isPending
     ? "En revisión"
     : "Sube una foto del entrenamiento";
@@ -219,6 +222,8 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
               <X size={20} strokeWidth={2} style={{ color: "#ef4444" }} />
             ) : isApproved ? (
               <Check size={20} strokeWidth={2} style={{ color: "#22c55e" }} />
+            ) : isSyncPending ? (
+              <CloudOff size={18} strokeWidth={1.5} style={{ color: "#EFC88B" }} />
             ) : isPending ? (
               <Clock size={18} strokeWidth={1.5} style={{ color: "#EFC88B" }} />
             ) : (
@@ -228,8 +233,8 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
 
           <button
             className="flex-1 min-w-0 text-left"
-            onClick={() => isDone && onDetail?.()}
-            disabled={!isDone}
+            onClick={() => isDone && !isSyncPending && onDetail?.()}
+            disabled={!isDone || isSyncPending}
           >
             <p className="text-[15px] font-medium truncate" style={{ color: isRejected ? "#ef4444" : undefined }}>
               Ejercicio de hoy
@@ -240,6 +245,12 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
             </div>
           </button>
 
+          {isSyncPending && (
+            <span className="flex items-center gap-1 text-[10px] text-[#EFC88B] bg-[rgba(239,200,139,0.12)] rounded-full px-2.5 py-1">
+              <CloudOff size={9} strokeWidth={1.5} />
+              sin conexión
+            </span>
+          )}
           {isPending && (
             <span className="flex items-center gap-1 text-[10px] text-[#EFC88B] bg-[rgba(239,200,139,0.12)] rounded-full px-2.5 py-1">
               <Clock size={9} strokeWidth={1.5} />
