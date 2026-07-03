@@ -1,23 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Crown, Shield, ChevronRight, Users, Layers, Settings } from "lucide-react";
-import { usePlan, TIER_LABEL, TIER_PRICE, useOpenPortal } from "@/lib/hooks/usePlan";
+import { usePlan, TIER_LABEL, TIER_PRICE } from "@/lib/hooks/usePlan";
 import { useIsNativeApp } from "@/lib/platform";
-import { UpgradeDrawer } from "./UpgradeDrawer";
 
-// Tarjeta de plan en el perfil: plan actual, uso de grupos, mejora y gestión
-// de la suscripción (Stripe), y acceso al panel de super-admin.
+// Tarjeta de plan en el perfil: plan actual, uso de grupos y acceso a la gestión
+// de la suscripción. La compra/gestión con Stripe vive en /membresia (web); en
+// la app de tienda no se muestra (políticas Apple/Google).
 export function PlanCard() {
   const { data: plan } = usePlan();
   const qc = useQueryClient();
   const params = useSearchParams();
-  const portal = useOpenPortal();
   const native = useIsNativeApp();
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // Al volver del checkout, refresca el plan (el webhook ya lo actualizó).
   useEffect(() => {
@@ -79,33 +77,24 @@ export function PlanCard() {
       ) : (
         <div className="space-y-2">
           {plan.tier !== "elite" && (
-            <button
-              onClick={() => setUpgradeOpen(true)}
+            <Link
+              href={`/membresia?tier=${plan.tier === "pro" ? "elite" : "pro"}`}
               className="w-full flex items-center justify-center gap-2 text-[13px] font-medium rounded-pill py-2.5 bg-warm text-accent-dark"
             >
               <Crown size={14} strokeWidth={1.5} /> Mejorar plan
-            </button>
+            </Link>
           )}
           {plan.tier !== "free" && (
-            <button
-              onClick={() => portal.mutate()}
-              disabled={portal.isPending}
-              className="w-full flex items-center justify-center gap-2 text-[13px] rounded-pill py-2.5 disabled:opacity-50"
+            <Link
+              href="/membresia"
+              className="w-full flex items-center justify-center gap-2 text-[13px] rounded-pill py-2.5"
               style={{ border: "1px solid var(--color-border)" }}
             >
               <Settings size={14} strokeWidth={1.5} className="text-[var(--color-muted)]" />
-              {portal.isPending ? "Abriendo…" : "Gestionar suscripción"}
-            </button>
+              Gestionar suscripción
+            </Link>
           )}
         </div>
-      )}
-
-      {!native && (
-        <UpgradeDrawer
-          open={upgradeOpen}
-          onClose={() => setUpgradeOpen(false)}
-          defaultTier={plan.tier === "pro" ? "elite" : "pro"}
-        />
       )}
     </div>
   );

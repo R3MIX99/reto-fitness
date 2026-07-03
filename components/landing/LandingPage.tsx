@@ -9,6 +9,7 @@ import {
   Check, Menu, X, Flame, Star, Shield, TrendingUp,
   Target, Award,
 } from "lucide-react";
+import { useIsNativeApp } from "@/lib/platform";
 
 // ─── Tokens ──────────────────────────────────────────────────────────────────
 const GOLD   = "#EFC88B";
@@ -47,6 +48,7 @@ function AuroraBackground() {
 function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const native = useIsNativeApp();
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 30);
     window.addEventListener("scroll", h, { passive: true });
@@ -78,6 +80,11 @@ function Navbar() {
               onMouseEnter={e => { e.currentTarget.style.color = FG; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
               onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.background = "transparent"; }}>{label}</a>
           ))}
+          {!native && (
+            <Link href="/membresia" style={{ fontSize: 13, color: MUTED, textDecoration: "none", padding: "7px 14px", borderRadius: 100, transition: "color 0.2s, background 0.2s", fontFamily: "var(--font-inter, sans-serif)" }}
+              onMouseEnter={e => { e.currentTarget.style.color = FG; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.background = "transparent"; }}>Gestionar membresía</Link>
+          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -105,6 +112,9 @@ function Navbar() {
             {[["#como-funciona", "Cómo funciona"], ["#features", "Features"], ["#planes", "Planes"]].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setOpen(false)} style={{ fontSize: 32, fontWeight: 700, color: FG, textDecoration: "none", fontFamily: "var(--font-inter, sans-serif)" }}>{label}</a>
             ))}
+            {!native && (
+              <Link href="/membresia" onClick={() => setOpen(false)} style={{ fontSize: 32, fontWeight: 700, color: FG, textDecoration: "none", fontFamily: "var(--font-inter, sans-serif)" }}>Membresía</Link>
+            )}
             <Link href="/login" onClick={() => setOpen(false)} style={{ fontSize: 16, fontWeight: 600, color: "#1a1000", background: GOLD, borderRadius: 100, padding: "14px 44px", textDecoration: "none" }}>Entrar gratis</Link>
           </motion.div>
         )}
@@ -572,10 +582,11 @@ function HabitsMarquee() {
 function Planes() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
+  const native = useIsNativeApp();
   const plans = [
-    { name: "Free", price: "$0", period: "", highlight: false, color: MUTED, desc: "Para empezar con tus amigos hoy.", cta: "Empezar gratis", features: ["1 grupo", "Hasta 5 miembros", "Leaderboard semanal", "Evidencia fotográfica", "Rachas y bonus", "Temporadas"] },
-    { name: "Pro", price: "$99", period: "/mes", highlight: true, color: GOLD, desc: "Para grupos más serios y competitivos.", cta: "Próximamente", features: ["Hasta 5 grupos", "Hasta 10 miembros/grupo", "Todo lo de Free", "Retos grupales programados", "Metas 100% personalizables", "Wrapped anual"] },
-    { name: "Elite", price: "$199", period: "/mes", highlight: false, color: "#9664ff", desc: "Para competidores de alto nivel.", cta: "Próximamente", features: ["Hasta 20 grupos", "Hasta 30 miembros/grupo", "Todo lo de Pro", "Liga entre grupos", "Títulos personalizados de campeón", "Soporte prioritario"] },
+    { tierKey: "free" as const,  name: "Free", price: "$0", period: "", highlight: false, color: MUTED, desc: "Para empezar con tus amigos hoy.", features: ["1 grupo", "Hasta 5 miembros", "Leaderboard semanal", "Evidencia fotográfica", "Rachas y bonus", "Temporadas"] },
+    { tierKey: "pro" as const,   name: "Pro", price: "$99", period: "/mes", highlight: true, color: GOLD, desc: "Para grupos más serios y competitivos.", features: ["Hasta 5 grupos", "Hasta 10 miembros/grupo", "Todo lo de Free", "Retos grupales programados", "Metas 100% personalizables", "Wrapped anual"] },
+    { tierKey: "elite" as const, name: "Elite", price: "$199", period: "/mes", highlight: false, color: "#9664ff", desc: "Para competidores de alto nivel.", features: ["Hasta 20 grupos", "Hasta 30 miembros/grupo", "Todo lo de Pro", "Liga entre grupos", "Títulos personalizados de campeón", "Soporte prioritario"] },
   ];
   return (
     <section id="planes" ref={ref} style={{ padding: "0 24px 120px", maxWidth: 1100, margin: "0 auto" }}>
@@ -585,7 +596,7 @@ function Planes() {
         <p style={{ margin: 0, fontSize: 16, color: MUTED, fontFamily: "var(--font-inter, sans-serif)" }}>El dueño del grupo paga. Los miembros entran gratis.</p>
       </motion.div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: 8 }}>
-        {plans.map(({ name, price, period, highlight, color, desc, features, cta }, i) => (
+        {plans.map(({ tierKey, name, price, period, highlight, color, desc, features }, i) => (
           <motion.div key={name} initial={{ opacity: 0, y: 32 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ delay: i * 0.1, duration: 0.6 }}
             style={{ background: highlight ? "rgba(239,200,139,0.04)" : CARD, border: `1px solid ${highlight ? "rgba(239,200,139,0.2)" : "rgba(255,255,255,0.05)"}`, borderRadius: 24, padding: "36px 32px", display: "flex", flexDirection: "column", position: "relative", boxShadow: highlight ? "0 0 80px rgba(239,200,139,0.05)" : "none" }}>
             {highlight && <div style={{ position: "absolute", top: -14, left: 32, background: GOLD, color: "#1a1000", fontSize: 10, fontWeight: 700, borderRadius: 100, padding: "5px 14px", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-inter, sans-serif)" }}>Más popular</div>}
@@ -608,11 +619,24 @@ function Planes() {
                 </div>
               ))}
             </div>
-            <Link href="/login" style={{ display: "block", textAlign: "center", background: highlight ? GOLD : "rgba(255,255,255,0.06)", color: highlight ? "#1a1000" : FG, fontSize: 14, fontWeight: 600, borderRadius: 100, padding: "14px 24px", textDecoration: "none", border: highlight ? "none" : "1px solid rgba(255,255,255,0.08)", fontFamily: "var(--font-inter, sans-serif)", transition: "opacity 0.2s, transform 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.opacity = "0.85"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}>
-              {cta}
-            </Link>
+            {(() => {
+              const isPaid = tierKey !== "free";
+              const btnStyle: React.CSSProperties = { display: "block", textAlign: "center", background: highlight ? GOLD : "rgba(255,255,255,0.06)", color: highlight ? "#1a1000" : FG, fontSize: 14, fontWeight: 600, borderRadius: 100, padding: "14px 24px", textDecoration: "none", border: highlight ? "none" : "1px solid rgba(255,255,255,0.08)", fontFamily: "var(--font-inter, sans-serif)", transition: "opacity 0.2s, transform 0.2s" };
+              // En la app de tienda no enlazamos a la compra (políticas Apple/Google):
+              // los planes de pago se muestran informativos, sin CTA de pago.
+              if (native && isPaid) {
+                return <span style={{ ...btnStyle, background: "rgba(255,255,255,0.04)", color: MUTED, cursor: "default" }}>Disponible en la web</span>;
+              }
+              const href = isPaid ? `/membresia?tier=${tierKey}` : "/login";
+              const label = isPaid ? "Suscribirme" : "Empezar gratis";
+              return (
+                <Link href={href} style={btnStyle}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = "0.85"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}>
+                  {label}
+                </Link>
+              );
+            })()}
           </motion.div>
         ))}
       </div>

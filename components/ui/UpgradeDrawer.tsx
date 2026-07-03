@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { Crown, Check } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
+import { useIsNativeApp } from "@/lib/platform";
 
 interface UpgradeDrawerProps {
   open: boolean;
@@ -22,8 +24,8 @@ const ELITE_FEATURES = [
 ];
 
 function PlanOption({
-  name, price, color, features, highlight,
-}: { name: string; price: string; color: string; features: string[]; highlight?: boolean }) {
+  tierKey, name, price, color, features, highlight, native, onClose,
+}: { tierKey: "pro" | "elite"; name: string; price: string; color: string; features: string[]; highlight?: boolean; native: boolean; onClose: () => void }) {
   return (
     <div
       className="rounded-[16px] p-4 mb-2.5"
@@ -47,13 +49,21 @@ function PlanOption({
           </div>
         ))}
       </div>
-      {/* TODO Fase 8: enlazar a la landing / checkout. Por ahora placeholder. */}
-      <button
-        className="w-full rounded-pill py-2.5 text-[13px] font-medium"
-        style={{ background: color, color: "#1a1000" }}
-      >
-        Elegir {name}
-      </button>
+      {/* En la app de tienda no enlazamos a compra; en web va a /membresia. */}
+      {native ? (
+        <div className="w-full rounded-pill py-2.5 text-[13px] font-medium text-center" style={{ background: "var(--color-surface)", color: "var(--color-muted)", border: "1px solid var(--color-border)" }}>
+          Disponible en la web
+        </div>
+      ) : (
+        <Link
+          href={`/membresia?tier=${tierKey}`}
+          onClick={onClose}
+          className="block w-full rounded-pill py-2.5 text-[13px] font-medium text-center"
+          style={{ background: color, color: "#1a1000" }}
+        >
+          Elegir {name}
+        </Link>
+      )}
     </div>
   );
 }
@@ -65,6 +75,7 @@ export function UpgradeDrawer({
   title = "Estás en el plan Free",
   message = "Accede al plan Pro o Elite para mejorar y crear más grupos.",
 }: UpgradeDrawerProps) {
+  const native = useIsNativeApp();
   return (
     <Drawer open={open} onClose={onClose}>
       <div className="px-5 pb-8 pt-1">
@@ -76,11 +87,13 @@ export function UpgradeDrawer({
           <p className="text-[13px] text-[var(--color-muted)]">{message}</p>
         </div>
 
-        <PlanOption name="Pro" price="$99 MXN/mes" color="#CF5C36" features={PRO_FEATURES} />
-        <PlanOption name="Elite" price="$199 MXN/mes" color="#EFC88B" features={ELITE_FEATURES} highlight />
+        <PlanOption tierKey="pro" name="Pro" price="$99 MXN/mes" color="#CF5C36" features={PRO_FEATURES} native={native} onClose={onClose} />
+        <PlanOption tierKey="elite" name="Elite" price="$199 MXN/mes" color="#EFC88B" features={ELITE_FEATURES} highlight native={native} onClose={onClose} />
 
         <p className="text-[11px] text-[var(--color-muted)] text-center mt-3">
-          El pago de planes estará disponible muy pronto.
+          {native
+            ? "La suscripción se gestiona desde olympodynami.com en tu navegador."
+            : "Pago seguro con Stripe · cancela cuando quieras."}
         </p>
       </div>
     </Drawer>
