@@ -29,8 +29,17 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://www.olympodynami.com"),
   title: "Olympo",
+  applicationName: "Olympo",
   description: "Compite con tus amigos para cumplir metas de gimnasio y dieta",
   manifest: "/manifest.json",
+  formatDetection: { telephone: false },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

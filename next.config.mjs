@@ -7,6 +7,10 @@ const withPWA = withPWAInit({
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
   disable: process.env.NODE_ENV === "development",
+  // Página de respaldo cuando el usuario navega sin conexión.
+  fallbacks: {
+    document: "/offline",
+  },
   workboxOptions: {
     disableDevLogs: true,
     importScripts: ["/sw-custom.js"],
