@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { compressImage } from "./useProfile";
 import { useUser } from "./useUser";
+import { uploadWithRetry, type CheckEvidence, type ExtraFiles } from "./useChecklist";
 
 export interface MyAuditEntry {
   audit_id: string;
@@ -141,6 +142,9 @@ export function useResubmitCheck() {
       goalId,
       file,
       oldEvidencePath,
+      evidence,
+      extraFiles,
+      oldEvidence,
     }: {
       checkId: string;
       checkDate: string;
@@ -148,23 +152,62 @@ export function useResubmitCheck() {
       goalId?: string | null;
       file: File;
       oldEvidencePath?: string | null;
+      evidence?: CheckEvidence;
+      extraFiles?: ExtraFiles;
+      oldEvidence?: CheckEvidence | null;
     }) => {
       if (!user) throw new Error("Sin sesión");
 
-      const compressed = await compressImage(file, 1080);
-      const path = `${user.id}/${checkDate}/${kind}${goalId ? `-${goalId}` : ""}_${Date.now()}.jpg`;
-
       const supabase = createClient();
-      const { error: uploadError } = await supabase.storage
-        .from("evidencias")
-        .upload(path, compressed);
+      const evidBucket = supabase.storage.from("evidencias");
+      const base = `${user.id}/${checkDate}/${kind}${goalId ? `-${goalId}` : ""}_${Date.now()}`;
 
-      if (uploadError) throw uploadError;
+      // Foto/video principal (meta de solo-video sube el video directo)
+      const isVideoMain = file.type.startsWith("video");
+      let path: string;
+      if (isVideoMain) {
+        const ext = file.name.split(".").pop() || "mp4";
+        path = `${base}.${ext}`;
+        await uploadWithRetry(evidBucket, path, file);
+      } else {
+        const compressed = await compressImage(file, 1080);
+        path = `${base}.jpg`;
+        await uploadWithRetry(evidBucket, path, compressed);
+      }
+
+      // Evidencia rica: sube archivos extra (audio, video, foto "después") si
+      // la meta tiene módulos, igual que en la primera subida.
+      const richEvidence: CheckEvidence = { ...(evidence ?? {}) };
+      if (extraFiles?.after) {
+        const afterPath = `${base}-after.jpg`;
+        const afterCompressed = await compressImage(extraFiles.after, 1080);
+        await uploadWithRetry(evidBucket, afterPath, afterCompressed);
+        richEvidence.after_path = afterPath;
+      }
+      if (extraFiles?.audio) {
+        const ext = extraFiles.audio.name.split(".").pop() || "webm";
+        const audioPath = `${base}-audio.${ext}`;
+        await uploadWithRetry(evidBucket, audioPath, extraFiles.audio);
+        richEvidence.audio_path = audioPath;
+      }
+      if (extraFiles?.video) {
+        const ext = extraFiles.video.name.split(".").pop() || "mp4";
+        const videoPath = `${base}-video.${ext}`;
+        await uploadWithRetry(evidBucket, videoPath, extraFiles.video);
+        richEvidence.video_path = videoPath;
+      }
+      const finalEvidence = Object.keys(richEvidence).length > 0 ? richEvidence : null;
 
       const res = await fetch("/api/checks/resubmit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ checkId, evidencePath: path, oldEvidencePath: oldEvidencePath ?? null }),
+        body: JSON.stringify({
+          checkId,
+          evidencePath: path,
+          oldEvidencePath: oldEvidencePath ?? null,
+          evidence: finalEvidence,
+          oldEvidence: oldEvidence ?? null,
+        }),
       });
 
       if (!res.ok) throw new Error("Error al reenviar evidencia");

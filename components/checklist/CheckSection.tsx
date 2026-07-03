@@ -88,7 +88,7 @@ function SortableCheckItem({
   goal: Goal;
   check?: DailyCheck;
   onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
-  onResubmit?: (file: File) => Promise<void>;
+  onResubmit?: (file: File, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
   onEdit: () => void;
   onDetail: () => void;
   loading?: boolean;
@@ -335,7 +335,7 @@ interface DietSectionProps {
   goals: Goal[];
   checks: DailyCheck[];
   onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
-  onResubmit?: (check: DailyCheck, file: File) => Promise<void>;
+  onResubmit?: (check: DailyCheck, file: File, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
   onAdd: () => void;
   onEdit: (goal: Goal) => void;
   onDetail: (goal: Goal, check: DailyCheck) => void;
@@ -437,7 +437,7 @@ export function DietSection({ goals, checks, onMark, onResubmit, onAdd, onEdit, 
                         goal={goal}
                         check={check}
                         onMark={onMark}
-                        onResubmit={check && onResubmit ? (file) => onResubmit(check, file) : undefined}
+                        onResubmit={check && onResubmit ? (file, evidence, extraFiles) => onResubmit(check, file, evidence, extraFiles) : undefined}
                         onEdit={() => onEdit(goal)}
                         onDetail={() => check && onDetail(goal, check)}
                         loading={loading}
@@ -476,7 +476,7 @@ interface GoalsSectionProps {
   goals: Goal[];
   checks: DailyCheck[];
   onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
-  onResubmit?: (check: DailyCheck, file: File) => Promise<void>;
+  onResubmit?: (check: DailyCheck, file: File, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
   onAdd: () => void;
   onEdit: (goal: Goal) => void;
   onDetail: (goal: Goal, check: DailyCheck) => void;
@@ -573,7 +573,7 @@ export function GoalsSection({ goals, checks, onMark, onResubmit, onAdd, onEdit,
                         goal={goal}
                         check={check}
                         onMark={onMark}
-                        onResubmit={check && onResubmit ? (file) => onResubmit(check, file) : undefined}
+                        onResubmit={check && onResubmit ? (file, evidence, extraFiles) => onResubmit(check, file, evidence, extraFiles) : undefined}
                         onEdit={() => onEdit(goal)}
                         onDetail={() => check && onDetail(goal, check)}
                         loading={loading}

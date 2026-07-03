@@ -9,7 +9,7 @@ import { compressImage } from "./useProfile";
 // ── Upload helper con reintentos ──────────────────────────────────────────
 // Reintenta la subida hasta maxTries veces con pausa creciente antes de fallar.
 // Evita errores transitorios de red o de acceso a cámara.
-async function uploadWithRetry(
+export async function uploadWithRetry(
   bucket: ReturnType<ReturnType<typeof createClient>["storage"]["from"]>,
   path: string,
   data: File | Blob,

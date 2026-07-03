@@ -18,6 +18,7 @@ import {
   useDateChecks,
   useChecklistRealtime,
   todayStr,
+  hasModules,
 } from "@/lib/hooks/useChecklist";
 import type { Goal, DailyCheck, GoalKind, CategoryView, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { useResubmitCheck } from "@/lib/hooks/useMyAudits";
@@ -27,6 +28,7 @@ import { StatsSection } from "@/components/checklist/StatsSection";
 import { GymSection, DietSection, GoalsSection } from "@/components/checklist/CheckSection";
 import { GoalDrawer } from "@/components/checklist/GoalDrawer";
 import { CheckDetailDrawer } from "@/components/checklist/CheckDetailDrawer";
+import { CompleteGoalDrawer } from "@/components/checklist/CompleteGoalDrawer";
 import { ChallengeTodayCard } from "@/components/checklist/ChallengeTodayCard";
 
 // ── Past-day read-only view ────────────────────────────────────────────────
@@ -72,13 +74,15 @@ function StatusBadge({ status }: { status?: string }) {
   );
 }
 
-type ResubmitFn = (check: DailyCheck, file: File) => Promise<void>;
+type ResubmitFn = (check: DailyCheck, file: File, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
 
-function ResubmitButton({ check, onResubmit }: { check: DailyCheck; onResubmit: ResubmitFn }) {
+function ResubmitButton({ check, goal, onResubmit }: { check: DailyCheck; goal?: Goal | null; onResubmit: ResubmitFn }) {
   const [uploading, setUploading] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const goalHasModules = !!goal && hasModules(goal);
 
   function handleFileSelected(file: File) {
     setPendingFile(file);
@@ -94,10 +98,16 @@ function ResubmitButton({ check, onResubmit }: { check: DailyCheck; onResubmit: 
     finally { setUploading(false); setPendingFile(null); }
   }
 
+  async function handleRichSubmit(file: File, evidence: CheckEvidence, extraFiles?: ExtraFiles) {
+    setUploading(true);
+    try { await onResubmit(check, file, evidence, extraFiles); }
+    finally { setUploading(false); }
+  }
+
   return (
     <>
       <button
-        onClick={() => setSourceOpen(true)}
+        onClick={() => (goalHasModules ? setCompleteOpen(true) : setSourceOpen(true))}
         disabled={uploading}
         className="w-6 h-6 rounded-full flex items-center justify-center disabled:opacity-50"
         style={{
@@ -108,6 +118,15 @@ function ResubmitButton({ check, onResubmit }: { check: DailyCheck; onResubmit: 
       >
         <RotateCcw size={9} strokeWidth={1.5} style={{ color: "var(--color-warm)" }} />
       </button>
+
+      {goal && goalHasModules && (
+        <CompleteGoalDrawer
+          open={completeOpen}
+          onClose={() => setCompleteOpen(false)}
+          goal={goal}
+          onSubmit={handleRichSubmit}
+        />
+      )}
 
       <PhotoSourceDrawer
         open={sourceOpen}
@@ -188,7 +207,7 @@ function PastDayView({
                 <span className="text-[13px] text-[var(--color-fg)]">{g.title}</span>
                 <div className="flex items-center gap-2">
                   {canResubmit && check?.status === "rejected" && onResubmit && (
-                    <ResubmitButton check={check} onResubmit={onResubmit} />
+                    <ResubmitButton check={check} goal={g} onResubmit={onResubmit} />
                   )}
                   <StatusBadge status={check?.status} />
                 </div>
@@ -212,7 +231,7 @@ function PastDayView({
                 <span className="text-[13px] text-[var(--color-fg)]">{g.title}</span>
                 <div className="flex items-center gap-2">
                   {canResubmit && check?.status === "rejected" && onResubmit && (
-                    <ResubmitButton check={check} onResubmit={onResubmit} />
+                    <ResubmitButton check={check} goal={g} onResubmit={onResubmit} />
                   )}
                   <StatusBadge status={check?.status} />
                 </div>
@@ -322,7 +341,7 @@ function ChecklistPageInner() {
     await markCheck.mutateAsync({ file, kind, goalId, evidence, extraFiles });
   }
 
-  async function handleResubmit(check: DailyCheck, file: File): Promise<void> {
+  async function handleResubmit(check: DailyCheck, file: File, evidence?: CheckEvidence, extraFiles?: ExtraFiles): Promise<void> {
     await resubmitCheck.mutateAsync({
       checkId: check.id,
       checkDate: check.check_date,
@@ -330,6 +349,9 @@ function ChecklistPageInner() {
       goalId: check.goal_id,
       file,
       oldEvidencePath: check.evidence_path,
+      evidence,
+      extraFiles,
+      oldEvidence: check.evidence,
     });
   }
 
@@ -445,7 +467,7 @@ function ChecklistPageInner() {
         check={detailCheck}
         onClose={() => setDetailOpen(false)}
         onReplace={handleMark}
-        onResubmit={detailCheck ? (file) => handleResubmit(detailCheck, file) : undefined}
+        onResubmit={detailCheck ? (file, evidence, extraFiles) => handleResubmit(detailCheck, file, evidence, extraFiles) : undefined}
       />
     </>
   );

@@ -14,7 +14,13 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await authClient.auth.getUser();
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const { checkId, evidencePath, oldEvidencePath } = await req.json() as { checkId: string; evidencePath: string; oldEvidencePath?: string | null };
+  const { checkId, evidencePath, oldEvidencePath, evidence, oldEvidence } = await req.json() as {
+    checkId: string;
+    evidencePath: string;
+    oldEvidencePath?: string | null;
+    evidence?: Record<string, unknown> | null;
+    oldEvidence?: Record<string, unknown> | null;
+  };
   if (!checkId || !evidencePath) {
     return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 });
   }
@@ -27,19 +33,30 @@ export async function POST(req: NextRequest) {
   // Delete previous audit votes so the check returns to a clean pending state
   await admin.from("audits").delete().eq("check_id", checkId);
 
-  // Update check: reset to pending with new evidence
+  // Update check: reset to pending with new evidence (foto/video principal +
+  // evidencia rica: audio, resumen, cronómetro, foto "después", si la meta
+  // tiene módulos).
   const { error: updateError } = await admin
     .from("daily_checks")
-    .update({ status: "pending", evidence_path: evidencePath })
+    .update({ status: "pending", evidence_path: evidencePath, evidence: evidence ?? null })
     .eq("id", checkId)
     .eq("user_id", user.id);
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
 
-  // Delete old storage file (best-effort: different path = accumulated timestamp files)
-  if (oldEvidencePath && oldEvidencePath !== evidencePath) {
-    await admin.storage.from("evidencias").remove([oldEvidencePath]);
-  }
+  // Delete old storage files (best-effort: different path = accumulated files)
+  const toRemove: string[] = [];
+  if (oldEvidencePath && oldEvidencePath !== evidencePath) toRemove.push(oldEvidencePath);
+  const oldAudio = oldEvidence?.audio_path as string | undefined;
+  const oldVideo = oldEvidence?.video_path as string | undefined;
+  const oldAfter = oldEvidence?.after_path as string | undefined;
+  const newAudio = evidence?.audio_path as string | undefined;
+  const newVideo = evidence?.video_path as string | undefined;
+  const newAfter = evidence?.after_path as string | undefined;
+  if (oldAudio && oldAudio !== newAudio) toRemove.push(oldAudio);
+  if (oldVideo && oldVideo !== newVideo) toRemove.push(oldVideo);
+  if (oldAfter && oldAfter !== newAfter) toRemove.push(oldAfter);
+  if (toRemove.length) await admin.storage.from("evidencias").remove(toRemove);
 
   // Find the most recent auditor for this check
   type AuditRow = { reviewer_id: string };

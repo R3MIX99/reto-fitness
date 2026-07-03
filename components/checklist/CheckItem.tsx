@@ -13,7 +13,7 @@ interface CheckItemProps {
   goal: Goal;
   check?: DailyCheck;
   onMark: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
-  onResubmit?: (file: File) => Promise<void>;
+  onResubmit?: (file: File, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
   onEdit?: () => void;
   onDetail?: () => void;
   loading?: boolean;
@@ -29,21 +29,35 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [completeIsResubmit, setCompleteIsResubmit] = useState(false);
   const [isResubmit, setIsResubmit] = useState(false);
   const [progressPhase, setProgressPhase] = useState<"uploading" | "success" | null>(null);
+  const goalHasModules = hasModules(goal);
 
   // Meta personalizable (con módulos) → abre el flujo completo; si no, foto directa.
   function startCapture() {
     setError(null);
-    if (hasModules(goal)) setCompleteOpen(true);
+    if (goalHasModules) { setCompleteIsResubmit(false); setCompleteOpen(true); }
     else inputRef.current?.click();
+  }
+
+  // Volver a subir (rechazada): mismo flujo completo si la meta tiene módulos,
+  // para poder rehacer audio/resumen/cronómetro, no solo la foto.
+  function startResubmit() {
+    setError(null);
+    if (goalHasModules) { setCompleteIsResubmit(true); setCompleteOpen(true); }
+    else setSourceOpen(true);
   }
 
   async function handleRichSubmit(file: File, evidence: CheckEvidence, extraFiles?: ExtraFiles) {
     setProgressPhase("uploading");
     const start = Date.now();
     try {
-      await onMark(file, goal.kind, goal.id, evidence, extraFiles);
+      if (completeIsResubmit && onResubmit) {
+        await onResubmit(file, evidence, extraFiles);
+      } else {
+        await onMark(file, goal.kind, goal.id, evidence, extraFiles);
+      }
     } catch (e) {
       setProgressPhase(null);
       throw e;
@@ -183,7 +197,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
               {/* Icon-only resubmit button (only for rejected with resubmit handler) */}
               {isRejected && onResubmit && (
                 <button
-                  onClick={() => setSourceOpen(true)}
+                  onClick={startResubmit}
                   disabled={uploading}
                   className="w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-50"
                   style={{

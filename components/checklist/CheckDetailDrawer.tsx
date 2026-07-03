@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { Drawer as VaulDrawer } from "vaul";
 import { Clock, CheckCircle2, X, Expand, XCircle, Timer, AlignLeft, Mic, Video, Bookmark, BookmarkCheck } from "lucide-react";
-import type { Goal, DailyCheck, GoalKind } from "@/lib/hooks/useChecklist";
-import { isVideoPath } from "@/lib/hooks/useChecklist";
+import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
+import { isVideoPath, hasModules } from "@/lib/hooks/useChecklist";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
+import { CompleteGoalDrawer } from "./CompleteGoalDrawer";
 import { AudioPlayer } from "@/components/ui/AudioPlayer";
 import { usePlan } from "@/lib/hooks/usePlan";
 import { useMemoryCheckIds, useSaveMemory, useRemoveMemory } from "@/lib/hooks/useMemories";
@@ -83,8 +84,8 @@ interface CheckDetailDrawerProps {
   goal: Goal | null;
   check: DailyCheck | null;
   onClose: () => void;
-  onReplace: (file: File, kind: GoalKind, goalId?: string) => Promise<void>;
-  onResubmit?: (file: File) => Promise<void>;
+  onReplace: (file: File, kind: GoalKind, goalId?: string, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
+  onResubmit?: (file: File, evidence?: CheckEvidence, extraFiles?: ExtraFiles) => Promise<void>;
 }
 
 export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onResubmit }: CheckDetailDrawerProps) {
@@ -94,6 +95,8 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const goalHasModules = !!goal && hasModules(goal);
 
   const signedUrl = useSignedUrl(check?.evidence_path ?? null);
   const afterUrl = useSignedUrl(check?.evidence?.after_path ?? null);
@@ -145,6 +148,29 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
     } finally {
       setReplacing(false);
       setPendingFile(null);
+    }
+  }
+
+  // Meta personalizable con módulos → abre el flujo completo (foto + audio +
+  // resumen + cronómetro), tanto al cambiar la foto (pendiente) como al volver
+  // a subir (rechazada), en vez de saltar directo a la cámara.
+  function openReplace() {
+    if (goalHasModules) setCompleteOpen(true);
+    else setSourceOpen(true);
+  }
+
+  async function handleRichSubmit(file: File, evidence: CheckEvidence, extraFiles?: ExtraFiles) {
+    if (!check) return;
+    setReplacing(true);
+    try {
+      if (isRejected && onResubmit) {
+        await onResubmit(file, evidence, extraFiles);
+      } else {
+        await onReplace(file, check.kind as GoalKind, check.goal_id ?? undefined, evidence, extraFiles);
+      }
+      onClose();
+    } finally {
+      setReplacing(false);
     }
   }
 
@@ -327,7 +353,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
                 </button>
               ) : isPending ? (
                 <button
-                  onClick={() => setSourceOpen(true)}
+                  onClick={openReplace}
                   disabled={replacing}
                   className="w-full flex items-center justify-center gap-2 text-[var(--color-fg)] rounded-full py-3 text-[14px] disabled:opacity-50"
                   style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
@@ -336,7 +362,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
                 </button>
               ) : isRejected ? (
                 <button
-                  onClick={() => setSourceOpen(true)}
+                  onClick={openReplace}
                   disabled={replacing}
                   className="w-full flex items-center justify-center gap-2 text-[var(--color-fg)] rounded-full py-3 text-[14px] disabled:opacity-50"
                   style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
@@ -352,6 +378,16 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
       {/* Fullscreen photo modal */}
       {photoOpen && photoUrl && (
         <PhotoModal url={photoUrl} onClose={() => setPhotoOpen(false)} />
+      )}
+
+      {/* Meta personalizable: foto + cronómetro + resumen + audio, etc. */}
+      {goal && goalHasModules && (
+        <CompleteGoalDrawer
+          open={completeOpen}
+          onClose={() => setCompleteOpen(false)}
+          goal={goal}
+          onSubmit={handleRichSubmit}
+        />
       )}
 
       {/* Source + preview drawers (always rendered so Vaul can animate out) */}
