@@ -31,6 +31,14 @@ export interface OfflineCheck {
   createdAt: number;
 }
 
+// Metadatos SIN blobs, para la UI (contador, badges, merge). Evita retener las
+// imágenes/videos en la caché de React Query (que tiene gcTime largo) → menos
+// presión de memoria.
+export type OfflineCheckMeta = Pick<
+  OfflineCheck,
+  "id" | "userId" | "kind" | "goalId" | "checkDate" | "evidence" | "isVideo" | "createdAt"
+>;
+
 export function slotId(kind: GoalKind, goalId: string | null | undefined, checkDate: string): string {
   return `${kind}|${goalId ?? ""}|${checkDate}`;
 }
@@ -42,6 +50,17 @@ export async function enqueueOfflineCheck(item: OfflineCheck): Promise<void> {
 export async function listOfflineChecks(): Promise<OfflineCheck[]> {
   const all = (await values(store)) as OfflineCheck[];
   return all.sort((a, b) => a.createdAt - b.createdAt);
+}
+
+// Igual que listOfflineChecks pero descartando los blobs, para que quien lo use
+// (la UI) no los mantenga vivos en memoria.
+export async function listOfflineCheckMetas(): Promise<OfflineCheckMeta[]> {
+  const all = (await values(store)) as OfflineCheck[];
+  return all
+    .map(({ id, userId, kind, goalId, checkDate, evidence, isVideo, createdAt }) => ({
+      id, userId, kind, goalId, checkDate, evidence, isVideo, createdAt,
+    }))
+    .sort((a, b) => a.createdAt - b.createdAt);
 }
 
 export async function getOfflineCheck(id: string): Promise<OfflineCheck | undefined> {

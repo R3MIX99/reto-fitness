@@ -1,15 +1,16 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { listOfflineChecks, type OfflineCheck } from "@/lib/offline/queue";
+import { listOfflineCheckMetas, type OfflineCheckMeta } from "@/lib/offline/queue";
 import { PENDING_SYNC, type DailyCheck } from "./useChecklist";
 
-// Lee la cola de evidencias guardadas sin conexión. Se refresca cuando se
-// encola algo nuevo o cuando el sync la vacía (vía invalidación de queryKey).
+// Lee la cola de evidencias guardadas sin conexión (solo metadatos, sin blobs,
+// para no retener las imágenes en memoria). Se refresca cuando se encola algo
+// nuevo o cuando el sync la vacía (vía invalidación de queryKey).
 export function useOfflineChecks() {
   return useQuery({
     queryKey: ["offlineChecks"],
-    queryFn: listOfflineChecks,
+    queryFn: listOfflineCheckMetas,
     staleTime: 0,
   });
 }
@@ -17,7 +18,7 @@ export function useOfflineChecks() {
 // Convierte un item de la cola en un DailyCheck sintético para renderizar la
 // meta como "completada · guardado sin conexión". La ruta de evidencia usa el
 // prefijo offline: para que la UI cargue la miniatura desde IndexedDB.
-export function offlineToDailyCheck(oc: OfflineCheck, groupId: string): DailyCheck {
+export function offlineToDailyCheck(oc: OfflineCheckMeta, groupId: string): DailyCheck {
   return {
     id: `offline-${oc.id}`,
     goal_id: oc.goalId,
