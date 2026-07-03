@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -260,9 +260,20 @@ export default function MisAuditoriasPage() {
   const audit = useAuditCheck();
 
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+  const [tab, setTab] = useState<"pending" | "reviewed">("pending");
 
   const resubmitted = entries.filter((e) => e.check_status === "pending");
   const reviewed = entries.filter((e) => e.check_status !== "pending");
+
+  // Al cargar, abre por defecto la pestaña que tenga algo por revisar.
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (isLoading || didInit.current) return;
+    didInit.current = true;
+    setTab(resubmitted.length > 0 ? "pending" : "reviewed");
+  }, [isLoading, resubmitted.length]);
+
+  const list = tab === "pending" ? resubmitted : reviewed;
 
   function handleAudit(entry: MyAuditEntry, approved: boolean, reason?: string) {
     audit.mutate({
@@ -307,52 +318,67 @@ export default function MisAuditoriasPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-5">
-          {/* Re-submitted section */}
-          {resubmitted.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <p className="text-[11px] text-[var(--color-warm)] uppercase tracking-wider font-medium">
-                  Nueva evidencia por revisar
-                </p>
-                <span className="w-5 h-5 rounded-full bg-[var(--color-warm)] flex items-center justify-center text-[10px] font-bold text-black">
+        <>
+          {/* Pills: Por revisar / Ya realizadas */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setTab("pending")}
+              className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors"
+              style={{
+                background: tab === "pending" ? "var(--color-warm)" : "var(--color-bg-card)",
+                color: tab === "pending" ? "#1a1000" : "var(--color-muted)",
+                border: `1px solid ${tab === "pending" ? "var(--color-warm)" : "var(--color-border)"}`,
+              }}
+            >
+              Por revisar
+              {resubmitted.length > 0 && (
+                <span
+                  className="min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-bold"
+                  style={{
+                    background: tab === "pending" ? "rgba(0,0,0,0.18)" : "var(--color-warm)",
+                    color: tab === "pending" ? "#1a1000" : "#1a1000",
+                  }}
+                >
                   {resubmitted.length}
                 </span>
-              </div>
-              <div className="space-y-3">
-                {resubmitted.map((entry) => (
-                  <AuditCard
-                    key={entry.check_id}
-                    entry={entry}
-                    pending={audit.isPending}
-                    onApprove={() => handleAudit(entry, true)}
-                    onReject={() => handleAudit(entry, false, rejectReason[entry.check_id])}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+              )}
+            </button>
+            <button
+              onClick={() => setTab("reviewed")}
+              className="rounded-full px-4 py-2 text-[13px] font-medium transition-colors"
+              style={{
+                background: tab === "reviewed" ? "var(--color-warm)" : "var(--color-bg-card)",
+                color: tab === "reviewed" ? "#1a1000" : "var(--color-muted)",
+                border: `1px solid ${tab === "reviewed" ? "var(--color-warm)" : "var(--color-border)"}`,
+              }}
+            >
+              Ya realizadas
+            </button>
+          </div>
 
-          {/* Reviewed section */}
-          {reviewed.length > 0 && (
-            <section>
-              <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider font-medium mb-3">
-                Ya revisadas
+          {/* Lista de la pestaña activa */}
+          {list.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2 text-center">
+              <p className="text-[13px] text-[var(--color-muted)]">
+                {tab === "pending"
+                  ? "No tienes evidencias por revisar de nuevo."
+                  : "Aún no has revisado ninguna evidencia."}
               </p>
-              <div className="space-y-3">
-                {reviewed.map((entry) => (
-                  <AuditCard
-                    key={entry.check_id}
-                    entry={entry}
-                    pending={audit.isPending}
-                    onApprove={() => handleAudit(entry, true)}
-                    onReject={() => handleAudit(entry, false, rejectReason[entry.check_id])}
-                  />
-                ))}
-              </div>
-            </section>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {list.map((entry) => (
+                <AuditCard
+                  key={entry.check_id}
+                  entry={entry}
+                  pending={audit.isPending}
+                  onApprove={() => handleAudit(entry, true)}
+                  onReject={() => handleAudit(entry, false, rejectReason[entry.check_id])}
+                />
+              ))}
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
