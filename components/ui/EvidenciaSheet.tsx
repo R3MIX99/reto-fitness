@@ -3,10 +3,11 @@
 import { useRef, useState, useEffect } from "react";
 import { Drawer } from "vaul";
 import { X, Dumbbell, UtensilsCrossed, Target, Camera, Lock, ChevronRight, Check } from "lucide-react";
-import type { Goal, GoalKind, DailyCheck } from "@/lib/hooks/useChecklist";
-import { useGoals, useMarkCheck, useTodayChecks, goalAppliesOn, frequencyLabel, todayStr } from "@/lib/hooks/useChecklist";
+import type { Goal, GoalKind, DailyCheck, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
+import { useGoals, useMarkCheck, useTodayChecks, goalAppliesOn, frequencyLabel, todayStr, hasModules } from "@/lib/hooks/useChecklist";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { EvidencePreviewDrawer } from "@/components/checklist/EvidencePreviewDrawer";
+import { CompleteGoalDrawer } from "@/components/checklist/CompleteGoalDrawer";
 import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
 
 // ── Sub-sheet para elegir bloque de dieta o meta ───────────────────────────
@@ -188,6 +189,11 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
   const pendingGoal = useRef<Goal | null>(null);
   const pendingKind = useRef<OptionKind | null>(null);
 
+  // Meta personalizable (con módulos: audio, resumen, cronómetro, etc.) →
+  // abre el mismo drawer completo que usa el checklist, en vez de ir directo
+  // a la cámara.
+  const [completeGoal, setCompleteGoal] = useState<Goal | null>(null);
+
   function handleOption(kind: OptionKind) {
     setUploadError(null);
     pendingKind.current = kind;
@@ -202,9 +208,37 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
 
   function handleGoalPicked(goal: Goal) {
     setPickerOpen(false);
+    if (hasModules(goal)) {
+      setTimeout(() => setCompleteGoal(goal), 300);
+      return;
+    }
     pendingKind.current = goal.kind;
     pendingGoal.current = goal;
     setTimeout(() => fileRef.current?.click(), 300);
+  }
+
+  async function handleRichSubmit(file: File, evidence: CheckEvidence, extraFiles?: ExtraFiles) {
+    if (!completeGoal) return;
+    onClose();
+    setProgressPhase("uploading");
+    const start = Date.now();
+    try {
+      await markCheck.mutateAsync({
+        file,
+        kind: completeGoal.kind,
+        goalId: completeGoal.id,
+        evidence,
+        extraFiles,
+      });
+      const elapsed = Date.now() - start;
+      if (elapsed < 1000) await new Promise((r) => setTimeout(r, 1000 - elapsed));
+      pendingGoal.current = completeGoal;
+      pendingKind.current = completeGoal.kind;
+      setProgressPhase("success");
+    } catch (e) {
+      setProgressPhase(null);
+      throw e;
+    }
   }
 
   function handleFileSelected(file: File) {
@@ -345,6 +379,16 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
           handleFileSelected(file);
         }}
       />
+
+      {/* Meta personalizable: foto + cronómetro + resumen + audio, etc. */}
+      {completeGoal && (
+        <CompleteGoalDrawer
+          open={!!completeGoal}
+          onClose={() => setCompleteGoal(null)}
+          goal={completeGoal}
+          onSubmit={handleRichSubmit}
+        />
+      )}
 
       {/* Preview antes de confirmar la subida */}
       <EvidencePreviewDrawer
