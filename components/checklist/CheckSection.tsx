@@ -239,10 +239,21 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
             <p className="text-[15px] font-medium truncate" style={{ color: isRejected ? "#ef4444" : undefined }}>
               Ejercicio de hoy
             </p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[12px] text-[var(--color-muted)]">{statusLabel}</span>
-              <PointsBadge earned={isDone && !isRejected ? 3 : 0} max={3} />
-            </div>
+            {isDone ? (
+              // Ya subido: el texto de estado es corto ("En revisión"…) → chip al lado.
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[12px] text-[var(--color-muted)]">{statusLabel}</span>
+                <PointsBadge earned={!isRejected ? 3 : 0} max={3} />
+              </div>
+            ) : (
+              // Sin foto: el texto es largo → chip debajo de todo el texto.
+              <div className="mt-0.5">
+                <span className="block text-[12px] text-[var(--color-muted)]">{statusLabel}</span>
+                <div className="mt-1.5">
+                  <PointsBadge earned={0} max={3} />
+                </div>
+              </div>
+            )}
           </button>
 
           {isSyncPending && (
