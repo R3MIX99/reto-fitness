@@ -386,25 +386,10 @@ export function useProfileStats() {
       }
       const lifetimePoints = Object.values(perDate).reduce((a, b) => a + b, 0);
 
-      // Best streak from daily_checks
-      type CheckRow = { check_date: string };
-      const { data: checks } = await supabase
-        .from("daily_checks")
-        .select("check_date")
-        .eq("user_id", user!.id) as unknown as { data: CheckRow[] | null };
-
-      const days = Array.from(new Set((checks ?? []).map((r) => r.check_date))).sort();
-      let bestStreak = 0, cur = 0;
-      for (let i = 0; i < days.length; i++) {
-        if (i === 0) { cur = 1; }
-        else {
-          const prev = new Date(days[i - 1] + "T12:00:00");
-          const curr = new Date(days[i] + "T12:00:00");
-          const diff = Math.round((curr.getTime() - prev.getTime()) / 86400000);
-          cur = diff === 1 ? cur + 1 : 1;
-        }
-        bestStreak = Math.max(bestStreak, cur);
-      }
+      // Mejor racha: días CONSECUTIVOS con día completo (gym + toda la dieta +
+      // todas las metas aplicables), no solo días con alguna evidencia.
+      const { data: bestStreakData } = await (supabase.rpc as Function)("get_best_streak");
+      const bestStreak = (bestStreakData as number | null) ?? 0;
 
       // Weeks won
       type WeekRow = { id: string; start_date: string; end_date: string; group_id: string };
