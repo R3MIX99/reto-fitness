@@ -23,6 +23,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { goalAppliesOn, frequencyLabel, todayStr, PENDING_SYNC } from "@/lib/hooks/useChecklist";
+import { compressImage } from "@/lib/hooks/useProfile";
 import { CheckItem } from "./CheckItem";
 
 // ¿Debe mostrarse como "programada" en el listado de hoy? Mensual sí (recurrente);
@@ -164,10 +165,13 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
     ? "En revisión"
     : "Sube una foto del entrenamiento";
 
-  function handleFileSelect(file: File, resubmit: boolean) {
+  async function handleFileSelect(file: File, resubmit: boolean) {
     setIsResubmit(resubmit);
-    setPendingFile(file);
     setSourceOpen(false);
+    // Comprimir al recibir la foto: preview y subida usan la versión de 1080px;
+    // el original de cámara (12MP+) se libera de inmediato (evita OOM).
+    const small = await compressImage(file, 1080);
+    setPendingFile(small);
     setPreviewOpen(true);
   }
 
@@ -321,7 +325,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
             const file = e.target.files?.[0];
             if (!file) return;
             e.target.value = "";
-            handleFileSelect(file, false);
+            void handleFileSelect(file, false);
           }}
         />
       </div>
@@ -339,7 +343,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
         <PhotoSourceDrawer
           open={sourceOpen}
           onClose={() => setSourceOpen(false)}
-          onFileSelected={(file) => handleFileSelect(file, true)}
+          onFileSelected={(file) => void handleFileSelect(file, true)}
         />
       )}
 

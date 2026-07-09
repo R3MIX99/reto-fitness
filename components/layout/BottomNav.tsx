@@ -3,8 +3,8 @@
 import { Home, CheckSquare, Plus, Users, Trophy } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { EvidenciaSheet } from "@/components/ui/EvidenciaSheet";
+import { useEffect, useState } from "react";
+import { EvidenciaSheet, consumeCaptureIntent } from "@/components/ui/EvidenciaSheet";
 
 const NAV_LINKS = [
   { href: "/dashboard", Icon: Home,        label: "Inicio"    },
@@ -19,6 +19,17 @@ const RIGHT = NAV_LINKS.slice(2);
 export function BottomNav() {
   const pathname   = usePathname();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [resumeNotice, setResumeNotice] = useState(false);
+
+  // Si la app se reinició mientras la cámara estaba abierta (Android mata la
+  // PWA en teléfonos con poca memoria), reabrimos el sheet para que el usuario
+  // reintente con un tap en lugar de quedarse en "no pasó nada".
+  useEffect(() => {
+    if (consumeCaptureIntent()) {
+      setResumeNotice(true);
+      setSheetOpen(true);
+    }
+  }, []);
 
   if (pathname === "/perfil" || pathname === "/notificaciones") return null;
 
@@ -68,7 +79,11 @@ export function BottomNav() {
         })}
       </nav>
 
-      <EvidenciaSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
+      <EvidenciaSheet
+        open={sheetOpen}
+        onClose={() => { setSheetOpen(false); setResumeNotice(false); }}
+        resumeNotice={resumeNotice}
+      />
     </>
   );
 }

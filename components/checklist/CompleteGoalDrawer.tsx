@@ -6,6 +6,7 @@ import { Camera, Timer, Play, Pause, RotateCcw, Check, Video } from "lucide-reac
 import { Drawer } from "@/components/ui/Drawer";
 import { AudioRecorder } from "@/components/ui/AudioRecorder";
 import type { Goal, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
+import { compressImage } from "@/lib/hooks/useProfile";
 
 function fmt(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -64,6 +65,11 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
   const [error, setError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLInputElement>(null);
+
+  // Comprimir al recibir cada foto: el preview y la subida usan la versión de
+  // 1080px y el original de cámara (12MP+) se libera de inmediato (evita OOM).
+  const pickPhoto = async (f: File) => setPhoto(await compressImage(f, 1080));
+  const pickAfter = async (f: File) => setAfter(await compressImage(f, 1080));
 
   useEffect(() => {
     if (open) { setPhoto(null); setAfter(null); setAudio(null); setVideo(null); setSummary(""); setElapsed(0); setRunning(false); setError(null); }
@@ -136,12 +142,12 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
           </div>
         ) : baMod ? (
           <div className="flex gap-2.5 mb-4">
-            <PhotoButton url={urls.photo ?? null} label="Antes" onPick={setPhoto} />
-            <PhotoButton url={urls.after ?? null} label="Después" onPick={setAfter} />
+            <PhotoButton url={urls.photo ?? null} label="Antes" onPick={(f) => void pickPhoto(f)} />
+            <PhotoButton url={urls.after ?? null} label="Después" onPick={(f) => void pickAfter(f)} />
           </div>
         ) : (
           <div className="flex mb-4">
-            <PhotoButton url={urls.photo ?? null} label="Tomar foto (instantánea)" onPick={setPhoto} />
+            <PhotoButton url={urls.photo ?? null} label="Tomar foto (instantánea)" onPick={(f) => void pickPhoto(f)} />
           </div>
         )}
 

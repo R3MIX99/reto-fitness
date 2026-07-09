@@ -7,6 +7,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { PhotoSourceDrawer } from "@/components/checklist/PhotoSourceDrawer";
 import { getInitials, type GroupMemberWithProfile } from "@/lib/hooks/useGroups";
 import { useAttendance, useSetAttendance, useSetMemory, useMemoryForOccurrence, signedMemoryUrl, type Challenge } from "@/lib/hooks/useChallenges";
+import { compressImage } from "@/lib/hooks/useProfile";
 
 interface Props {
   open: boolean;
@@ -103,7 +104,11 @@ export function AttendanceDrawer({ open, onClose, challenge, date, members }: Pr
         <PhotoSourceDrawer
           open={sourceOpen}
           onClose={() => setSourceOpen(false)}
-          onFileSelected={(f) => { setPhoto(f); setSourceOpen(false); }}
+          onFileSelected={(f) => {
+            setSourceOpen(false);
+            // Comprimir al recibir la foto (evita OOM con fotos de cámara grandes).
+            void compressImage(f, 1080).then(setPhoto);
+          }}
           title="Foto de recuerdo"
           subtitle="Toma una foto del momento o elige una de tu galería"
         />

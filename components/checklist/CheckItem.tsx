@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Camera, Check, Clock, Pencil, ChevronsUpDown, X, RotateCcw, CloudOff } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { hasModules, PENDING_SYNC } from "@/lib/hooks/useChecklist";
+import { compressImage } from "@/lib/hooks/useProfile";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
 import { CompleteGoalDrawer } from "./CompleteGoalDrawer";
@@ -75,10 +76,13 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
   // Guardado sin conexión: se ve completada, pendiente de sincronizar.
   const isSyncPending = status === PENDING_SYNC;
 
-  function handleFileSelect(file: File, resubmit: boolean) {
+  async function handleFileSelect(file: File, resubmit: boolean) {
     setIsResubmit(resubmit);
-    setPendingFile(file);
     setSourceOpen(false);
+    // Comprimir al recibir la foto: preview y subida usan la versión de 1080px;
+    // el original de cámara (12MP+) se libera de inmediato (evita OOM).
+    const small = await compressImage(file, 1080);
+    setPendingFile(small);
     setPreviewOpen(true);
   }
 
@@ -251,7 +255,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
               const file = e.target.files?.[0];
               if (!file) return;
               e.target.value = "";
-              handleFileSelect(file, false);
+              void handleFileSelect(file, false);
             }}
           />
         </div>
@@ -272,7 +276,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
         <PhotoSourceDrawer
           open={sourceOpen}
           onClose={() => setSourceOpen(false)}
-          onFileSelected={(file) => handleFileSelect(file, true)}
+          onFileSelected={(file) => void handleFileSelect(file, true)}
         />
       )}
 

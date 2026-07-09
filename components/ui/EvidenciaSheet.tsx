@@ -6,6 +6,34 @@ import { X, Dumbbell, UtensilsCrossed, Target, Camera, Lock, ChevronRight, Check
 import type { Goal, GoalKind, DailyCheck, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { useGoals, useMarkCheck, useTodayChecks, goalAppliesOn, frequencyLabel, todayStr, hasModules } from "@/lib/hooks/useChecklist";
 import { useMyGroups } from "@/lib/hooks/useGroups";
+import { compressImage } from "@/lib/hooks/useProfile";
+
+// ── Intención de captura (rescate tras reinicio) ───────────────────────────
+// En teléfonos con poca memoria, Android puede matar la PWA mientras la cámara
+// nativa está abierta. Guardamos la intención en sessionStorage (sobrevive a la
+// restauración de la pestaña) para reabrir el sheet al recargar y que el usuario
+// reintente con un tap, en vez de "no pasó nada".
+
+const CAPTURE_INTENT_KEY = "olympo-capture-intent";
+const CAPTURE_INTENT_TTL = 3 * 60_000; // 3 min
+
+function setCaptureIntent() {
+  try { sessionStorage.setItem(CAPTURE_INTENT_KEY, String(Date.now())); } catch { /* no-op */ }
+}
+function clearCaptureIntent() {
+  try { sessionStorage.removeItem(CAPTURE_INTENT_KEY); } catch { /* no-op */ }
+}
+// Lee y consume la intención pendiente (una sola vez).
+export function consumeCaptureIntent(): boolean {
+  try {
+    const raw = sessionStorage.getItem(CAPTURE_INTENT_KEY);
+    if (!raw) return false;
+    sessionStorage.removeItem(CAPTURE_INTENT_KEY);
+    return Date.now() - Number(raw) < CAPTURE_INTENT_TTL;
+  } catch {
+    return false;
+  }
+}
 import { EvidencePreviewDrawer } from "@/components/checklist/EvidencePreviewDrawer";
 import { CompleteGoalDrawer } from "@/components/checklist/CompleteGoalDrawer";
 import { UploadProgressModal } from "@/components/ui/UploadProgressModal";
@@ -145,6 +173,9 @@ function SuccessToast({ label, onDone }: { label: string; onDone: () => void }) 
 interface EvidenciaSheetProps {
   open: boolean;
   onClose: () => void;
+  // Se abrió automáticamente porque una captura anterior se interrumpió
+  // (la app se reinició con la cámara abierta).
+  resumeNotice?: boolean;
 }
 
 type OptionKind = "gym" | "diet" | "goal";
@@ -155,7 +186,7 @@ const OPTIONS: { kind: OptionKind; label: string; desc: string; color: string; t
   { kind: "goal", label: "Meta diaria", desc: "Elige la meta a registrar", color: "#EFC88B", tint: "rgba(239,200,139,.18)", Icon: Target           },
 ];
 
-export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
+export function EvidenciaSheet({ open, onClose, resumeNotice }: EvidenciaSheetProps) {
   const { data: groups = [] } = useMyGroups();
   const groupId = groups[0]?.id ?? null;
   const allGroupIds = groups.map((g) => g.id);
@@ -199,6 +230,7 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
     pendingKind.current = kind;
     pendingGoal.current = null;
     if (kind === "gym") {
+      setCaptureIntent();
       fileRef.current?.click();
     } else {
       setPickerKind(kind as GoalKind);
@@ -214,6 +246,7 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
     }
     pendingKind.current = goal.kind;
     pendingGoal.current = goal;
+    setCaptureIntent();
     setTimeout(() => fileRef.current?.click(), 300);
   }
 
@@ -241,8 +274,12 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
     }
   }
 
-  function handleFileSelected(file: File) {
-    setPendingFile(file);
+  async function handleFileSelected(file: File) {
+    // Comprimir INMEDIATAMENTE al recibir la foto: el preview y la subida usan
+    // la versión de ~1080px y el original de 12MP+ (50-400MB decodificado) se
+    // libera al instante. Evita el OOM en teléfonos con poca memoria.
+    const small = await compressImage(file, 1080);
+    setPendingFile(small);
     setPreviewOpen(true);
   }
 
@@ -300,6 +337,18 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
               <p className="text-[12px] text-[var(--color-muted)] mb-5">
                 ¿Qué cumpliste? Sube una foto como prueba.
               </p>
+
+              {resumeNotice && (
+                <div
+                  className="mb-4 rounded-[14px] px-3.5 py-2.5 flex items-start gap-2.5"
+                  style={{ background: "rgba(239,200,139,0.1)", border: "1px solid rgba(239,200,139,0.28)" }}
+                >
+                  <Camera size={15} strokeWidth={1.5} className="mt-0.5 shrink-0" style={{ color: "var(--color-warm)" }} />
+                  <p className="text-[12px] text-[var(--color-fg)]">
+                    Tu subida anterior se interrumpió. Toca la opción para volver a tomar la foto.
+                  </p>
+                </div>
+              )}
 
               {/* Options */}
               <div className="flex flex-col gap-2.5">
@@ -376,7 +425,8 @@ export function EvidenciaSheet({ open, onClose }: EvidenciaSheetProps) {
           const file = e.target.files?.[0];
           if (!file) return;
           e.target.value = "";
-          handleFileSelected(file);
+          clearCaptureIntent(); // la foto regresó: ya no hay captura interrumpida
+          void handleFileSelected(file);
         }}
       />
 

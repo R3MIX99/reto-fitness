@@ -22,6 +22,7 @@ import {
 } from "@/lib/hooks/useChecklist";
 import type { Goal, DailyCheck, GoalKind, CategoryView, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { useResubmitCheck } from "@/lib/hooks/useMyAudits";
+import { compressImage } from "@/lib/hooks/useProfile";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { useUser } from "@/lib/hooks/useUser";
 import { useOfflineChecks, offlineToDailyCheck } from "@/lib/hooks/useOfflineChecks";
@@ -86,9 +87,11 @@ function ResubmitButton({ check, goal, onResubmit }: { check: DailyCheck; goal?:
   const [completeOpen, setCompleteOpen] = useState(false);
   const goalHasModules = !!goal && hasModules(goal);
 
-  function handleFileSelected(file: File) {
-    setPendingFile(file);
+  async function handleFileSelected(file: File) {
     setSourceOpen(false);
+    // Comprimir al recibir la foto (evita OOM con fotos de cámara grandes).
+    const small = await compressImage(file, 1080);
+    setPendingFile(small);
     setPreviewOpen(true);
   }
 

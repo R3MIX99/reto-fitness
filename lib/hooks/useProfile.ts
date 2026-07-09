@@ -103,34 +103,75 @@ export function useProfile() {
   };
 }
 
+// Archivos que ya pasaron por compressImage → tamaño (maxSize) al que se
+// comprimieron. Permite comprimir UNA sola vez (al elegir/tomar la foto) y que
+// las llamadas posteriores (prepareEvidence) retornen al instante sin volver a
+// decodificar. Si se pide un tamaño MENOR (p. ej. avatar 400), sí recomprime.
+const precompressed = new WeakMap<File, number>();
+
+// Lee las dimensiones sin decodificar la imagen completa: el navegador conoce
+// naturalWidth/Height con solo parsear los headers (el decode ocurre al pintar,
+// y este <img> nunca se pinta).
+function readImageDimensions(file: File): Promise<{ w: number; h: number } | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    const done = (d: { w: number; h: number } | null) => {
+      URL.revokeObjectURL(url);
+      img.src = "";
+      resolve(d);
+    };
+    img.onload = () => done({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => done(null);
+    img.src = url;
+  });
+}
+
 // Comprime la imagen a máximo `maxSize` px en el lado más largo
 export async function compressImage(file: File, maxSize: number): Promise<File> {
   // Solo comprimimos imágenes; cualquier otra cosa (o un archivo raro) se
   // devuelve tal cual para no romper el flujo.
   if (!file.type.startsWith("image/")) return file;
+  // Ya comprimida a este tamaño (o menor) en un paso anterior → no repetir.
+  const prevSize = precompressed.get(file);
+  if (prevSize !== undefined && prevSize <= maxSize) return file;
 
-  // Vía preferida: createImageBitmap permite LIBERAR la imagen decodificada de
-  // inmediato con .close(), en vez de esperar al recolector de basura. Esto
-  // evita el pico de memoria (y el OOM) al comprimir varias fotos seguidas.
+  // Vía preferida: createImageBitmap CON resize integrado. Al pasar
+  // resizeWidth/resizeHeight, el downscale ocurre DURANTE la decodificación:
+  // el navegador nunca materializa el bitmap completo (una foto de cámara de
+  // 12-108MP son 50-400MB en RGBA — el pico que mataba la app en teléfonos
+  // con poca memoria). El resultado ocupa ~8MB máximo.
   if (typeof createImageBitmap === "function") {
     try {
-      const bitmap = await createImageBitmap(file);
-      const ratio = Math.min(maxSize / bitmap.width, maxSize / bitmap.height, 1);
-      const w = Math.max(1, Math.round(bitmap.width * ratio));
-      const h = Math.max(1, Math.round(bitmap.height * ratio));
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { bitmap.close(); return file; }
-      ctx.drawImage(bitmap, 0, 0, w, h);
-      bitmap.close(); // libera la imagen decodificada YA (no espera al GC)
-      const blob = await new Promise<Blob | null>((res) =>
-        canvas.toBlob(res, "image/jpeg", 0.85)
-      );
-      canvas.width = 0; // libera el buffer del canvas
-      canvas.height = 0;
-      return blob ? new File([blob], file.name, { type: "image/jpeg" }) : file;
+      const dims = await readImageDimensions(file);
+      if (dims) {
+        const ratio = Math.min(maxSize / dims.w, maxSize / dims.h, 1);
+        const w = Math.max(1, Math.round(dims.w * ratio));
+        const h = Math.max(1, Math.round(dims.h * ratio));
+        const bitmap = await createImageBitmap(file, {
+          resizeWidth: w,
+          resizeHeight: h,
+          resizeQuality: "medium",
+        });
+        const canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { bitmap.close(); return file; }
+        ctx.drawImage(bitmap, 0, 0);
+        bitmap.close(); // libera el bitmap YA (no espera al GC)
+        const blob = await new Promise<Blob | null>((res) =>
+          canvas.toBlob(res, "image/jpeg", 0.85)
+        );
+        canvas.width = 0; // libera el buffer del canvas
+        canvas.height = 0;
+        if (blob) {
+          const out = new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+          precompressed.set(out, maxSize);
+          return out;
+        }
+        return file;
+      }
     } catch {
       // Si falla (p. ej. sin memoria), caemos al método clásico o al original.
     }
@@ -155,7 +196,13 @@ export async function compressImage(file: File, maxSize: number): Promise<File> 
           cleanup();
           canvas.width = 0;
           canvas.height = 0;
-          resolve(blob ? new File([blob], file.name, { type: "image/jpeg" }) : file);
+          if (blob) {
+            const out = new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+            precompressed.set(out, maxSize);
+            resolve(out);
+          } else {
+            resolve(file);
+          }
         },
         "image/jpeg",
         0.85

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Camera } from "lucide-react";
 import { useRef, useState } from "react";
+import { compressImage } from "@/lib/hooks/useProfile";
 
 interface AvatarUploadProps {
   avatarUrl: string | null;
@@ -21,8 +22,11 @@ export function AvatarUpload({ avatarUrl, displayName, size = 74, onUpload }: Av
   const [preview, setPreview] = useState<string | null>(null);
 
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const raw = e.target.files?.[0];
+    if (!raw) return;
+
+    // Comprimir antes del preview: evita decodificar la foto completa (OOM).
+    const file = await compressImage(raw, 400);
 
     // Vista previa inmediata
     const objectUrl = URL.createObjectURL(file);
