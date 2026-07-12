@@ -165,14 +165,20 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
     ? "En revisión"
     : "Sube una foto del entrenamiento";
 
+  // Descartar compresiones obsoletas si el usuario cierra/reintenta mientras corre.
+  const captureGen = useRef(0);
+
   async function handleFileSelect(file: File, resubmit: boolean) {
     setIsResubmit(resubmit);
     setSourceOpen(false);
-    // Comprimir al recibir la foto: preview y subida usan la versión de 1080px;
-    // el original de cámara (12MP+) se libera de inmediato (evita OOM).
-    const small = await compressImage(file, 1080);
-    setPendingFile(small);
+    // Abrir el preview YA ("Preparando foto…") y comprimir en segundo plano:
+    // preview y subida usan la versión de 1080px; el original de cámara (12MP+)
+    // se libera de inmediato (evita OOM) sin que el preview se sienta lento.
+    const gen = ++captureGen.current;
+    setPendingFile(null);
     setPreviewOpen(true);
+    const small = await compressImage(file, 1080);
+    if (captureGen.current === gen) setPendingFile(small);
   }
 
   async function handleConfirm() {
@@ -200,6 +206,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
   }
 
   function handleRetake() {
+    captureGen.current++;
     setPreviewOpen(false);
     setPendingFile(null);
     if (isResubmit) {
@@ -336,7 +343,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
         uploading={uploading}
         onConfirm={handleConfirm}
         onRetake={handleRetake}
-        onClose={() => { setPreviewOpen(false); setPendingFile(null); }}
+        onClose={() => { captureGen.current++; setPreviewOpen(false); setPendingFile(null); }}
       />
 
       {onResubmit && (

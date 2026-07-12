@@ -15,16 +15,21 @@ function fmt(sec: number): string {
 }
 
 // Botón de foto instantánea (solo cámara)
-function PhotoButton({ url, label, onPick }: { url: string | null; label: string; onPick: (f: File) => void }) {
+function PhotoButton({ url, label, busy, onPick }: { url: string | null; label: string; busy?: boolean; onPick: (f: File) => void }) {
   const ref = useRef<HTMLInputElement>(null);
   return (
     <>
-      <button onClick={() => { if (ref.current) { ref.current.value = ""; ref.current.click(); } }}
+      <button onClick={() => { if (!busy && ref.current) { ref.current.value = ""; ref.current.click(); } }}
         className="flex-1 rounded-[14px] overflow-hidden flex items-center justify-center"
         style={{ background: "var(--color-surface)", border: "1px dashed var(--color-border)", minHeight: 120 }}>
         {url ? (
           <div className="relative w-full" style={{ height: 130 }}>
             <Image src={url} alt={label} fill className="object-cover" unoptimized />
+          </div>
+        ) : busy ? (
+          <div className="flex flex-col items-center gap-1.5 py-6 text-[var(--color-muted)]">
+            <div className="w-5 h-5 rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-warm)] animate-spin" />
+            <span className="text-[11px]">Preparando…</span>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-1.5 py-6 text-[var(--color-muted)]">
@@ -68,8 +73,16 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
 
   // Comprimir al recibir cada foto: el preview y la subida usan la versión de
   // 1080px y el original de cámara (12MP+) se libera de inmediato (evita OOM).
-  const pickPhoto = async (f: File) => setPhoto(await compressImage(f, 1080));
-  const pickAfter = async (f: File) => setAfter(await compressImage(f, 1080));
+  // Mientras corre, el botón muestra "Preparando…".
+  const [busySlot, setBusySlot] = useState<"photo" | "after" | null>(null);
+  const pickPhoto = async (f: File) => {
+    setBusySlot("photo");
+    try { setPhoto(await compressImage(f, 1080)); } finally { setBusySlot(null); }
+  };
+  const pickAfter = async (f: File) => {
+    setBusySlot("after");
+    try { setAfter(await compressImage(f, 1080)); } finally { setBusySlot(null); }
+  };
 
   useEffect(() => {
     if (open) { setPhoto(null); setAfter(null); setAudio(null); setVideo(null); setSummary(""); setElapsed(0); setRunning(false); setError(null); }
@@ -142,12 +155,12 @@ export function CompleteGoalDrawer({ open, onClose, goal, onSubmit }: {
           </div>
         ) : baMod ? (
           <div className="flex gap-2.5 mb-4">
-            <PhotoButton url={urls.photo ?? null} label="Antes" onPick={(f) => void pickPhoto(f)} />
-            <PhotoButton url={urls.after ?? null} label="Después" onPick={(f) => void pickAfter(f)} />
+            <PhotoButton url={urls.photo ?? null} label="Antes" busy={busySlot === "photo"} onPick={(f) => void pickPhoto(f)} />
+            <PhotoButton url={urls.after ?? null} label="Después" busy={busySlot === "after"} onPick={(f) => void pickAfter(f)} />
           </div>
         ) : (
           <div className="flex mb-4">
-            <PhotoButton url={urls.photo ?? null} label="Tomar foto (instantánea)" onPick={(f) => void pickPhoto(f)} />
+            <PhotoButton url={urls.photo ?? null} label="Tomar foto (instantánea)" busy={busySlot === "photo"} onPick={(f) => void pickPhoto(f)} />
           </div>
         )}
 

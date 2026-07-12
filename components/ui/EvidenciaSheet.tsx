@@ -274,13 +274,18 @@ export function EvidenciaSheet({ open, onClose, resumeNotice }: EvidenciaSheetPr
     }
   }
 
+  // Descartar compresiones obsoletas si el usuario cierra/reintenta mientras corre.
+  const captureGen = useRef(0);
+
   async function handleFileSelected(file: File) {
-    // Comprimir INMEDIATAMENTE al recibir la foto: el preview y la subida usan
-    // la versión de ~1080px y el original de 12MP+ (50-400MB decodificado) se
-    // libera al instante. Evita el OOM en teléfonos con poca memoria.
-    const small = await compressImage(file, 1080);
-    setPendingFile(small);
+    // Abrir el preview YA (con "Preparando foto…") y comprimir en segundo plano:
+    // la versión de ~1080px reemplaza al original de 12MP+ (50-400MB decodificado),
+    // que se libera al instante. Evita el OOM sin que el preview se sienta lento.
+    const gen = ++captureGen.current;
+    setPendingFile(null);
     setPreviewOpen(true);
+    const small = await compressImage(file, 1080);
+    if (captureGen.current === gen) setPendingFile(small);
   }
 
   async function handleConfirmUpload() {
@@ -446,8 +451,8 @@ export function EvidenciaSheet({ open, onClose, resumeNotice }: EvidenciaSheetPr
         open={previewOpen}
         uploading={false}
         onConfirm={handleConfirmUpload}
-        onRetake={() => { setPreviewOpen(false); setPendingFile(null); fileRef.current?.click(); }}
-        onClose={() => { setPreviewOpen(false); setPendingFile(null); }}
+        onRetake={() => { captureGen.current++; setPreviewOpen(false); setPendingFile(null); fileRef.current?.click(); }}
+        onClose={() => { captureGen.current++; setPreviewOpen(false); setPendingFile(null); }}
       />
 
       {/* Upload progress modal */}

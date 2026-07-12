@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check, Clock, X, Dumbbell, UtensilsCrossed, Target, RotateCcw } from "lucide-react";
 import { PhotoSourceDrawer } from "@/components/checklist/PhotoSourceDrawer";
@@ -87,12 +87,18 @@ function ResubmitButton({ check, goal, onResubmit }: { check: DailyCheck; goal?:
   const [completeOpen, setCompleteOpen] = useState(false);
   const goalHasModules = !!goal && hasModules(goal);
 
+  // Descartar compresiones obsoletas si el usuario cierra/reintenta mientras corre.
+  const captureGen = useRef(0);
+
   async function handleFileSelected(file: File) {
     setSourceOpen(false);
-    // Comprimir al recibir la foto (evita OOM con fotos de cámara grandes).
-    const small = await compressImage(file, 1080);
-    setPendingFile(small);
+    // Abrir el preview YA ("Preparando foto…") y comprimir en segundo plano
+    // (evita OOM con fotos de cámara grandes sin que el preview se sienta lento).
+    const gen = ++captureGen.current;
+    setPendingFile(null);
     setPreviewOpen(true);
+    const small = await compressImage(file, 1080);
+    if (captureGen.current === gen) setPendingFile(small);
   }
 
   async function handleConfirm() {
@@ -143,8 +149,8 @@ function ResubmitButton({ check, goal, onResubmit }: { check: DailyCheck; goal?:
         open={previewOpen}
         uploading={uploading}
         onConfirm={handleConfirm}
-        onRetake={() => { setPreviewOpen(false); setPendingFile(null); setSourceOpen(true); }}
-        onClose={() => { setPreviewOpen(false); setPendingFile(null); }}
+        onRetake={() => { captureGen.current++; setPreviewOpen(false); setPendingFile(null); setSourceOpen(true); }}
+        onClose={() => { captureGen.current++; setPreviewOpen(false); setPendingFile(null); }}
       />
     </>
   );
