@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Drawer as VaulDrawer } from "vaul";
 import { Clock, CheckCircle2, X, Expand, XCircle, Timer, AlignLeft, Mic, Video, Bookmark, BookmarkCheck } from "lucide-react";
 import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { isVideoPath, hasModules } from "@/lib/hooks/useChecklist";
+import { compressImage } from "@/lib/hooks/useProfile";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
@@ -122,13 +123,23 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
     setPhotoOpen(true);
   }
 
-  function handleFileSelected(file: File) {
-    setPendingFile(file);
+  // Descartar compresiones obsoletas si el usuario cierra/reintenta mientras corre.
+  const captureGen = useRef(0);
+
+  async function handleFileSelected(file: File) {
     setSourceOpen(false);
+    // Abrir el preview YA ("Preparando foto…") y comprimir en segundo plano:
+    // el original de cámara (12MP+, 50-400MB decodificado) se libera de
+    // inmediato en vez de quedar retenido hasta la subida (evita OOM).
+    const gen = ++captureGen.current;
+    setPendingFile(null);
     setPreviewOpen(true);
+    const small = await compressImage(file, 1080);
+    if (captureGen.current === gen) setPendingFile(small);
   }
 
   function handleRetake() {
+    captureGen.current++;
     setPreviewOpen(false);
     setPendingFile(null);
     setSourceOpen(true);
@@ -403,7 +414,7 @@ export function CheckDetailDrawer({ open, goal, check, onClose, onReplace, onRes
         uploading={replacing}
         onConfirm={handleConfirm}
         onRetake={handleRetake}
-        onClose={() => { setPreviewOpen(false); setPendingFile(null); }}
+        onClose={() => { captureGen.current++; setPreviewOpen(false); setPendingFile(null); }}
       />
     </>
   );
