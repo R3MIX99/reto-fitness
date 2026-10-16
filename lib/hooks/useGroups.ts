@@ -90,11 +90,13 @@ export function useMyGroups() {
     enabled: !!user,
     queryFn: async (): Promise<GroupWithMembers[]> => {
       const supabase = createClient();
-      // Get groups the user belongs to
+      // Grupos del usuario con sus miembros y perfiles en una sola consulta
+      // (antes: 1 por grupo + 1 por miembro). Se mantiene el paso previo para
+      // conservar el mismo orden de grupos (groups[0] es el grupo principal).
       type MembershipRow = { group_id: string };
-      type GroupRow = { id: string; name: string; invite_code: string; owner_id: string };
-      type MemberRow = { user_id: string; role: string };
       type ProfileRow = { full_name: string | null; avatar_url: string | null };
+      type MemberRow = { user_id: string; role: string; profiles: ProfileRow | ProfileRow[] | null };
+      type GroupRow = { id: string; name: string; invite_code: string; owner_id: string; group_members: MemberRow[] | null };
 
       const { data: memberships } = await supabase
         .from("group_members")
@@ -107,38 +109,23 @@ export function useMyGroups() {
 
       const { data: groups } = await supabase
         .from("groups")
-        .select("id, name, invite_code, owner_id")
+        .select("id, name, invite_code, owner_id, group_members(user_id, role, profiles(full_name, avatar_url))")
         .in("id", groupIds) as unknown as { data: GroupRow[] | null };
 
       if (!groups?.length) return [];
 
-      // For each group get members with profiles
-      const result: GroupWithMembers[] = await Promise.all(
-        groups.map(async (g) => {
-          const { data: members } = await supabase
-            .from("group_members")
-            .select("user_id, role")
-            .eq("group_id", g.id) as unknown as { data: MemberRow[] | null };
-
-          const memberProfiles: GroupMemberWithProfile[] = await Promise.all(
-            (members ?? []).map(async (m) => {
-              const { data: profile } = await supabase
-                .from("profiles")
-                .select("full_name, avatar_url")
-                .eq("id", m.user_id)
-                .single() as unknown as { data: ProfileRow | null };
-              return {
-                user_id: m.user_id,
-                role: m.role,
-                full_name: profile?.full_name ?? null,
-                avatar_url: profile?.avatar_url ?? null,
-              };
-            })
-          );
-
-          return { ...g, members: memberProfiles };
-        })
-      );
+      const result: GroupWithMembers[] = groups.map(({ group_members, ...g }) => ({
+        ...g,
+        members: (group_members ?? []).map((m): GroupMemberWithProfile => {
+          const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+          return {
+            user_id: m.user_id,
+            role: m.role,
+            full_name: profile?.full_name ?? null,
+            avatar_url: profile?.avatar_url ?? null,
+          };
+        }),
+      }));
 
       return result;
     },

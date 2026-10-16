@@ -26,8 +26,13 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresca la sesión (mantiene el token activo)
-  const { data: { user } } = await supabase.auth.getUser();
+  // Refresca la sesión (mantiene el token activo) y valida el JWT. Con llaves
+  // de firma asimétricas se verifica la firma localmente (sin ir a Supabase en
+  // cada navegación, que bloqueaba la pantalla con poca señal); con llaves
+  // legacy, getClaims cae a getUser. Aquí solo decide redirecciones: los datos
+  // siguen protegidos por RLS y las rutas de API validan con getUser().
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims ? { id: claimsData.claims.sub } : null;
 
   const path = request.nextUrl.pathname;
 
