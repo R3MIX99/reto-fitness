@@ -11,9 +11,48 @@ const withPWA = withPWAInit({
   fallbacks: {
     document: "/offline",
   },
+  // Los entries con el mismo cacheName que los de fábrica los sustituyen. Solo
+  // se les agrega networkTimeoutSeconds: con señal mala, "red primero" esperaba
+  // hasta que el navegador se rindiera; ahora a los 3 s sirve la copia guardada.
+  extendDefaultRuntimeCaching: true,
   workboxOptions: {
     disableDevLogs: true,
     importScripts: ["/sw-custom.js"],
+    runtimeCaching: [
+      {
+        urlPattern: ({ request, url: { pathname }, sameOrigin }) =>
+          request.headers.get("RSC") === "1" &&
+          request.headers.get("Next-Router-Prefetch") === "1" &&
+          sameOrigin &&
+          !pathname.startsWith("/api/"),
+        handler: "NetworkFirst",
+        options: {
+          cacheName: "pages-rsc-prefetch",
+          networkTimeoutSeconds: 3,
+          expiration: { maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 },
+        },
+      },
+      {
+        urlPattern: ({ request, url: { pathname }, sameOrigin }) =>
+          request.headers.get("RSC") === "1" && sameOrigin && !pathname.startsWith("/api/"),
+        handler: "NetworkFirst",
+        options: {
+          cacheName: "pages-rsc",
+          networkTimeoutSeconds: 3,
+          expiration: { maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 },
+        },
+      },
+      {
+        urlPattern: ({ url: { pathname }, sameOrigin }) =>
+          sameOrigin && !pathname.startsWith("/api/"),
+        handler: "NetworkFirst",
+        options: {
+          cacheName: "pages",
+          networkTimeoutSeconds: 3,
+          expiration: { maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 },
+        },
+      },
+    ],
   },
 });
 

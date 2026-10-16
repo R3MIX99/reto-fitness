@@ -16,6 +16,12 @@ const PERSISTED_QUERIES = new Set([
   "monthChecks",
   "dateChecks",
   "groups", // useMyGroups → ["groups", userId]
+  // Dashboard: se pinta al instante con los últimos datos y se actualiza en
+  // segundo plano (en vez de esperar la red con la pantalla vacía).
+  "profile",
+  "todayScore",
+  "streak",
+  "groupMembersGlobalLeaderboard",
   // "offlineChecks" NO se persiste aquí: su queryFn relee el store durable de
   // IndexedDB (la caché de Query no serializa Blobs).
 ]);

@@ -1,28 +1,42 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "./useUser";
 import type { Profile } from "@/types/database";
 
 export function useProfile() {
-  const { user } = useUser();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: userLoading } = useUser();
+  const qc = useQueryClient();
+  const profileKey = ["profile", user?.id] as const;
 
-  const fetchProfile = useCallback(async () => {
-    if (!user) { setLoading(false); return; }
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-    setProfile(data);
-    setLoading(false);
-  }, [user]);
+  // Como query (y persistida en IndexedDB): el perfil se comparte entre todos
+  // los componentes, no se vuelve a pedir en cada montaje y aparece al instante
+  // con el último valor guardado mientras se actualiza en segundo plano.
+  const query = useQuery({
+    queryKey: profileKey,
+    enabled: !!user,
+    queryFn: async (): Promise<Profile | null> => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user!.id)
+        .single();
+      return (data as Profile | null) ?? null;
+    },
+  });
 
-  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+  const profile = query.data ?? null;
+  const loading = userLoading || (!!user && query.isLoading);
+
+  function patchProfile(patch: Partial<Profile>) {
+    qc.setQueryData<Profile | null>(profileKey, (prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
+  async function fetchProfile(): Promise<void> {
+    await query.refetch();
+  }
 
   // Devuelve la URL del avatar: primero la del perfil (subida por el usuario),
   // si no existe usa la de Google OAuth
@@ -64,7 +78,7 @@ export function useProfile() {
       .update({ avatar_url: urlWithBust } as unknown as never)
       .eq("id", user.id);
 
-    setProfile((prev) => prev ? { ...prev, avatar_url: urlWithBust } : prev);
+    patchProfile({ avatar_url: urlWithBust });
     return urlWithBust;
   }
 
@@ -77,7 +91,7 @@ export function useProfile() {
       .update({ full_name: data.full_name, gender: data.gender, onboarded: true } as unknown as never)
       .eq("id", user.id) as unknown as { error: { message: string } | null };
     if (error) throw new Error(error.message);
-    setProfile((prev) => prev ? { ...prev, ...data, onboarded: true } : prev);
+    patchProfile({ ...data, onboarded: true } as Partial<Profile>);
   }
 
   // Marca la guía interactiva como completada (o saltada)
@@ -88,7 +102,7 @@ export function useProfile() {
       .from("profiles")
       .update({ tour_completed: true } as unknown as never)
       .eq("id", user.id);
-    setProfile((prev) => prev ? { ...prev, tour_completed: true } : prev);
+    patchProfile({ tour_completed: true });
   }
 
   return {
