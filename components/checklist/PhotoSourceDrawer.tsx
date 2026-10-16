@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { Drawer as VaulDrawer } from "vaul";
 import { Camera, ImageIcon } from "lucide-react";
+import { useCamera } from "@/lib/camera/CameraProvider";
 
 interface PhotoSourceDrawerProps {
   open: boolean;
@@ -13,8 +14,13 @@ interface PhotoSourceDrawerProps {
 }
 
 export function PhotoSourceDrawer({ open, onClose, onFileSelected, title = "Cambiar evidencia", subtitle = "¿Cómo quieres subir la nueva foto?" }: PhotoSourceDrawerProps) {
-  const cameraRef = useRef<HTMLInputElement>(null);
+  const { openCamera } = useCamera();
   const galleryRef = useRef<HTMLInputElement>(null);
+
+  async function handleCamera() {
+    const file = await openCamera();
+    if (file) onFileSelected(file);
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -48,7 +54,7 @@ export function PhotoSourceDrawer({ open, onClose, onFileSelected, title = "Camb
             <div className="flex flex-col gap-3">
               {/* Camera option */}
               <button
-                onClick={() => { if (cameraRef.current) { cameraRef.current.value = ""; cameraRef.current.click(); } }}
+                onClick={() => void handleCamera()}
                 className="flex items-center gap-3 rounded-[16px] px-4 py-4 text-left"
                 style={{ background: "var(--color-surface)" }}
               >
@@ -84,7 +90,6 @@ export function PhotoSourceDrawer({ open, onClose, onFileSelected, title = "Camb
             </div>
           </div>
 
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleChange} />
           <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={handleChange} />
         </VaulDrawer.Content>
       </VaulDrawer.Portal>

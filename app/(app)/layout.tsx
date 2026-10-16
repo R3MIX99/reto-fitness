@@ -6,9 +6,11 @@ import { GuidedTour } from "@/components/tour/GuidedTour";
 import { PlanWatcher } from "@/components/plan/PlanWatcher";
 import { OfflineSyncProvider } from "@/components/providers/OfflineSyncProvider";
 import { OfflineGuard } from "@/components/offline/OfflineGuard";
+import { CameraProvider } from "@/lib/camera/CameraProvider";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
+    <CameraProvider>
     <div className="relative min-h-screen bg-[var(--color-bg)] flex flex-col" data-vaul-drawer-wrapper>
       <OfflineSyncProvider />
       <OnboardingGate />
@@ -25,5 +27,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <GuidedTour />
     </div>
+    </CameraProvider>
   );
 }

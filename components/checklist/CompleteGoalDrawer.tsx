@@ -7,6 +7,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { AudioRecorder } from "@/components/ui/AudioRecorder";
 import type { Goal, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { compressImage } from "@/lib/hooks/useProfile";
+import { useCamera } from "@/lib/camera/CameraProvider";
 
 function fmt(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -16,10 +17,15 @@ function fmt(sec: number): string {
 
 // Botón de foto instantánea (solo cámara)
 function PhotoButton({ url, label, busy, onPick }: { url: string | null; label: string; busy?: boolean; onPick: (f: File) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
+  const { openCamera } = useCamera();
+  async function take() {
+    if (busy) return;
+    const f = await openCamera();
+    if (f) onPick(f);
+  }
   return (
     <>
-      <button onClick={() => { if (!busy && ref.current) { ref.current.value = ""; ref.current.click(); } }}
+      <button onClick={() => void take()}
         className="flex-1 rounded-[14px] overflow-hidden flex items-center justify-center"
         style={{ background: "var(--color-surface)", border: "1px dashed var(--color-border)", minHeight: 120 }}>
         {url ? (
@@ -38,8 +44,6 @@ function PhotoButton({ url, label, busy, onPick }: { url: string | null; label: 
           </div>
         )}
       </button>
-      <input ref={ref} type="file" accept="image/*" capture="environment" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); }} />
     </>
   );
 }

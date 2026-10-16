@@ -109,6 +109,12 @@ export function useProfile() {
 // decodificar. Si se pide un tamaño MENOR (p. ej. avatar 400), sí recomprime.
 const precompressed = new WeakMap<File, number>();
 
+// Para archivos que ya salen con el tamaño final (p. ej. la cámara integrada
+// los genera a 1080px): evita decodificarlos otra vez en compressImage.
+export function markCompressed(file: File, maxSize: number) {
+  precompressed.set(file, maxSize);
+}
+
 // Lee las dimensiones sin decodificar la imagen completa: el navegador conoce
 // naturalWidth/Height con solo parsear los headers (el decode ocurre al pintar,
 // y este <img> nunca se pinta).

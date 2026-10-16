@@ -24,6 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { goalAppliesOn, frequencyLabel, todayStr, PENDING_SYNC } from "@/lib/hooks/useChecklist";
 import { compressImage } from "@/lib/hooks/useProfile";
+import { useCamera } from "@/lib/camera/CameraProvider";
 import { CheckItem } from "./CheckItem";
 
 // ¿Debe mostrarse como "programada" en el listado de hoy? Mensual sí (recurrente);
@@ -132,7 +133,7 @@ interface GymSectionProps {
 }
 
 export function GymSection({ check, onMark, onResubmit, onDetail, loading }: GymSectionProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const { openCamera } = useCamera();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -181,6 +182,12 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
     if (captureGen.current === gen) setPendingFile(small);
   }
 
+  async function takePhoto() {
+    setUploadError(false);
+    const file = await openCamera();
+    if (file) void handleFileSelect(file, false);
+  }
+
   async function handleConfirm() {
     if (!pendingFile) return;
     setUploadError(false);
@@ -212,10 +219,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
     if (isResubmit) {
       setSourceOpen(true);
     } else {
-      if (inputRef.current) {
-        inputRef.current.value = "";
-        inputRef.current.click();
-      }
+      void takePhoto();
     }
   }
 
@@ -224,7 +228,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
       <div className="bg-[var(--color-bg-card)] rounded-[18px] p-4 mb-3">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => !isDone && !uploading && (setUploadError(false), inputRef.current?.click())}
+            onClick={() => !isDone && !uploading && void takePhoto()}
             disabled={isDone || loading || uploading}
             className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all"
             style={circleStyle}
@@ -308,7 +312,7 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
           )}
           {!isDone && (
             <button
-              onClick={() => { setUploadError(false); inputRef.current?.click(); }}
+              onClick={() => void takePhoto()}
               disabled={loading || uploading}
               className="flex-shrink-0 flex items-center gap-1.5 bg-accent text-white text-[12px] font-medium rounded-full px-3.5 py-2 transition-opacity disabled:opacity-50"
             >
@@ -322,19 +326,6 @@ export function GymSection({ check, onMark, onResubmit, onDetail, loading }: Gym
           <p className="mt-2 text-[11px] text-red-400">Error al subir. Intenta de nuevo.</p>
         )}
 
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            e.target.value = "";
-            void handleFileSelect(file, false);
-          }}
-        />
       </div>
 
       <EvidencePreviewDrawer

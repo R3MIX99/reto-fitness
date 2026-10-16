@@ -7,6 +7,7 @@ import type { Goal, GoalKind, DailyCheck, CheckEvidence, ExtraFiles } from "@/li
 import { useGoals, useMarkCheck, useTodayChecks, goalAppliesOn, frequencyLabel, todayStr, hasModules } from "@/lib/hooks/useChecklist";
 import { useMyGroups } from "@/lib/hooks/useGroups";
 import { compressImage } from "@/lib/hooks/useProfile";
+import { useCamera } from "@/lib/camera/CameraProvider";
 
 // ── Intención de captura (rescate tras reinicio) ───────────────────────────
 // En teléfonos con poca memoria, Android puede matar la PWA mientras la cámara
@@ -215,7 +216,16 @@ export function EvidenciaSheet({ open, onClose, resumeNotice }: EvidenciaSheetPr
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [progressPhase, setProgressPhase] = useState<"uploading" | "success" | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const { openCamera } = useCamera();
+
+  // Cámara integrada: la app no sale a segundo plano. La intención se conserva
+  // solo por si cae al respaldo de la cámara del sistema (ver CameraView).
+  async function takePhoto() {
+    setCaptureIntent();
+    const file = await openCamera();
+    clearCaptureIntent();
+    if (file) void handleFileSelected(file);
+  }
 
   const pendingGoal = useRef<Goal | null>(null);
   const pendingKind = useRef<OptionKind | null>(null);
@@ -230,8 +240,7 @@ export function EvidenciaSheet({ open, onClose, resumeNotice }: EvidenciaSheetPr
     pendingKind.current = kind;
     pendingGoal.current = null;
     if (kind === "gym") {
-      setCaptureIntent();
-      fileRef.current?.click();
+      void takePhoto();
     } else {
       setPickerKind(kind as GoalKind);
       setPickerOpen(true);
@@ -246,8 +255,7 @@ export function EvidenciaSheet({ open, onClose, resumeNotice }: EvidenciaSheetPr
     }
     pendingKind.current = goal.kind;
     pendingGoal.current = goal;
-    setCaptureIntent();
-    setTimeout(() => fileRef.current?.click(), 300);
+    setTimeout(() => void takePhoto(), 300);
   }
 
   async function handleRichSubmit(file: File, evidence: CheckEvidence, extraFiles?: ExtraFiles) {
@@ -419,22 +427,6 @@ export function EvidenciaSheet({ open, onClose, resumeNotice }: EvidenciaSheetPr
         onClose={() => setPickerOpen(false)}
       />
 
-      {/* Input oculto: primera subida siempre va directo a cámara */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          e.target.value = "";
-          clearCaptureIntent(); // la foto regresó: ya no hay captura interrumpida
-          void handleFileSelected(file);
-        }}
-      />
-
       {/* Meta personalizable: foto + cronómetro + resumen + audio, etc. */}
       {completeGoal && (
         <CompleteGoalDrawer
@@ -451,7 +443,7 @@ export function EvidenciaSheet({ open, onClose, resumeNotice }: EvidenciaSheetPr
         open={previewOpen}
         uploading={false}
         onConfirm={handleConfirmUpload}
-        onRetake={() => { captureGen.current++; setPreviewOpen(false); setPendingFile(null); fileRef.current?.click(); }}
+        onRetake={() => { captureGen.current++; setPreviewOpen(false); setPendingFile(null); void takePhoto(); }}
         onClose={() => { captureGen.current++; setPreviewOpen(false); setPendingFile(null); }}
       />
 

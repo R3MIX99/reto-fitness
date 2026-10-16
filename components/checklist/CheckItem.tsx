@@ -5,6 +5,7 @@ import { Camera, Check, Clock, Pencil, ChevronsUpDown, X, RotateCcw, CloudOff } 
 import type { Goal, DailyCheck, GoalKind, CheckEvidence, ExtraFiles } from "@/lib/hooks/useChecklist";
 import { hasModules, PENDING_SYNC } from "@/lib/hooks/useChecklist";
 import { compressImage } from "@/lib/hooks/useProfile";
+import { useCamera } from "@/lib/camera/CameraProvider";
 import { EvidencePreviewDrawer } from "./EvidencePreviewDrawer";
 import { PhotoSourceDrawer } from "./PhotoSourceDrawer";
 import { CompleteGoalDrawer } from "./CompleteGoalDrawer";
@@ -23,7 +24,7 @@ interface CheckItemProps {
 }
 
 export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, loading, reordering, dragHandleProps }: CheckItemProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const { openCamera } = useCamera();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -39,7 +40,12 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
   function startCapture() {
     setError(null);
     if (goalHasModules) { setCompleteIsResubmit(false); setCompleteOpen(true); }
-    else inputRef.current?.click();
+    else void takePhoto();
+  }
+
+  async function takePhoto() {
+    const file = await openCamera();
+    if (file) void handleFileSelect(file, false);
   }
 
   // Volver a subir (rechazada): mismo flujo completo si la meta tiene módulos,
@@ -123,10 +129,7 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
     if (isResubmit) {
       setSourceOpen(true);
     } else {
-      if (inputRef.current) {
-        inputRef.current.value = "";
-        inputRef.current.click();
-      }
+      void takePhoto();
     }
   }
 
@@ -251,20 +254,6 @@ export function CheckItem({ goal, check, onMark, onResubmit, onEdit, onDetail, l
             </div>
           )}
 
-          {/* Hidden input for initial capture */}
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              e.target.value = "";
-              void handleFileSelect(file, false);
-            }}
-          />
         </div>
       </div>
 
